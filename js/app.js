@@ -1,0 +1,1098 @@
+// ======================================================
+// PROTOTIPO VISUAL SIS-OPERACIONES GCM 12
+// Esta versión todavía no conecta con Google Sheets.
+// Luego reemplazaremos los usuarios y catálogos por Apps Script.
+// ======================================================
+
+// Usuarios temporales solo para probar el diseño.
+const usuariosDemo = [
+    {
+        id_usuario: "USR-001",
+        nombres: "Administrador",
+        apellidos: "Sistema",
+        grado: "N/A",
+        cargo: "Administrador del sistema",
+        unidad: "GCM 12",
+        correo: "admin@gcm12.local",
+        usuario: "0100000001",
+        password: "Admin123",
+        rol: "ADMIN",
+        estado: "ACTIVO"
+    },
+    {
+        id_usuario: "USR-002",
+        nombres: "Comandante",
+        apellidos: "Operaciones",
+        grado: "TNTE.",
+        cargo: "Comandante de operaciones",
+        unidad: "GCM 12",
+        correo: "operaciones@gcm12.local",
+        usuario: "123456",
+        password: "Oper123",
+        rol: "COMANDANTE_OPERACIONES",
+        estado: "ACTIVO"
+    },
+    {
+        id_usuario: "USR-003",
+        nombres: "Comandante",
+        apellidos: "Unidad",
+        grado: "MAYO.",
+        cargo: "Comandante de unidad",
+        unidad: "GCM 12",
+        correo: "comandante@gcm12.local",
+        usuario: "0100000003",
+        password: "Cmd123",
+        rol: "COMANDANTE_UNIDAD",
+        estado: "ACTIVO"
+    }
+];
+
+const STORAGE_USUARIOS = "gcm12_usuarios";
+
+let usuariosSistema = cargarUsuariosSistema();
+
+function cargarUsuariosSistema() {
+    const data = localStorage.getItem(STORAGE_USUARIOS);
+
+    if (data) {
+        try {
+            return JSON.parse(data);
+        } catch (error) {
+            console.error("Error al leer usuarios del localStorage:", error);
+        }
+    }
+
+    localStorage.setItem(STORAGE_USUARIOS, JSON.stringify(usuariosDemo));
+    return [...usuariosDemo];
+}
+
+function guardarUsuariosSistema() {
+    localStorage.setItem(STORAGE_USUARIOS, JSON.stringify(usuariosSistema));
+}
+
+
+
+const subtiposOperacion = {
+    "DEFENSA EXTERNA": [],
+    "AMBITO INTERNO": [
+        "CAMEX (Patrullaje y Controles militares)",
+        "Apoyo a PN en CRS (Seguridad)",
+        "CAMEX CRS Intervención",
+        "Reconocimiento ofensivo",
+        "Apoyo al CNE",
+        "Apoyo al ARCH",
+        "Apoyo al SENAE",
+        "Apoyo al ARCOM",
+        "Apoyo al SNGRE",
+        "Seguridad oleoducto, bloques y estaciones petroleras",
+        "Protección de altas autoridades nacionales e internacionales"
+    ]
+};
+
+const categoriasResultados = {
+    "Armas de fuego cortas": {
+        subcategorias: ["Pistola", "Revólver", "Otras armas cortas"],
+        unidades: ["unidades"]
+    },
+    "Armas de fuego largas": {
+        subcategorias: ["Fusil", "Carabina", "Escopeta", "RPG-7", "Francotirador", "Otras armas largas"],
+        unidades: ["unidades"]
+    },
+    "Armas blancas": {
+        subcategorias: ["Cuchillo", "Navaja", "Machete", "Puñal", "Otras armas blancas"],
+        unidades: ["unidades"]
+    },
+    "Armas de fuego no letales": {
+        subcategorias: ["Traumáticas"],
+        unidades: ["unidades"]
+    },
+    "Armas no letales": {
+        subcategorias: [
+            "Eléctrica",
+            "Aire comprimido",
+            "Gas pimienta",
+            "Toletes",
+            "Bastones",
+            "Otras armas no letales"
+        ],
+        unidades: ["unidades"]
+    },
+    "Municiones": {
+        subcategorias: ["9 mm", "5.56 mm", "7.62 mm", "Otras municiones"],
+        unidades: ["unidades"]
+    },
+    "Munición percutida": {
+        subcategorias: ["9 mm percutida", "5.56 mm percutida", "7.62 mm percutida", "Otra munición percutida"],
+        unidades: ["unidades"]
+    },
+    "Alimentadoras": {
+        subcategorias: ["Corto alcance", "Largo alcance", "Otra alimentadora"],
+        unidades: ["unidades"]
+    },
+    "Accesorios de armas": {
+        subcategorias: ["Accesorio de arma", "Otros accesorios de armas"],
+        unidades: ["unidades"]
+    },
+    "Explosivos": {
+        subcategorias: ["Cargas explosivas", "Cápsulas detonantes", "Mecha lenta", "Minas", "Otros explosivos"],
+        unidades: ["unidades", "metros", "kilogramos"]
+    },
+    "Granadas": {
+        subcategorias: ["Granada de mano", "Granada 40 mm", "Granada incendiaria", "Granada fragmentaria", "Otras granadas"],
+        unidades: ["unidades"]
+    },
+    "Dinero efectivo": {
+        subcategorias: ["Dólares americanos", "Otra moneda"],
+        unidades: ["dólares americanos"]
+    },
+    "Sustancias catalogadas sujetas a fiscalización": {
+        subcategorias: ["Clorhidrato de cocaína", "Marihuana", "Heroína", "Otras sustancias"],
+        unidades: ["gramos", "kilogramos"]
+    },
+    "Teléfonos celulares": {
+        subcategorias: ["Teléfono celular"],
+        unidades: ["unidades"]
+    },
+    "Accesorios celulares": {
+        subcategorias: ["Cargadores", "Cables USB", "Chips", "Audífonos", "Otros accesorios celulares"],
+        unidades: ["unidades"]
+    },
+    "Equipos de comunicación": {
+        subcategorias: ["Radios portátiles", "Radios móviles vehiculares", "Otros equipos de comunicación"],
+        unidades: ["unidades"]
+    },
+    "Equipos de videovigilancia": {
+        subcategorias: ["Cámaras", "Drones", "DVR", "Otros equipos de videovigilancia"],
+        unidades: ["unidades"]
+    },
+    "Equipos de red": {
+        subcategorias: ["Módem", "Router", "Cable de red", "Fibra óptica", "Antena satelital", "Otros equipos de red"],
+        unidades: ["unidades", "metros"]
+    },
+    "Equipamiento táctico": {
+        subcategorias: [
+            "Chalecos antibalas",
+            "Uniformes policiales",
+            "Uniformes militares",
+            "Otras prendas militares o policiales",
+            "Esposas",
+            "Otros equipos tácticos"
+        ],
+        unidades: ["unidades"]
+    },
+    "Combustible": {
+        subcategorias: ["Diésel", "Gasolina", "Derivados"],
+        unidades: ["galones", "litros"]
+    },
+    "Vehículos y maquinaria": {
+        subcategorias: ["Motocicleta", "Vehículo", "Tanquero", "Camión", "Maquinaria pesada", "Otros vehículos o maquinaria"],
+        unidades: ["unidades"]
+    },
+    "Personas aprehendidas": {
+        subcategorias: ["Persona aprehendida"],
+        unidades: ["personas"]
+    },
+    "Bebidas alcohólicas": {
+        subcategorias: ["Bebidas alcohólicas"],
+        unidades: ["litros"]
+    },
+    "Tabacos": {
+        subcategorias: ["Tabacos"],
+        unidades: ["unidades"]
+    },
+    "Otros objetos": {
+        subcategorias: ["Balanzas", "Pipas", "Herramientas eléctricas", "Herramientas manuales", "Documentación", "Otros objetos"],
+        unidades: ["unidades"]
+    }
+};
+const ubicacionCatalogo = {
+    provincia: "MANABÍ",
+    cantones: [
+        "PORTOVIEJO",
+        "ROCAFUERTE",
+        "JUNÍN",
+        "24 DE MAYO",
+        "SANTA ANA",
+        "PAJÁN",
+        "OLMEDO",
+        "PICHINCHA",
+        "MANTA"
+    ],
+    parroquiasPorCanton: {
+        "PORTOVIEJO": [
+            "12 DE MARZO",
+            "18 DE OCTUBRE",
+            "ANDRÉS DE VERA",
+            "COLÓN",
+            "FRANCISCO PACHECO",
+            "PICOAZÁ",
+            "PORTOVIEJO",
+            "SAN PABLO",
+            "SIMÓN BOLÍVAR",
+            "ABDÓN CALDERÓN",
+            "ALHAJUELA",
+            "CHIRIJOS",
+            "CRUCITA",
+            "PUEBLO NUEVO",
+            "RIOCHICO",
+            "SAN PLÁCIDO"
+        ],
+        "ROCAFUERTE": ["ROCAFUERTE"],
+        "JUNÍN": ["JUNÍN"],
+        "24 DE MAYO": [
+            "SUCRE",
+            "BELLAVISTA",
+            "NOBOA",
+            "ARQ. SIXTO DURÁN BALLÉN"
+        ],
+        "SANTA ANA": [
+            "SANTA ANA",
+            "LODANA",
+            "AYACUCHO",
+            "HONORATO VÁSQUEZ",
+            "LA UNIÓN",
+            "SAN PABLO DE PUEBLO NUEVO"
+        ],
+        "PAJÁN": [
+            "PAJÁN",
+            "CAMPOZANO",
+            "CASCOL",
+            "GUALE",
+            "LASCANO"
+        ],
+        "OLMEDO": ["OLMEDO"],
+        "PICHINCHA": [
+            "PICHINCHA",
+            "BARRAGANETE",
+            "SAN SEBASTIÁN"
+        ],
+        "MANTA": []
+    }
+};
+
+const menuPorRol = {
+    ADMIN: [
+        { id: "inicioPage", title: "Inicio", subtitle: "Panel general del administrador", label: "Inicio" },
+        { id: "usuariosPage", title: "Usuarios", subtitle: "Gestión de usuarios y roles", label: "Usuarios" },
+        { id: "registrarPage", title: "Registrar operación", subtitle: "Registro de operaciones militares", label: "Registrar operación" },
+        { id: "operacionesPage", title: "Operaciones", subtitle: "Administración general de operaciones", label: "Operaciones" },
+        { id: "dashboardPage", title: "Dashboard", subtitle: "Estadísticas operacionales", label: "Dashboard" },
+        { id: "reportesPage", title: "Reportes", subtitle: "Consulta y exportación de información", label: "Reportes" },
+        { id: "auditoriaPage", title: "Auditoría", subtitle: "Historial de acciones del sistema", label: "Auditoría" }
+    ],
+    COMANDANTE_OPERACIONES: [
+        { id: "inicioPage", title: "Inicio", subtitle: "Panel del comandante de operaciones", label: "Inicio" },
+        { id: "registrarPage", title: "Registrar operación", subtitle: "Registro de operaciones y resultados", label: "Registrar operación" },
+        { id: "misOperacionesPage", title: "Mis operaciones", subtitle: "Operaciones registradas por el usuario", label: "Mis operaciones" }
+    ],
+    COMANDANTE_UNIDAD: [
+        { id: "dashboardPage", title: "Dashboard", subtitle: "Estadísticas generales de operaciones", label: "Dashboard" },
+        { id: "reportesPage", title: "Reportes", subtitle: "Consulta y exportación de información", label: "Reportes" }
+    ]
+};
+
+let usuarioActual = null;
+let resultadosTemporales = [];
+
+// Elementos principales
+const loginView = document.getElementById("loginView");
+const appView = document.getElementById("appView");
+const loginForm = document.getElementById("loginForm");
+const loginError = document.getElementById("loginError");
+const logoutBtn = document.getElementById("logoutBtn");
+
+const menu = document.getElementById("menu");
+const pageTitle = document.getElementById("pageTitle");
+const pageSubtitle = document.getElementById("pageSubtitle");
+const userName = document.getElementById("userName");
+const userRole = document.getElementById("userRole");
+
+const welcomeTitle = document.getElementById("welcomeTitle");
+const welcomeText = document.getElementById("welcomeText");
+
+// Formulario operación
+const tipoOperacion = document.getElementById("tipoOperacion");
+const subTipoOperacion = document.getElementById("subTipoOperacion");
+const huboResultados = document.getElementById("huboResultados");
+const resultadosBlock = document.getElementById("resultadosBlock");
+
+const categoriaResultado = document.getElementById("categoriaResultado");
+const subcategoriaResultado = document.getElementById("subcategoriaResultado");
+const unidadMedida = document.getElementById("unidadMedida");
+const agregarResultadoBtn = document.getElementById("agregarResultadoBtn");
+const resultadosTableBody = document.getElementById("resultadosTableBody");
+
+const cantonSelect = document.getElementById("canton");
+const parroquiaSelect = document.getElementById("parroquia");
+const ubicacionBtn = document.getElementById("ubicacionBtn");
+const geoStatus = document.getElementById("geoStatus");
+
+const operacionForm = document.getElementById("operacionForm");
+const formMessage = document.getElementById("formMessage");
+
+document.addEventListener("DOMContentLoaded", () => {
+    cargarCategorias();
+    cargarCantones();
+    configurarFormularioMobile();
+    configurarGestionUsuarios();
+    renderUsuariosAdmin();
+});
+ubicacionBtn.addEventListener("click", () => {
+    const coordenadasInput = document.getElementById("coordenadas");
+
+    if (!navigator.geolocation) {
+        geoStatus.textContent = "Este navegador no permite obtener ubicación. Ingrese las coordenadas manualmente.";
+        geoStatus.style.color = "#B42318";
+        return;
+    }
+
+    if (!window.isSecureContext) {
+        geoStatus.textContent = "La ubicación solo funciona en HTTPS o localhost. Publique en Netlify o pruebe con Live Server.";
+        geoStatus.style.color = "#B42318";
+        return;
+    }
+
+    ubicacionBtn.disabled = true;
+    ubicacionBtn.textContent = "Obteniendo...";
+    geoStatus.textContent = "Obteniendo ubicación actual. Espere unos segundos...";
+    geoStatus.style.color = "#666272";
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const lat = position.coords.latitude.toFixed(6);
+            const lng = position.coords.longitude.toFixed(6);
+            const accuracy = Math.round(position.coords.accuracy || 0);
+
+            coordenadasInput.value = `${lat}, ${lng}`;
+
+            geoStatus.textContent = `Ubicación capturada correctamente. Precisión aproximada: ${accuracy} m.`;
+            geoStatus.style.color = "#2F6B3F";
+
+            ubicacionBtn.disabled = false;
+            ubicacionBtn.textContent = "Actualizar ubicación";
+        },
+        (error) => {
+            let mensaje = "No se pudo obtener la ubicación. Puede ingresarla manualmente.";
+
+            if (error.code === error.PERMISSION_DENIED) {
+                mensaje = "Permiso de ubicación denegado. Active la ubicación del navegador o ingrese las coordenadas manualmente.";
+            }
+
+            if (error.code === error.POSITION_UNAVAILABLE) {
+                mensaje = "Ubicación no disponible. Revise que el GPS esté activo o ingrese las coordenadas manualmente.";
+            }
+
+            if (error.code === error.TIMEOUT) {
+                mensaje = "El GPS tardó demasiado. Intente nuevamente o ingrese las coordenadas manualmente.";
+            }
+
+            geoStatus.textContent = mensaje;
+            geoStatus.style.color = "#B42318";
+
+            ubicacionBtn.disabled = false;
+            ubicacionBtn.textContent = "Usar ubicación";
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 25000,
+            maximumAge: 30000
+        }
+    );
+});
+// LOGIN
+loginForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const usuario = document.getElementById("usuario").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    const encontrado = usuariosSistema.find(
+        (u) => u.usuario === usuario && u.password === password
+    );
+
+    if (!encontrado) {
+        loginError.textContent = "Credenciales incorrectas.";
+        return;
+    }
+
+    if (encontrado.estado !== "ACTIVO") {
+        loginError.textContent = "Usuario inactivo o bloqueado.";
+        return;
+    }
+
+    usuarioActual = encontrado;
+    iniciarSistema();
+});
+
+logoutBtn.addEventListener("click", () => {
+    usuarioActual = null;
+    resultadosTemporales = [];
+
+    loginForm.reset();
+    loginError.textContent = "";
+
+    appView.classList.add("hidden");
+    loginView.classList.remove("hidden");
+});
+
+// INICIAR SISTEMA
+function iniciarSistema() {
+    loginView.classList.add("hidden");
+    appView.classList.remove("hidden");
+
+    const nombreCompleto = `${usuarioActual.grado} ${usuarioActual.nombres} ${usuarioActual.apellidos}`;
+
+    userName.textContent = nombreCompleto;
+    userRole.textContent = usuarioActual.rol;
+
+    document.getElementById("responsable").value = `${usuarioActual.nombres} ${usuarioActual.apellidos}`;
+    document.getElementById("gradoResponsable").value = usuarioActual.grado;
+
+    welcomeTitle.textContent = `Bienvenido, ${nombreCompleto}`;
+    welcomeText.textContent = `Rol asignado: ${usuarioActual.rol}.`;
+
+    construirMenu(usuarioActual.rol);
+}
+
+// MENÚ POR ROL
+function construirMenu(rol) {
+    menu.innerHTML = "";
+
+    const opciones = menuPorRol[rol] || [];
+
+    opciones.forEach((item, index) => {
+        const button = document.createElement("button");
+        button.textContent = item.label;
+        button.dataset.page = item.id;
+
+        if (index === 0) {
+            button.classList.add("active");
+            mostrarPagina(item.id, item.title, item.subtitle);
+        }
+
+        button.addEventListener("click", () => {
+            document.querySelectorAll(".menu button").forEach((b) => b.classList.remove("active"));
+            button.classList.add("active");
+            mostrarPagina(item.id, item.title, item.subtitle);
+        });
+
+        menu.appendChild(button);
+    });
+}
+
+function mostrarPagina(pageId, title, subtitle) {
+    document.querySelectorAll(".page").forEach((page) => {
+        page.classList.remove("active");
+    });
+
+    const page = document.getElementById(pageId);
+
+    if (page) {
+        page.classList.add("active");
+    }
+
+    pageTitle.textContent = title;
+    pageSubtitle.textContent = subtitle;
+}
+
+// SUBTIPOS POR TIPO DE OPERACIÓN
+tipoOperacion.addEventListener("change", () => {
+    const tipo = tipoOperacion.value;
+    const opciones = subtiposOperacion[tipo] || [];
+
+    subTipoOperacion.innerHTML = "";
+
+    if (opciones.length === 0) {
+        subTipoOperacion.innerHTML = `<option value="">Sin subtipos configurados</option>`;
+        return;
+    }
+
+    subTipoOperacion.innerHTML = `<option value="">Seleccione...</option>`;
+
+    opciones.forEach((subtipo) => {
+        const option = document.createElement("option");
+        option.value = subtipo;
+        option.textContent = subtipo;
+        subTipoOperacion.appendChild(option);
+    });
+});
+
+// MOSTRAR / OCULTAR RESULTADOS
+huboResultados.addEventListener("change", () => {
+    if (huboResultados.value === "SI") {
+        resultadosBlock.classList.remove("hidden");
+    } else {
+        resultadosBlock.classList.add("hidden");
+        resultadosTemporales = [];
+        renderResultados();
+    }
+});
+
+// CATEGORÍAS
+function cargarCategorias() {
+    categoriaResultado.innerHTML = `<option value="">Seleccione...</option>`;
+
+    Object.keys(categoriasResultados).forEach((categoria) => {
+        const option = document.createElement("option");
+        option.value = categoria;
+        option.textContent = categoria;
+        categoriaResultado.appendChild(option);
+    });
+}
+
+categoriaResultado.addEventListener("change", () => {
+    const categoria = categoriaResultado.value;
+    const data = categoriasResultados[categoria];
+
+    subcategoriaResultado.innerHTML = `<option value="">Seleccione...</option>`;
+    unidadMedida.innerHTML = `<option value="">Seleccione...</option>`;
+
+    if (!data) return;
+
+    data.subcategorias.forEach((subcat) => {
+        const option = document.createElement("option");
+        option.value = subcat;
+        option.textContent = subcat;
+        subcategoriaResultado.appendChild(option);
+    });
+
+    data.unidades.forEach((unidad) => {
+        const option = document.createElement("option");
+        option.value = unidad;
+        option.textContent = unidad;
+        unidadMedida.appendChild(option);
+    });
+});
+
+// AGREGAR RESULTADO TEMPORAL
+agregarResultadoBtn.addEventListener("click", () => {
+    const categoria = categoriaResultado.value;
+    const subcategoria = subcategoriaResultado.value;
+    const cantidad = Number(document.getElementById("cantidadResultado").value);
+    const unidad = unidadMedida.value;
+    const descripcion = document.getElementById("descripcionResultado").value.trim();
+
+    if (!categoria || !subcategoria || !cantidad || cantidad <= 0 || !unidad) {
+        mostrarMensaje("Complete categoría, subcategoría, cantidad válida y unidad de medida.", "error");
+        return;
+    }
+
+    resultadosTemporales.push({
+        categoria,
+        subcategoria,
+        cantidad,
+        unidad,
+        descripcion
+    });
+
+    categoriaResultado.value = "";
+    subcategoriaResultado.innerHTML = `<option value="">Seleccione categoría...</option>`;
+    unidadMedida.innerHTML = `<option value="">Seleccione categoría...</option>`;
+    document.getElementById("cantidadResultado").value = "";
+    document.getElementById("descripcionResultado").value = "";
+
+    renderResultados();
+    mostrarMensaje("Resultado agregado temporalmente.", "success");
+});
+
+function renderResultados() {
+    resultadosTableBody.innerHTML = "";
+
+    if (resultadosTemporales.length === 0) {
+        resultadosTableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="empty-table">Sin resultados agregados</td>
+      </tr>
+    `;
+        return;
+    }
+
+    resultadosTemporales.forEach((resultado, index) => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${resultado.categoria}</td>
+      <td>${resultado.subcategoria}</td>
+      <td>${resultado.cantidad}</td>
+      <td>${resultado.unidad}</td>
+      <td>
+        <button type="button" class="btn btn-outline-dark" onclick="eliminarResultado(${index})">
+          Quitar
+        </button>
+      </td>
+    `;
+
+        resultadosTableBody.appendChild(tr);
+    });
+}
+
+function eliminarResultado(index) {
+    resultadosTemporales.splice(index, 1);
+    renderResultados();
+}
+
+// GUARDAR OPERACIÓN DEMO
+operacionForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    if (!usuarioActual) {
+        mostrarMensaje("No existe una sesión activa.", "error");
+        return;
+    }
+
+    if (huboResultados.value === "SI") {
+        const parroquia = document.getElementById("parroquia").value.trim();
+        const sector = document.getElementById("sector").value.trim();
+        const coordenadas = document.getElementById("coordenadas").value.trim();
+
+        const canton = document.getElementById("canton").value;
+
+        if (canton !== "MANTA" && !parroquia) {
+            mostrarMensaje("Si hubo resultados, la parroquia es obligatoria.", "error");
+            return;
+        }
+
+        if (!sector || !coordenadas) {
+            mostrarMensaje("Si hubo resultados, sector y coordenadas son obligatorios.", "error");
+            return;
+        }
+
+        if (resultadosTemporales.length === 0) {
+            mostrarMensaje("Debe agregar al menos un resultado.", "error");
+            return;
+        }
+    }
+
+    const operacionDemo = {
+        id_operacion: generarIdOperacion(),
+        fecha_operacion: document.getElementById("fechaOperacion").value,
+        hora_inicio: document.getElementById("horaInicio").value,
+        hora_fin: document.getElementById("horaFin").value,
+        tipo_operacion: tipoOperacion.value,
+        sub_tipo_operacion: subTipoOperacion.value,
+        provincia: document.getElementById("provincia").value.trim(),
+        canton: document.getElementById("canton").value.trim(),
+        parroquia: document.getElementById("parroquia").value.trim(),
+        sector: document.getElementById("sector").value.trim(),
+        coordenadas: document.getElementById("coordenadas").value.trim(),
+        responsable: `${usuarioActual.nombres} ${usuarioActual.apellidos}`,
+        grado_responsable: usuarioActual.grado,
+        num_oficiales: Number(document.getElementById("numOficiales").value),
+        num_vol: Number(document.getElementById("numVol").value),
+        num_sldr: Number(document.getElementById("numSldr").value),
+        hubo_resultados: huboResultados.value,
+        estado_operacion: "REGISTRADO",
+        registrado_por: `${usuarioActual.nombres} ${usuarioActual.apellidos}`,
+        fecha_registro: new Date().toISOString(),
+        ultima_modificacion: new Date().toISOString(),
+        observacion_general: document.getElementById("observacionGeneral").value.trim(),
+        resultados: resultadosTemporales
+    };
+
+    console.log("Operación demo generada:", operacionDemo);
+
+    mostrarMensaje("Operación generada correctamente en modo demo. Revise la consola del navegador.", "success");
+
+    operacionForm.reset();
+    document.getElementById("responsable").value = `${usuarioActual.nombres} ${usuarioActual.apellidos}`;
+    document.getElementById("gradoResponsable").value = usuarioActual.grado;
+    resultadosTemporales = [];
+    renderResultados();
+    resultadosBlock.classList.add("hidden");
+});
+
+function generarIdOperacion() {
+    const fecha = new Date();
+    const yyyy = fecha.getFullYear();
+    const mm = String(fecha.getMonth() + 1).padStart(2, "0");
+    const dd = String(fecha.getDate()).padStart(2, "0");
+    const random = Math.floor(Math.random() * 9000) + 1000;
+
+    return `OP-${yyyy}${mm}${dd}-${random}`;
+}
+
+function mostrarMensaje(mensaje, tipo) {
+    formMessage.textContent = mensaje;
+    formMessage.className = `form-message ${tipo}`;
+
+    setTimeout(() => {
+        formMessage.textContent = "";
+        formMessage.className = "form-message";
+    }, 4500);
+}
+
+function cargarCantones() {
+    cantonSelect.innerHTML = `<option value="">Seleccione...</option>`;
+
+    ubicacionCatalogo.cantones.forEach((canton) => {
+        const option = document.createElement("option");
+        option.value = canton;
+        option.textContent = canton;
+        cantonSelect.appendChild(option);
+    });
+}
+
+function configurarFormularioMobile() {
+    const form = document.getElementById("operacionForm");
+
+    form.addEventListener("reset", () => {
+        setTimeout(() => {
+            cargarCantones();
+            parroquiaSelect.innerHTML = `<option value="">Seleccione cantón...</option>`;
+            parroquiaSelect.disabled = false;
+            resultadosTemporales = [];
+            renderResultados();
+            resultadosBlock.classList.add("hidden");
+            geoStatus.textContent = "";
+
+            if (usuarioActual) {
+                document.getElementById("responsable").value = `${usuarioActual.nombres} ${usuarioActual.apellidos}`;
+                document.getElementById("gradoResponsable").value = usuarioActual.grado;
+            }
+        }, 0);
+    });
+}
+
+cantonSelect.addEventListener("change", () => {
+    const canton = cantonSelect.value;
+    const parroquias = ubicacionCatalogo.parroquiasPorCanton[canton] || [];
+
+    parroquiaSelect.innerHTML = "";
+
+    if (canton === "MANTA") {
+        parroquiaSelect.innerHTML = `<option value="">No aplica para este registro</option>`;
+        parroquiaSelect.disabled = true;
+        return;
+    }
+
+    parroquiaSelect.disabled = false;
+
+    if (parroquias.length === 0) {
+        parroquiaSelect.innerHTML = `<option value="">Sin parroquias configuradas</option>`;
+        return;
+    }
+
+    parroquiaSelect.innerHTML = `<option value="">Seleccione...</option>`;
+
+    parroquias.forEach((parroquia) => {
+        const option = document.createElement("option");
+        option.value = parroquia;
+        option.textContent = parroquia;
+        parroquiaSelect.appendChild(option);
+    });
+});
+
+// ======================================================
+// GESTIÓN DE USUARIOS - ADMIN
+// ======================================================
+
+function configurarGestionUsuarios() {
+    const nuevoUsuarioBtn = document.getElementById("nuevoUsuarioBtn");
+    const cancelarUsuarioBtn = document.getElementById("cancelarUsuarioBtn");
+    const usuarioAdminForm = document.getElementById("usuarioAdminForm");
+    const buscarUsuarioInput = document.getElementById("buscarUsuarioInput");
+    const filtroRolUsuario = document.getElementById("filtroRolUsuario");
+    const filtroEstadoUsuario = document.getElementById("filtroEstadoUsuario");
+    const usuariosTableBody = document.getElementById("usuariosTableBody");
+
+    if (!nuevoUsuarioBtn || !usuarioAdminForm) return;
+
+    nuevoUsuarioBtn.addEventListener("click", abrirFormularioNuevoUsuario);
+
+    cancelarUsuarioBtn.addEventListener("click", () => {
+        cerrarFormularioUsuario();
+    });
+
+    usuarioAdminForm.addEventListener("submit", guardarUsuarioDesdeAdmin);
+
+    buscarUsuarioInput.addEventListener("input", renderUsuariosAdmin);
+    filtroRolUsuario.addEventListener("change", renderUsuariosAdmin);
+    filtroEstadoUsuario.addEventListener("change", renderUsuariosAdmin);
+
+    usuariosTableBody.addEventListener("click", (event) => {
+        const button = event.target.closest("button");
+        if (!button) return;
+
+        const idUsuario = button.dataset.id;
+        const accion = button.dataset.action;
+
+        if (accion === "editar") {
+            abrirFormularioEditarUsuario(idUsuario);
+        }
+
+        if (accion === "estado") {
+            cambiarEstadoUsuario(idUsuario);
+        }
+
+        if (accion === "eliminar") {
+            eliminarUsuarioAdmin(idUsuario);
+        }
+    });
+}
+
+function renderUsuariosAdmin() {
+    const tbody = document.getElementById("usuariosTableBody");
+    if (!tbody) return;
+
+    const texto = (document.getElementById("buscarUsuarioInput")?.value || "").toLowerCase().trim();
+    const rol = document.getElementById("filtroRolUsuario")?.value || "";
+    const estado = document.getElementById("filtroEstadoUsuario")?.value || "";
+
+    let usuariosFiltrados = usuariosSistema.filter((u) => {
+        const nombreCompleto = `${u.nombres} ${u.apellidos} ${u.grado} ${u.usuario} ${u.correo || ""}`.toLowerCase();
+
+        const coincideTexto = !texto || nombreCompleto.includes(texto);
+        const coincideRol = !rol || u.rol === rol;
+        const coincideEstado = !estado || u.estado === estado;
+
+        return coincideTexto && coincideRol && coincideEstado;
+    });
+
+    tbody.innerHTML = "";
+
+    if (usuariosFiltrados.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty-table">No existen usuarios con esos filtros.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    usuariosFiltrados.forEach((u) => {
+        const nombreCompleto = `${u.nombres} ${u.apellidos}`;
+        const estadoClass = (u.estado || "").toLowerCase();
+
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${u.id_usuario}</td>
+            <td>
+                <strong>${nombreCompleto}</strong><br>
+                <small>${u.cargo || ""}</small>
+            </td>
+            <td>${u.grado}</td>
+            <td>${u.usuario}</td>
+            <td><span class="role-badge">${u.rol}</span></td>
+            <td><span class="status-badge ${estadoClass}">${u.estado}</span></td>
+            <td>
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-outline-dark btn-small" data-action="editar" data-id="${u.id_usuario}">
+                        Editar
+                    </button>
+                    <button type="button" class="btn btn-warning btn-small" data-action="estado" data-id="${u.id_usuario}">
+                        ${u.estado === "ACTIVO" ? "Inactivar" : "Activar"}
+                    </button>
+                    <button type="button" class="btn btn-danger btn-small" data-action="eliminar" data-id="${u.id_usuario}">
+                        Eliminar
+                    </button>
+                </div>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+function abrirFormularioNuevoUsuario() {
+    const formPanel = document.getElementById("usuarioFormPanel");
+    const form = document.getElementById("usuarioAdminForm");
+
+    form.reset();
+
+    document.getElementById("usuarioFormTitle").textContent = "Nuevo usuario";
+    document.getElementById("usuarioEditId").value = "";
+    document.getElementById("userUnidad").value = "GCM 12";
+    document.getElementById("userEstado").value = "ACTIVO";
+    document.getElementById("userRol").value = "COMANDANTE_OPERACIONES";
+
+    formPanel.classList.remove("hidden");
+    formPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function abrirFormularioEditarUsuario(idUsuario) {
+    const usuario = usuariosSistema.find((u) => u.id_usuario === idUsuario);
+
+    if (!usuario) {
+        mostrarMensajeUsuarios("Usuario no encontrado.", "error");
+        return;
+    }
+
+    document.getElementById("usuarioFormTitle").textContent = "Editar usuario";
+    document.getElementById("usuarioEditId").value = usuario.id_usuario;
+    document.getElementById("userNombres").value = usuario.nombres || "";
+    document.getElementById("userApellidos").value = usuario.apellidos || "";
+    document.getElementById("userGrado").value = usuario.grado || "";
+    document.getElementById("userCargo").value = usuario.cargo || "";
+    document.getElementById("userUnidad").value = usuario.unidad || "GCM 12";
+    document.getElementById("userCorreo").value = usuario.correo || "";
+    document.getElementById("userCedula").value = usuario.usuario || "";
+    document.getElementById("userPassword").value = "";
+    document.getElementById("userRol").value = usuario.rol || "";
+    document.getElementById("userEstado").value = usuario.estado || "ACTIVO";
+    document.getElementById("userObservacion").value = usuario.observacion || "";
+
+    document.getElementById("usuarioFormPanel").classList.remove("hidden");
+    document.getElementById("usuarioFormPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function guardarUsuarioDesdeAdmin(event) {
+    event.preventDefault();
+
+    const idEditando = document.getElementById("usuarioEditId").value;
+
+    const nombres = document.getElementById("userNombres").value.trim();
+    const apellidos = document.getElementById("userApellidos").value.trim();
+    const grado = document.getElementById("userGrado").value.trim();
+    const cargo = document.getElementById("userCargo").value.trim();
+    const unidad = document.getElementById("userUnidad").value.trim();
+    const correo = document.getElementById("userCorreo").value.trim();
+    const cedula = document.getElementById("userCedula").value.trim();
+    const password = document.getElementById("userPassword").value.trim();
+    const rol = document.getElementById("userRol").value;
+    const estado = document.getElementById("userEstado").value;
+    const observacion = document.getElementById("userObservacion").value.trim();
+
+    if (!nombres || !apellidos || !grado || !cargo || !unidad || !cedula || !rol || !estado) {
+        mostrarMensajeUsuarios("Complete todos los campos obligatorios.", "error");
+        return;
+    }
+
+    const cedulaDuplicada = usuariosSistema.some((u) => {
+        return u.usuario === cedula && u.id_usuario !== idEditando;
+    });
+
+    if (cedulaDuplicada) {
+        mostrarMensajeUsuarios("Ya existe un usuario registrado con esa cédula.", "error");
+        return;
+    }
+
+    if (!idEditando && !password) {
+        mostrarMensajeUsuarios("Para crear un usuario debe ingresar una contraseña temporal.", "error");
+        return;
+    }
+
+    if (idEditando) {
+        const index = usuariosSistema.findIndex((u) => u.id_usuario === idEditando);
+
+        if (index === -1) {
+            mostrarMensajeUsuarios("Usuario no encontrado para editar.", "error");
+            return;
+        }
+
+        usuariosSistema[index] = {
+            ...usuariosSistema[index],
+            nombres,
+            apellidos,
+            grado,
+            cargo,
+            unidad,
+            correo,
+            usuario: cedula,
+            password: password || usuariosSistema[index].password,
+            rol,
+            estado,
+            observacion
+        };
+
+        mostrarMensajeUsuarios("Usuario actualizado correctamente.", "success");
+    } else {
+        const nuevoUsuario = {
+            id_usuario: generarIdUsuario(),
+            nombres,
+            apellidos,
+            grado,
+            cargo,
+            unidad,
+            correo,
+            usuario: cedula,
+            password,
+            rol,
+            estado,
+            fecha_creacion: new Date().toISOString(),
+            ultimo_acceso: "",
+            observacion
+        };
+
+        usuariosSistema.push(nuevoUsuario);
+        mostrarMensajeUsuarios("Usuario creado correctamente.", "success");
+    }
+
+    guardarUsuariosSistema();
+    renderUsuariosAdmin();
+    cerrarFormularioUsuario();
+}
+
+function cambiarEstadoUsuario(idUsuario) {
+    const usuario = usuariosSistema.find((u) => u.id_usuario === idUsuario);
+
+    if (!usuario) {
+        mostrarMensajeUsuarios("Usuario no encontrado.", "error");
+        return;
+    }
+
+    if (usuarioActual && usuario.id_usuario === usuarioActual.id_usuario) {
+        mostrarMensajeUsuarios("No puede cambiar el estado del usuario con sesión activa.", "error");
+        return;
+    }
+
+    usuario.estado = usuario.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO";
+
+    guardarUsuariosSistema();
+    renderUsuariosAdmin();
+
+    mostrarMensajeUsuarios(`Usuario ${usuario.estado === "ACTIVO" ? "activado" : "inactivado"} correctamente.`, "success");
+}
+
+function eliminarUsuarioAdmin(idUsuario) {
+    const usuario = usuariosSistema.find((u) => u.id_usuario === idUsuario);
+
+    if (!usuario) {
+        mostrarMensajeUsuarios("Usuario no encontrado.", "error");
+        return;
+    }
+
+    if (usuarioActual && usuario.id_usuario === usuarioActual.id_usuario) {
+        mostrarMensajeUsuarios("No puede eliminar el usuario con sesión activa.", "error");
+        return;
+    }
+
+    const confirmar = confirm(`¿Está seguro de eliminar al usuario ${usuario.nombres} ${usuario.apellidos}?`);
+
+    if (!confirmar) return;
+
+    usuariosSistema = usuariosSistema.filter((u) => u.id_usuario !== idUsuario);
+
+    guardarUsuariosSistema();
+    renderUsuariosAdmin();
+
+    mostrarMensajeUsuarios("Usuario eliminado correctamente en modo demo.", "success");
+}
+
+function cerrarFormularioUsuario() {
+    const formPanel = document.getElementById("usuarioFormPanel");
+    const form = document.getElementById("usuarioAdminForm");
+
+    form.reset();
+    formPanel.classList.add("hidden");
+}
+
+function generarIdUsuario() {
+    const numero = usuariosSistema.length + 1;
+    return `USR-${String(numero).padStart(3, "0")}`;
+}
+
+function mostrarMensajeUsuarios(mensaje, tipo) {
+    const message = document.getElementById("usuariosMessage");
+
+    if (!message) return;
+
+    message.textContent = mensaje;
+    message.className = `form-message ${tipo}`;
+
+    setTimeout(() => {
+        message.textContent = "";
+        message.className = "form-message";
+    }, 4500);
+}

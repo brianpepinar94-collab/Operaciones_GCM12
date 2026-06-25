@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>OPERACIONES GCM 12</title>
+
+    <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+
+    <!-- LOGIN -->
+    <main id="loginView" class="login-view">
+        <section class="login-card">
+            <img src="assets/logo-gcm12.png" alt="Logo GCM 12" class="login-logo" />
+
+            <h1>OPERACIONES GCM 12</h1>
+            <p class="login-subtitle">
+                Sistema de Registro y Control de Operaciones Militares
+            </p>
+
+            <form id="loginForm" class="login-form">
+                <label for="usuario">Usuario / Cédula</label>
+                <input type="text" id="usuario" placeholder="Ingrese su cédula" required />
+
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" placeholder="Ingrese su contraseña" required />
+
+                <button type="submit" class="btn btn-primary">Iniciar sesión</button>
+
+                <p id="loginError" class="error-message"></p>
+            </form>
+
+            <p class="login-footer">
+                Grupo de Caballería Mecanizado N.º 12 “Tnte. Hugo Ortiz”
+            </p>
+        </section>
+    </main>
+
+    <!-- SISTEMA PRINCIPAL -->
+    <section id="appView" class="app-view hidden">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="assets/logo-gcm12.png" alt="Logo GCM 12" class="sidebar-logo" />
+                <div>
+                    <h2>GCM 12</h2>
+                    <span>OPERACIONES</span>
+                </div>
+            </div>
+
+            <nav id="menu" class="menu"></nav>
+        </aside>
+
+        <!-- CONTENIDO -->
+        <div class="main-area">
+
+            <!-- TOPBAR -->
+            <header class="topbar">
+                <div>
+                    <h2 id="pageTitle">Inicio</h2>
+                    <p id="pageSubtitle">Sistema de Registro y Control de Operaciones Militares</p>
+                </div>
+
+                <div class="user-box">
+                    <div>
+                        <strong id="userName">Usuario</strong>
+                        <span id="userRole">Rol</span>
+                    </div>
+                    <button id="logoutBtn" class="btn btn-outline">Salir</button>
+                </div>
+            </header>
+
+            <!-- CONTENIDO DINÁMICO -->
+            <main class="content">
+
+                <!-- INICIO -->
+                <section id="inicioPage" class="page active">
+                    <div class="welcome-card">
+                        <h3 id="welcomeTitle">Bienvenido</h3>
+                        <p id="welcomeText">
+                            Seleccione una opción del menú lateral para continuar.
+                        </p>
+                    </div>
+
+                    <div class="stats-grid">
+                        <article class="stat-card purple">
+                            <span>Total operaciones</span>
+                            <strong>0</strong>
+                        </article>
+
+                        <article class="stat-card gold">
+                            <span>Con resultados</span>
+                            <strong>0</strong>
+                        </article>
+
+                        <article class="stat-card gray">
+                            <span>Sin resultados</span>
+                            <strong>0</strong>
+                        </article>
+
+                        <article class="stat-card red">
+                            <span>Armas decomisadas</span>
+                            <strong>0</strong>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- REGISTRAR OPERACIÓN -->
+                <section id="registrarPage" class="page">
+                    <form id="operacionForm" class="form-card">
+
+                        <div class="section-title">
+                            <h3>1. Datos generales</h3>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="field">
+                                <label>Fecha de operación</label>
+                                <input type="date" id="fechaOperacion" required />
+                            </div>
+
+                            <div class="field">
+                                <label>Hora inicio</label>
+                                <input type="time" id="horaInicio" required />
+                            </div>
+
+                            <div class="field">
+                                <label>Hora fin</label>
+                                <input type="time" id="horaFin" required />
+                            </div>
+
+                            <div class="field">
+                                <label>Tipo de operación</label>
+                                <select id="tipoOperacion" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="DEFENSA EXTERNA">DEFENSA EXTERNA</option>
+                                    <option value="AMBITO INTERNO">AMBITO INTERNO</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Subtipo de operación</label>
+                                <select id="subTipoOperacion" required>
+                                    <option value="">Seleccione primero el tipo...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="section-title">
+                            <h3>2. Ubicación</h3>
+                        </div>
+
+                        <div class="form-grid">
+
+                            <div class="field">
+                                <label>Provincia</label>
+                                <select id="provincia" required>
+                                    <option value="MANABÍ" selected>MANABÍ</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Cantón</label>
+                                <select id="canton" required>
+                                    <option value="">Seleccione...</option>
+                                </select>
+                            </div>
+
+                            <div class="field conditional">
+                                <label>Parroquia</label>
+                                <select id="parroquia">
+                                    <option value="">Seleccione cantón...</option>
+                                </select>
+                            </div>
+
+                            <div class="field conditional">
+                                <label>Sector</label>
+                                <input type="text" id="sector" placeholder="Ingrese sector manualmente" />
+                            </div>
+
+                            <div class="field conditional">
+                                <label>Coordenadas</label>
+                                <div class="coord-row">
+                                    <input type="text" id="coordenadas" placeholder="Ej. -1.05458, -80.45445"
+                                        inputmode="decimal" />
+                                    <button type="button" id="ubicacionBtn" class="btn btn-secondary btn-location">
+                                        Usar ubicación
+                                    </button>
+                                </div>
+                                <small id="geoStatus" class="field-help"></small>
+                            </div>
+                        </div>
+
+                        <div class="section-title">
+                            <h3>3. Responsable</h3>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="field">
+                                <label>Responsable</label>
+                                <input type="text" id="responsable" readonly />
+                            </div>
+
+                            <div class="field">
+                                <label>Grado</label>
+                                <input type="text" id="gradoResponsable" readonly />
+                            </div>
+                        </div>
+
+                        <div class="section-title">
+                            <h3>4. Personal participante</h3>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="field">
+                                <label>Número de oficiales</label>
+                                <input type="number" id="numOficiales" min="0" value="0" required />
+                            </div>
+
+                            <div class="field">
+                                <label>Número de voluntarios</label>
+                                <input type="number" id="numVol" min="0" value="0" required />
+                            </div>
+
+                            <div class="field">
+                                <label>Número de soldados</label>
+                                <input type="number" id="numSldr" min="0" value="0" required />
+                            </div>
+                        </div>
+
+                        <div class="section-title">
+                            <h3>5. Resultados encontrados</h3>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="field">
+                                <label>¿Hubo resultados?</label>
+                                <select id="huboResultados" required>
+                                    <option value="NO">NO</option>
+                                    <option value="SI">SI</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="resultadosBlock" class="resultados-block hidden">
+                            <div class="form-grid">
+                                <div class="field">
+                                    <label>Categoría</label>
+                                    <select id="categoriaResultado">
+                                        <option value="">Seleccione...</option>
+                                    </select>
+                                </div>
+
+                                <div class="field">
+                                    <label>Subcategoría</label>
+                                    <select id="subcategoriaResultado">
+                                        <option value="">Seleccione categoría...</option>
+                                    </select>
+                                </div>
+
+                                <div class="field">
+                                    <label>Cantidad</label>
+                                    <input type="number" id="cantidadResultado" min="0" step="0.01" />
+                                </div>
+
+                                <div class="field">
+                                    <label>Unidad de medida</label>
+                                    <select id="unidadMedida">
+                                        <option value="">Seleccione categoría...</option>
+                                    </select>
+                                </div>
+
+                                <div class="field full">
+                                    <label>Descripción</label>
+                                    <textarea id="descripcionResultado" rows="3"
+                                        placeholder="Detalle breve del resultado encontrado"></textarea>
+                                </div>
+                            </div>
+
+                            <button type="button" id="agregarResultadoBtn" class="btn btn-secondary">
+                                + Agregar resultado
+                            </button>
+
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Categoría</th>
+                                            <th>Subcategoría</th>
+                                            <th>Cantidad</th>
+                                            <th>Unidad</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="resultadosTableBody">
+                                        <tr>
+                                            <td colspan="6" class="empty-table">Sin resultados agregados</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="section-title">
+                            <h3>6. Observación general</h3>
+                        </div>
+
+                        <div class="field">
+                            <textarea id="observacionGeneral" rows="4"
+                                placeholder="Ingrese una observación general de la operación"></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="reset" class="btn btn-outline-dark">Limpiar</button>
+                            <button type="submit" class="btn btn-primary">Guardar operación</button>
+                        </div>
+
+                        <p id="formMessage" class="form-message"></p>
+                    </form>
+                </section>
+
+                <!-- MIS OPERACIONES -->
+                <section id="misOperacionesPage" class="page">
+                    <div class="panel-card">
+                        <h3>Mis operaciones</h3>
+                        <p>En esta pantalla se listarán las operaciones registradas por el usuario logueado.</p>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Fecha</th>
+                                        <th>Tipo</th>
+                                        <th>Subtipo</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="6" class="empty-table">Todavía no hay datos conectados.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- USUARIOS -->
+                <!-- USUARIOS -->
+                <section id="usuariosPage" class="page">
+                    <div class="panel-card">
+                        <div class="admin-toolbar">
+                            <div>
+                                <h3>Gestión de usuarios</h3>
+                                <p>Crear, editar, activar, inactivar, eliminar usuarios y asignar roles.</p>
+                            </div>
+
+                            <button type="button" id="nuevoUsuarioBtn" class="btn btn-primary btn-auto">
+                                + Nuevo usuario
+                            </button>
+                        </div>
+
+                        <div class="filters-grid">
+                            <div class="field">
+                                <label>Buscar usuario</label>
+                                <input type="text" id="buscarUsuarioInput"
+                                    placeholder="Buscar por nombre, cédula, grado o correo" />
+                            </div>
+
+                            <div class="field">
+                                <label>Filtrar por rol</label>
+                                <select id="filtroRolUsuario">
+                                    <option value="">Todos</option>
+                                    <option value="ADMIN">ADMIN</option>
+                                    <option value="COMANDANTE_OPERACIONES">COMANDANTE_OPERACIONES</option>
+                                    <option value="COMANDANTE_UNIDAD">COMANDANTE_UNIDAD</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Filtrar por estado</label>
+                                <select id="filtroEstadoUsuario">
+                                    <option value="">Todos</option>
+                                    <option value="ACTIVO">ACTIVO</option>
+                                    <option value="INACTIVO">INACTIVO</option>
+                                    <option value="BLOQUEADO">BLOQUEADO</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="table-wrapper">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Usuario</th>
+                                        <th>Grado</th>
+                                        <th>Cédula</th>
+                                        <th>Rol</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usuariosTableBody">
+                                    <tr>
+                                        <td colspan="7" class="empty-table">Sin usuarios registrados.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p id="usuariosMessage" class="form-message"></p>
+                    </div>
+
+                    <div id="usuarioFormPanel" class="form-card user-form-panel hidden">
+                        <div class="section-title">
+                            <h3 id="usuarioFormTitle">Nuevo usuario</h3>
+                        </div>
+
+                        <form id="usuarioAdminForm">
+                            <input type="hidden" id="usuarioEditId" />
+
+                            <div class="form-grid">
+                                <div class="field">
+                                    <label>Nombres</label>
+                                    <input type="text" id="userNombres" required />
+                                </div>
+
+                                <div class="field">
+                                    <label>Apellidos</label>
+                                    <input type="text" id="userApellidos" required />
+                                </div>
+
+                                <div class="field">
+                                    <label>Grado</label>
+                                    <input type="text" id="userGrado" placeholder="Ej. TNTE., CAPT., MAYO." required />
+                                </div>
+
+                                <div class="field">
+                                    <label>Cargo</label>
+                                    <input type="text" id="userCargo" required />
+                                </div>
+
+                                <div class="field">
+                                    <label>Unidad</label>
+                                    <input type="text" id="userUnidad" value="GCM 12" required />
+                                </div>
+
+                                <div class="field">
+                                    <label>Correo</label>
+                                    <input type="email" id="userCorreo" placeholder="correo@dominio.com" />
+                                </div>
+
+                                <div class="field">
+                                    <label>Usuario / Cédula</label>
+                                    <input type="text" id="userCedula" inputmode="numeric" required />
+                                </div>
+
+                                <div class="field">
+                                    <label>Contraseña temporal</label>
+                                    <input type="text" id="userPassword"
+                                        placeholder="Solo obligatoria al crear usuario" />
+                                </div>
+
+                                <div class="field">
+                                    <label>Rol</label>
+                                    <select id="userRol" required>
+                                        <option value="">Seleccione...</option>
+                                        <option value="ADMIN">ADMIN</option>
+                                        <option value="COMANDANTE_OPERACIONES">COMANDANTE_OPERACIONES</option>
+                                        <option value="COMANDANTE_UNIDAD">COMANDANTE_UNIDAD</option>
+                                    </select>
+                                </div>
+
+                                <div class="field">
+                                    <label>Estado</label>
+                                    <select id="userEstado" required>
+                                        <option value="ACTIVO">ACTIVO</option>
+                                        <option value="INACTIVO">INACTIVO</option>
+                                        <option value="BLOQUEADO">BLOQUEADO</option>
+                                    </select>
+                                </div>
+
+                                <div class="field full">
+                                    <label>Observación</label>
+                                    <textarea id="userObservacion" rows="3"
+                                        placeholder="Observación administrativa"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" id="cancelarUsuarioBtn" class="btn btn-outline-dark">
+                                    Cancelar
+                                </button>
+                                <button type="submit" class="btn btn-primary btn-auto">
+                                    Guardar usuario
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- OPERACIONES ADMIN -->
+                <section id="operacionesPage" class="page">
+                    <div class="panel-card">
+                        <h3>Administrar operaciones</h3>
+                        <p>Listado general de operaciones para revisar, validar, observar o anular.</p>
+                    </div>
+                </section>
+
+                <!-- DASHBOARD -->
+                <section id="dashboardPage" class="page">
+                    <div class="panel-card">
+                        <h3>Dashboard operacional</h3>
+                        <p>Panel estadístico de operaciones y resultados obtenidos.</p>
+
+                        <div class="stats-grid">
+                            <article class="stat-card purple">
+                                <span>Total operaciones</span>
+                                <strong>0</strong>
+                            </article>
+
+                            <article class="stat-card gold">
+                                <span>Con resultados</span>
+                                <strong>0</strong>
+                            </article>
+
+                            <article class="stat-card red">
+                                <span>Armas decomisadas</span>
+                                <strong>0</strong>
+                            </article>
+
+                            <article class="stat-card green">
+                                <span>Sustancias kg</span>
+                                <strong>0</strong>
+                            </article>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- REPORTES -->
+                <section id="reportesPage" class="page">
+                    <div class="panel-card">
+                        <h3>Reportes</h3>
+                        <p>Consulta filtrada y exportación de operaciones.</p>
+                    </div>
+                </section>
+
+                <!-- AUDITORIA -->
+                <section id="auditoriaPage" class="page">
+                    <div class="panel-card">
+                        <h3>Auditoría</h3>
+                        <p>Registro histórico de acciones del sistema.</p>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </section>
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>
