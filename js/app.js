@@ -51,6 +51,51 @@ const STORAGE_USUARIOS = "gcm12_usuarios";
 
 let usuariosSistema = cargarUsuariosSistema();
 
+const STORAGE_OPERACIONES = "gcm12_operaciones";
+const STORAGE_RESULTADOS = "gcm12_resultados";
+
+let operacionesSistema = cargarOperacionesSistema();
+let resultadosSistema = cargarResultadosSistema();
+let operacionEditandoId = null;
+
+function cargarOperacionesSistema() {
+    const data = localStorage.getItem(STORAGE_OPERACIONES);
+
+    if (data) {
+        try {
+            return JSON.parse(data);
+        } catch (error) {
+            console.error("Error al leer operaciones:", error);
+        }
+    }
+
+    localStorage.setItem(STORAGE_OPERACIONES, JSON.stringify([]));
+    return [];
+}
+
+function cargarResultadosSistema() {
+    const data = localStorage.getItem(STORAGE_RESULTADOS);
+
+    if (data) {
+        try {
+            return JSON.parse(data);
+        } catch (error) {
+            console.error("Error al leer resultados:", error);
+        }
+    }
+
+    localStorage.setItem(STORAGE_RESULTADOS, JSON.stringify([]));
+    return [];
+}
+
+function guardarOperacionesSistema() {
+    localStorage.setItem(STORAGE_OPERACIONES, JSON.stringify(operacionesSistema));
+}
+
+function guardarResultadosSistema() {
+    localStorage.setItem(STORAGE_RESULTADOS, JSON.stringify(resultadosSistema));
+}
+
 function cargarUsuariosSistema() {
     const data = localStorage.getItem(STORAGE_USUARIOS);
 
@@ -84,6 +129,7 @@ const subtiposOperacion = {
         "Apoyo al SENAE",
         "Apoyo al ARCOM",
         "Apoyo al SNGRE",
+        "Apoyo al ECU 911",
         "Seguridad oleoducto, bloques y estaciones petroleras",
         "Protección de altas autoridades nacionales e internacionales"
     ]
@@ -335,7 +381,9 @@ document.addEventListener("DOMContentLoaded", () => {
     cargarCantones();
     configurarFormularioMobile();
     configurarGestionUsuarios();
+    configurarMisOperaciones();
     renderUsuariosAdmin();
+    renderMisOperaciones();
 });
 ubicacionBtn.addEventListener("click", () => {
     const coordenadasInput = document.getElementById("coordenadas");
@@ -632,7 +680,7 @@ function eliminarResultado(index) {
     renderResultados();
 }
 
-// GUARDAR OPERACIÓN DEMO
+// GUARDAR OPERACIÓN EN LOCALSTORAGE
 operacionForm.addEventListener("submit", (event) => {
     event.preventDefault();
 
@@ -645,7 +693,6 @@ operacionForm.addEventListener("submit", (event) => {
         const parroquia = document.getElementById("parroquia").value.trim();
         const sector = document.getElementById("sector").value.trim();
         const coordenadas = document.getElementById("coordenadas").value.trim();
-
         const canton = document.getElementById("canton").value;
 
         if (canton !== "MANTA" && !parroquia) {
@@ -664,8 +711,19 @@ operacionForm.addEventListener("submit", (event) => {
         }
     }
 
-    const operacionDemo = {
-        id_operacion: generarIdOperacion(),
+    if (operacionEditandoId) {
+        actualizarOperacionExistente();
+    } else {
+        crearNuevaOperacion();
+    }
+});
+
+function crearNuevaOperacion() {
+    const idOperacion = generarIdOperacion();
+    const fechaActual = new Date().toISOString();
+
+    const operacion = {
+        id_operacion: idOperacion,
         fecha_operacion: document.getElementById("fechaOperacion").value,
         hora_inicio: document.getElementById("horaInicio").value,
         hora_fin: document.getElementById("horaFin").value,
@@ -684,23 +742,123 @@ operacionForm.addEventListener("submit", (event) => {
         hubo_resultados: huboResultados.value,
         estado_operacion: "REGISTRADO",
         registrado_por: `${usuarioActual.nombres} ${usuarioActual.apellidos}`,
-        fecha_registro: new Date().toISOString(),
-        ultima_modificacion: new Date().toISOString(),
-        observacion_general: document.getElementById("observacionGeneral").value.trim(),
-        resultados: resultadosTemporales
+        id_usuario_registro: usuarioActual.id_usuario,
+        usuario_cedula: usuarioActual.usuario,
+        fecha_registro: fechaActual,
+        ultima_modificacion: fechaActual,
+        observacion_general: document.getElementById("observacionGeneral").value.trim()
     };
 
-    console.log("Operación demo generada:", operacionDemo);
+    operacionesSistema.push(operacion);
 
-    mostrarMensaje("Operación generada correctamente en modo demo. Revise la consola del navegador.", "success");
+    if (huboResultados.value === "SI") {
+        resultadosTemporales.forEach((resultado) => {
+            resultadosSistema.push({
+                id_resultado: generarIdResultado(),
+                id_operacion: idOperacion,
+                categoria: resultado.categoria,
+                subcategoria: resultado.subcategoria,
+                cantidad: resultado.cantidad,
+                unidad_medida: resultado.unidad,
+                descripcion: resultado.descripcion,
+                registrado_por: `${usuarioActual.nombres} ${usuarioActual.apellidos}`,
+                fecha_registro: fechaActual
+            });
+        });
+    }
 
+    guardarOperacionesSistema();
+    guardarResultadosSistema();
+
+    limpiarFormularioOperacion();
+
+    mostrarMensaje("Operación guardada correctamente en modo demo.", "success");
+    renderMisOperaciones();
+}
+
+function actualizarOperacionExistente() {
+    const index = operacionesSistema.findIndex((op) => op.id_operacion === operacionEditandoId);
+
+    if (index === -1) {
+        mostrarMensaje("No se encontró la operación para actualizar.", "error");
+        return;
+    }
+
+    const operacionActual = operacionesSistema[index];
+
+    if (!puedeEditarOperacion(operacionActual)) {
+        mostrarMensaje("No puede editar una operación validada o anulada.", "error");
+        return;
+    }
+
+    const fechaActual = new Date().toISOString();
+
+    operacionesSistema[index] = {
+        ...operacionActual,
+        fecha_operacion: document.getElementById("fechaOperacion").value,
+        hora_inicio: document.getElementById("horaInicio").value,
+        hora_fin: document.getElementById("horaFin").value,
+        tipo_operacion: tipoOperacion.value,
+        sub_tipo_operacion: subTipoOperacion.value,
+        provincia: document.getElementById("provincia").value.trim(),
+        canton: document.getElementById("canton").value.trim(),
+        parroquia: document.getElementById("parroquia").value.trim(),
+        sector: document.getElementById("sector").value.trim(),
+        coordenadas: document.getElementById("coordenadas").value.trim(),
+        num_oficiales: Number(document.getElementById("numOficiales").value),
+        num_vol: Number(document.getElementById("numVol").value),
+        num_sldr: Number(document.getElementById("numSldr").value),
+        hubo_resultados: huboResultados.value,
+        ultima_modificacion: fechaActual,
+        observacion_general: document.getElementById("observacionGeneral").value.trim()
+    };
+
+    resultadosSistema = resultadosSistema.filter((r) => r.id_operacion !== operacionEditandoId);
+
+    if (huboResultados.value === "SI") {
+        resultadosTemporales.forEach((resultado) => {
+            resultadosSistema.push({
+                id_resultado: generarIdResultado(),
+                id_operacion: operacionEditandoId,
+                categoria: resultado.categoria,
+                subcategoria: resultado.subcategoria,
+                cantidad: resultado.cantidad,
+                unidad_medida: resultado.unidad,
+                descripcion: resultado.descripcion,
+                registrado_por: `${usuarioActual.nombres} ${usuarioActual.apellidos}`,
+                fecha_registro: fechaActual
+            });
+        });
+    }
+
+    guardarOperacionesSistema();
+    guardarResultadosSistema();
+
+    limpiarFormularioOperacion();
+
+    mostrarMensaje("Operación actualizada correctamente.", "success");
+    renderMisOperaciones();
+}
+
+function limpiarFormularioOperacion() {
     operacionForm.reset();
+
     document.getElementById("responsable").value = `${usuarioActual.nombres} ${usuarioActual.apellidos}`;
     document.getElementById("gradoResponsable").value = usuarioActual.grado;
+
     resultadosTemporales = [];
     renderResultados();
     resultadosBlock.classList.add("hidden");
-});
+
+    cargarCantones();
+    parroquiaSelect.innerHTML = `<option value="">Seleccione cantón...</option>`;
+    parroquiaSelect.disabled = false;
+
+    operacionEditandoId = null;
+
+    const guardarBtn = document.getElementById("guardarOperacionBtn");
+    if (guardarBtn) guardarBtn.textContent = "Guardar operación";
+}
 
 function generarIdOperacion() {
     const fecha = new Date();
@@ -710,6 +868,16 @@ function generarIdOperacion() {
     const random = Math.floor(Math.random() * 9000) + 1000;
 
     return `OP-${yyyy}${mm}${dd}-${random}`;
+}
+
+function generarIdResultado() {
+    const fecha = new Date();
+    const yyyy = fecha.getFullYear();
+    const mm = String(fecha.getMonth() + 1).padStart(2, "0");
+    const dd = String(fecha.getDate()).padStart(2, "0");
+    const random = Math.floor(Math.random() * 9000) + 1000;
+
+    return `RES-${yyyy}${mm}${dd}-${random}`;
 }
 
 function mostrarMensaje(mensaje, tipo) {
@@ -745,6 +913,11 @@ function configurarFormularioMobile() {
             renderResultados();
             resultadosBlock.classList.add("hidden");
             geoStatus.textContent = "";
+
+            operacionEditandoId = null;
+
+            const guardarBtn = document.getElementById("guardarOperacionBtn");
+            if (guardarBtn) guardarBtn.textContent = "Guardar operación";
 
             if (usuarioActual) {
                 document.getElementById("responsable").value = `${usuarioActual.nombres} ${usuarioActual.apellidos}`;
@@ -783,9 +956,9 @@ cantonSelect.addEventListener("change", () => {
     });
 });
 
-// ======================================================
+// =====================================================
 // GESTIÓN DE USUARIOS - ADMIN
-// ======================================================
+// =====================================================
 
 function configurarGestionUsuarios() {
     const nuevoUsuarioBtn = document.getElementById("nuevoUsuarioBtn");
@@ -1085,6 +1258,364 @@ function generarIdUsuario() {
 
 function mostrarMensajeUsuarios(mensaje, tipo) {
     const message = document.getElementById("usuariosMessage");
+
+    if (!message) return;
+
+    message.textContent = mensaje;
+    message.className = `form-message ${tipo}`;
+
+    setTimeout(() => {
+        message.textContent = "";
+        message.className = "form-message";
+    }, 4500);
+}
+
+// ======================================================
+// MIS OPERACIONES
+// ======================================================
+
+function configurarMisOperaciones() {
+    const buscar = document.getElementById("buscarMisOperaciones");
+    const filtroEstado = document.getElementById("filtroEstadoMisOperaciones");
+    const filtroResultados = document.getElementById("filtroResultadosMisOperaciones");
+    const tbody = document.getElementById("misOperacionesTableBody");
+
+    if (!tbody) return;
+
+    if (buscar) buscar.addEventListener("input", renderMisOperaciones);
+    if (filtroEstado) filtroEstado.addEventListener("change", renderMisOperaciones);
+    if (filtroResultados) filtroResultados.addEventListener("change", renderMisOperaciones);
+
+    tbody.addEventListener("click", (event) => {
+        const button = event.target.closest("button");
+        if (!button) return;
+
+        const idOperacion = button.dataset.id;
+        const accion = button.dataset.action;
+
+        if (accion === "ver") {
+            verDetalleOperacion(idOperacion);
+        }
+
+        if (accion === "editar") {
+            cargarOperacionParaEditar(idOperacion);
+        }
+    });
+}
+
+function renderMisOperaciones() {
+    const tbody = document.getElementById("misOperacionesTableBody");
+    if (!tbody) return;
+
+    const texto = (document.getElementById("buscarMisOperaciones")?.value || "").toLowerCase().trim();
+    const estado = document.getElementById("filtroEstadoMisOperaciones")?.value || "";
+    const resultados = document.getElementById("filtroResultadosMisOperaciones")?.value || "";
+
+    let operaciones = operacionesSistema;
+
+    if (usuarioActual && usuarioActual.rol === "COMANDANTE_OPERACIONES") {
+        operaciones = operaciones.filter((op) => op.id_usuario_registro === usuarioActual.id_usuario);
+    }
+
+    operaciones = operaciones.filter((op) => {
+        const textoOperacion = `
+            ${op.id_operacion}
+            ${op.tipo_operacion}
+            ${op.sub_tipo_operacion}
+            ${op.canton}
+            ${op.parroquia}
+            ${op.sector}
+            ${op.estado_operacion}
+        `.toLowerCase();
+
+        const coincideTexto = !texto || textoOperacion.includes(texto);
+        const coincideEstado = !estado || op.estado_operacion === estado;
+        const coincideResultados = !resultados || op.hubo_resultados === resultados;
+
+        return coincideTexto && coincideEstado && coincideResultados;
+    });
+
+    tbody.innerHTML = "";
+
+    if (operaciones.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="empty-table">Sin operaciones registradas.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    operaciones.forEach((op) => {
+        const puedeEditar = puedeEditarOperacion(op);
+        const estadoClass = normalizarEstadoClass(op.estado_operacion);
+
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${op.id_operacion}</td>
+            <td>${formatearFecha(op.fecha_operacion)}</td>
+            <td>${op.tipo_operacion}</td>
+            <td>${op.sub_tipo_operacion}</td>
+            <td>${op.canton}</td>
+            <td>${op.hubo_resultados}</td>
+            <td><span class="op-status ${estadoClass}">${op.estado_operacion}</span></td>
+            <td>
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-outline-dark btn-small" data-action="ver" data-id="${op.id_operacion}">
+                        Ver
+                    </button>
+
+                    <button 
+                        type="button" 
+                        class="btn btn-warning btn-small" 
+                        data-action="editar" 
+                        data-id="${op.id_operacion}"
+                        ${puedeEditar ? "" : "disabled"}
+                    >
+                        Editar
+                    </button>
+                </div>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+function verDetalleOperacion(idOperacion) {
+    const operacion = operacionesSistema.find((op) => op.id_operacion === idOperacion);
+
+    if (!operacion) {
+        mostrarMensajeMisOperaciones("Operación no encontrada.", "error");
+        return;
+    }
+
+    const resultados = resultadosSistema.filter((r) => r.id_operacion === idOperacion);
+
+    const panel = document.getElementById("detalleOperacionPanel");
+    const content = document.getElementById("detalleOperacionContent");
+
+    const resultadosHtml = resultados.length === 0
+        ? `<p class="empty-table">Esta operación no tiene resultados asociados.</p>`
+        : `
+            <div class="resultado-list">
+                ${resultados.map((r, index) => `
+                    <div class="resultado-card">
+                        <strong>Resultado ${index + 1}: ${r.categoria}</strong>
+                        <p>
+                            Subcategoría: ${r.subcategoria}<br>
+                            Cantidad: ${r.cantidad} ${r.unidad_medida}<br>
+                            Descripción: ${r.descripcion || "Sin descripción"}
+                        </p>
+                    </div>
+                `).join("")}
+            </div>
+        `;
+
+    content.innerHTML = `
+        <div class="detail-grid">
+            <div class="detail-item">
+                <span>ID operación</span>
+                <strong>${operacion.id_operacion}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Fecha</span>
+                <strong>${formatearFecha(operacion.fecha_operacion)}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Horario</span>
+                <strong>${operacion.hora_inicio} - ${operacion.hora_fin}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Tipo</span>
+                <strong>${operacion.tipo_operacion}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Subtipo</span>
+                <strong>${operacion.sub_tipo_operacion}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Estado</span>
+                <strong>${operacion.estado_operacion}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Provincia</span>
+                <strong>${operacion.provincia}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Cantón</span>
+                <strong>${operacion.canton}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Parroquia</span>
+                <strong>${operacion.parroquia || "No aplica"}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Sector</span>
+                <strong>${operacion.sector || "Sin sector"}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Coordenadas</span>
+                <strong>${operacion.coordenadas || "Sin coordenadas"}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Responsable</span>
+                <strong>${operacion.grado_responsable} ${operacion.responsable}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Personal</span>
+                <strong>Of: ${operacion.num_oficiales} | Vol: ${operacion.num_vol} | Sldr: ${operacion.num_sldr}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Hubo resultados</span>
+                <strong>${operacion.hubo_resultados}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Registrado por</span>
+                <strong>${operacion.registrado_por}</strong>
+            </div>
+        </div>
+
+        <div class="section-title">
+            <h3>Resultados asociados</h3>
+        </div>
+
+        ${resultadosHtml}
+
+        <div class="section-title">
+            <h3>Observación general</h3>
+        </div>
+
+        <p>${operacion.observacion_general || "Sin observación general."}</p>
+    `;
+
+    panel.classList.remove("hidden");
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function cargarOperacionParaEditar(idOperacion) {
+    const operacion = operacionesSistema.find((op) => op.id_operacion === idOperacion);
+
+    if (!operacion) {
+        mostrarMensajeMisOperaciones("Operación no encontrada.", "error");
+        return;
+    }
+
+    if (!puedeEditarOperacion(operacion)) {
+        mostrarMensajeMisOperaciones("Esta operación no puede ser editada porque está validada o anulada.", "error");
+        return;
+    }
+
+    operacionEditandoId = idOperacion;
+
+    mostrarPagina("registrarPage", "Editar operación", "Modificación de operación registrada");
+
+    document.getElementById("fechaOperacion").value = operacion.fecha_operacion;
+    document.getElementById("horaInicio").value = operacion.hora_inicio;
+    document.getElementById("horaFin").value = operacion.hora_fin;
+
+    tipoOperacion.value = operacion.tipo_operacion;
+    tipoOperacion.dispatchEvent(new Event("change"));
+    subTipoOperacion.value = operacion.sub_tipo_operacion;
+
+    document.getElementById("provincia").value = operacion.provincia;
+    document.getElementById("canton").value = operacion.canton;
+    cantonSelect.dispatchEvent(new Event("change"));
+    document.getElementById("parroquia").value = operacion.parroquia;
+
+    document.getElementById("sector").value = operacion.sector;
+    document.getElementById("coordenadas").value = operacion.coordenadas;
+
+    document.getElementById("responsable").value = operacion.responsable;
+    document.getElementById("gradoResponsable").value = operacion.grado_responsable;
+
+    document.getElementById("numOficiales").value = operacion.num_oficiales;
+    document.getElementById("numVol").value = operacion.num_vol;
+    document.getElementById("numSldr").value = operacion.num_sldr;
+
+    huboResultados.value = operacion.hubo_resultados;
+
+    if (operacion.hubo_resultados === "SI") {
+        resultadosBlock.classList.remove("hidden");
+
+        resultadosTemporales = resultadosSistema
+            .filter((r) => r.id_operacion === idOperacion)
+            .map((r) => ({
+                categoria: r.categoria,
+                subcategoria: r.subcategoria,
+                cantidad: r.cantidad,
+                unidad: r.unidad_medida,
+                descripcion: r.descripcion
+            }));
+
+        renderResultados();
+    } else {
+        resultadosBlock.classList.add("hidden");
+        resultadosTemporales = [];
+        renderResultados();
+    }
+
+    document.getElementById("observacionGeneral").value = operacion.observacion_general || "";
+
+    const guardarBtn = document.getElementById("guardarOperacionBtn");
+    if (guardarBtn) guardarBtn.textContent = "Actualizar operación";
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function puedeEditarOperacion(operacion) {
+    if (!operacion) return false;
+
+    const estadosEditables = ["REGISTRADO", "OBSERVADO"];
+
+    if (!estadosEditables.includes(operacion.estado_operacion)) {
+        return false;
+    }
+
+    if (usuarioActual && usuarioActual.rol === "ADMIN") {
+        return true;
+    }
+
+    if (usuarioActual && usuarioActual.rol === "COMANDANTE_OPERACIONES") {
+        return operacion.id_usuario_registro === usuarioActual.id_usuario;
+    }
+
+    return false;
+}
+
+function normalizarEstadoClass(estado) {
+    return (estado || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
+
+function formatearFecha(fecha) {
+    if (!fecha) return "";
+
+    const partes = fecha.split("-");
+    if (partes.length !== 3) return fecha;
+
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
+
+function mostrarMensajeMisOperaciones(mensaje, tipo) {
+    const message = document.getElementById("misOperacionesMessage");
 
     if (!message) return;
 

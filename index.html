@@ -318,9 +318,10 @@
 
                         <div class="form-actions">
                             <button type="reset" class="btn btn-outline-dark">Limpiar</button>
-                            <button type="submit" class="btn btn-primary">Guardar operación</button>
-                        </div>
 
+                        </div>
+                        <button type="submit" id="guardarOperacionBtn" class="btn btn-primary">Guardar
+                            operación</button>
                         <p id="formMessage" class="form-message"></p>
                     </form>
                 </section>
@@ -328,27 +329,72 @@
                 <!-- MIS OPERACIONES -->
                 <section id="misOperacionesPage" class="page">
                     <div class="panel-card">
-                        <h3>Mis operaciones</h3>
-                        <p>En esta pantalla se listarán las operaciones registradas por el usuario logueado.</p>
+                        <div class="admin-toolbar">
+                            <div>
+                                <h3>Mis operaciones</h3>
+                                <p>Operaciones registradas por el usuario con sesión activa.</p>
+                            </div>
+                        </div>
+
+                        <div class="filters-grid">
+                            <div class="field">
+                                <label>Buscar</label>
+                                <input type="text" id="buscarMisOperaciones"
+                                    placeholder="Buscar por ID, tipo, cantón o sector" />
+                            </div>
+
+                            <div class="field">
+                                <label>Estado</label>
+                                <select id="filtroEstadoMisOperaciones">
+                                    <option value="">Todos</option>
+                                    <option value="REGISTRADO">REGISTRADO</option>
+                                    <option value="VALIDADO">VALIDADO</option>
+                                    <option value="OBSERVADO">OBSERVADO</option>
+                                    <option value="ANULADO">ANULADO</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Hubo resultados</label>
+                                <select id="filtroResultadosMisOperaciones">
+                                    <option value="">Todos</option>
+                                    <option value="SI">SI</option>
+                                    <option value="NO">NO</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div class="table-wrapper">
-                            <table>
+                            <table class="admin-table">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
                                         <th>Fecha</th>
                                         <th>Tipo</th>
                                         <th>Subtipo</th>
+                                        <th>Cantón</th>
+                                        <th>Resultados</th>
                                         <th>Estado</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="misOperacionesTableBody">
                                     <tr>
-                                        <td colspan="6" class="empty-table">Todavía no hay datos conectados.</td>
+                                        <td colspan="8" class="empty-table">Sin operaciones registradas.</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
+
+                        <p id="misOperacionesMessage" class="form-message"></p>
+                    </div>
+
+                    <div id="detalleOperacionPanel" class="form-card detail-panel hidden">
+                        <div class="section-title">
+                            <h3>Detalle de operación</h3>
+                        </div>
+
+                        <div id="detalleOperacionContent"></div>
                     </div>
                 </section>
 

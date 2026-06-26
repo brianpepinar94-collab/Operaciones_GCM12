@@ -890,3 +890,93 @@ button,
     margin-top: 16px;
   }
 }
+
+/* ============================= */
+/* MIS OPERACIONES */
+/* ============================= */
+
+.detail-panel {
+  margin-top: 22px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.detail-item {
+  background: #FAF9FC;
+  border: 1px solid #E8E3EF;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.detail-item span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.detail-item strong {
+  color: var(--primary-dark);
+  font-size: 14px;
+}
+
+.op-status {
+  display: inline-block;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.op-status.registrado {
+  background: rgba(10, 55, 148, 0.12);
+  color: var(--blue);
+}
+
+.op-status.validado {
+  background: rgba(47, 107, 63, 0.14);
+  color: var(--green);
+}
+
+.op-status.observado {
+  background: rgba(249, 207, 22, 0.20);
+  color: #8A6500;
+}
+
+.op-status.anulado {
+  background: rgba(180, 35, 24, 0.13);
+  color: var(--danger);
+}
+
+.resultado-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.resultado-card {
+  border: 1px solid #E8E3EF;
+  background: #FFFFFF;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.resultado-card strong {
+  color: var(--primary);
+}
+
+@media (max-width: 768px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-table {
+    min-width: 1050px;
+  }
+}
