@@ -114,7 +114,24 @@ function cargarUsuariosSistema() {
 function guardarUsuariosSistema() {
     localStorage.setItem(STORAGE_USUARIOS, JSON.stringify(usuariosSistema));
 }
+function leerJsonStorage(clave, valorPorDefecto) {
+    const data = localStorage.getItem(clave);
 
+    if (!data) return valorPorDefecto;
+
+    try {
+        return JSON.parse(data);
+    } catch (error) {
+        console.error(`Error leyendo ${clave}:`, error);
+        return valorPorDefecto;
+    }
+}
+
+function recargarDatosDesdeStorage() {
+    usuariosSistema = leerJsonStorage(STORAGE_USUARIOS, usuariosDemo);
+    operacionesSistema = leerJsonStorage(STORAGE_OPERACIONES, []);
+    resultadosSistema = leerJsonStorage(STORAGE_RESULTADOS, []);
+}
 
 
 const subtiposOperacion = {
@@ -383,10 +400,12 @@ document.addEventListener("DOMContentLoaded", () => {
     configurarGestionUsuarios();
     configurarMisOperaciones();
     configurarAdministrarOperaciones();
+    configurarDashboard();
 
     renderUsuariosAdmin();
     renderMisOperaciones();
     renderOperacionesAdmin();
+    renderDashboard();
 });
 ubicacionBtn.addEventListener("click", () => {
     const coordenadasInput = document.getElementById("coordenadas");
@@ -544,6 +563,23 @@ function mostrarPagina(pageId, title, subtitle) {
 
     pageTitle.textContent = title;
     pageSubtitle.textContent = subtitle;
+    recargarDatosDesdeStorage();
+
+    if (pageId === "misOperacionesPage") {
+        renderMisOperaciones();
+    }
+
+    if (pageId === "operacionesPage") {
+        renderOperacionesAdmin();
+    }
+
+    if (pageId === "dashboardPage") {
+        renderDashboard();
+    }
+
+    if (pageId === "usuariosPage") {
+        renderUsuariosAdmin();
+    }
 }
 
 // SUBTIPOS POR TIPO DE OPERACIÓN
@@ -778,6 +814,7 @@ function crearNuevaOperacion() {
     mostrarMensaje("Operación guardada correctamente en modo demo.", "success");
     renderMisOperaciones();
     renderOperacionesAdmin();
+    renderDashboard();
 }
 
 function actualizarOperacionExistente() {
@@ -843,6 +880,7 @@ function actualizarOperacionExistente() {
     mostrarMensaje("Operación actualizada correctamente.", "success");
     renderMisOperaciones();
     renderOperacionesAdmin();
+    renderDashboard();
 }
 
 function limpiarFormularioOperacion() {
@@ -1311,15 +1349,18 @@ function configurarMisOperaciones() {
 function renderMisOperaciones() {
     const tbody = document.getElementById("misOperacionesTableBody");
     if (!tbody) return;
+    recargarDatosDesdeStorage();
 
     const texto = (document.getElementById("buscarMisOperaciones")?.value || "").toLowerCase().trim();
     const estado = document.getElementById("filtroEstadoMisOperaciones")?.value || "";
     const resultados = document.getElementById("filtroResultadosMisOperaciones")?.value || "";
 
-    let operaciones = operacionesSistema;
+    recargarDatosDesdeStorage();
+
+    let operaciones = [...operacionesSistema];
 
     if (usuarioActual && usuarioActual.rol === "COMANDANTE_OPERACIONES") {
-        operaciones = operaciones.filter((op) => op.id_usuario_registro === usuarioActual.id_usuario);
+        operaciones = operaciones.filter((op) => esOperacionDelUsuarioActual(op));
     }
 
     operaciones = operaciones.filter((op) => {
@@ -1686,6 +1727,8 @@ function renderOperacionesAdmin() {
     const tbody = document.getElementById("operacionesAdminTableBody");
     if (!tbody) return;
 
+    recargarDatosDesdeStorage();
+
     const texto = (document.getElementById("buscarOperacionesAdmin")?.value || "").toLowerCase().trim();
     const estado = document.getElementById("filtroEstadoOperacionesAdmin")?.value || "";
     const tipo = document.getElementById("filtroTipoOperacionesAdmin")?.value || "";
@@ -1966,6 +2009,7 @@ function cambiarEstadoOperacionAdmin(idOperacion, nuevoEstado) {
 
     renderOperacionesAdmin();
     renderMisOperaciones();
+    renderDashboard();
 
     mostrarMensajeOperacionesAdmin(`Operación actualizada a estado ${nuevoEstado}.`, "success");
 }
@@ -2003,7 +2047,7 @@ function observarOperacionAdmin(idOperacion) {
 
     renderOperacionesAdmin();
     renderMisOperaciones();
-
+    renderDashboard();
     mostrarMensajeOperacionesAdmin("Operación marcada como OBSERVADO.", "success");
 }
 
@@ -2044,6 +2088,7 @@ function anularOperacionAdmin(idOperacion) {
 
     renderOperacionesAdmin();
     renderMisOperaciones();
+    renderDashboard();
 
     mostrarMensajeOperacionesAdmin("Operación anulada correctamente.", "success");
 }
@@ -2077,3 +2122,620 @@ function formatearFechaHora(fechaIso) {
         minute: "2-digit"
     });
 }
+
+
+// ======================================================
+// DASHBOARD COMANDANTE DE UNIDAD
+// ======================================================
+
+function configurarDashboard() {
+    const dashboardPage = document.getElementById("dashboardPage");
+    if (!dashboardPage) return;
+
+    cargarFiltrosDashboard();
+
+    const filtros = [
+        "dashFechaDesde",
+        "dashFechaHasta",
+        "dashEstado",
+        "dashTipo",
+        "dashSubtipo",
+        "dashCanton",
+        "dashParroquia",
+        "dashCategoria",
+        "dashSubcategoria"
+    ];
+
+    filtros.forEach((id) => {
+        const element = document.getElementById(id);
+        if (element) element.addEventListener("change", renderDashboard);
+    });
+
+    const dashTipo = document.getElementById("dashTipo");
+    const dashCanton = document.getElementById("dashCanton");
+    const dashCategoria = document.getElementById("dashCategoria");
+
+    if (dashTipo) {
+        dashTipo.addEventListener("change", () => {
+            cargarSubtiposDashboard();
+            renderDashboard();
+        });
+    }
+
+    if (dashCanton) {
+        dashCanton.addEventListener("change", () => {
+            cargarParroquiasDashboard();
+            renderDashboard();
+        });
+    }
+
+    if (dashCategoria) {
+        dashCategoria.addEventListener("change", () => {
+            cargarSubcategoriasDashboard();
+            renderDashboard();
+        });
+    }
+
+    const limpiarBtn = document.getElementById("dashLimpiarFiltros");
+    if (limpiarBtn) {
+        limpiarBtn.addEventListener("click", limpiarFiltrosDashboard);
+    }
+
+    const toggleBtn = document.getElementById("dashToggleFiltros");
+    const filtrosBody = document.getElementById("dashFiltersBody");
+
+    if (toggleBtn && filtrosBody) {
+        toggleBtn.addEventListener("click", () => {
+            filtrosBody.classList.toggle("hidden");
+        });
+    }
+
+    document.querySelectorAll(".dash-tab").forEach((button) => {
+        button.addEventListener("click", () => {
+            const tab = button.dataset.dashTab;
+
+            document.querySelectorAll(".dash-tab").forEach((b) => b.classList.remove("active"));
+            document.querySelectorAll(".dash-tab-content").forEach((c) => c.classList.remove("active"));
+
+            button.classList.add("active");
+
+            const content = document.getElementById(`dashTab${capitalizar(tab)}`);
+            if (content) content.classList.add("active");
+        });
+    });
+}
+
+function cargarFiltrosDashboard() {
+    const dashCanton = document.getElementById("dashCanton");
+    const dashCategoria = document.getElementById("dashCategoria");
+
+    if (dashCanton) {
+        dashCanton.innerHTML = `<option value="">Todos</option>`;
+
+        ubicacionCatalogo.cantones.forEach((canton) => {
+            const option = document.createElement("option");
+            option.value = canton;
+            option.textContent = canton;
+            dashCanton.appendChild(option);
+        });
+    }
+
+    if (dashCategoria) {
+        dashCategoria.innerHTML = `<option value="">Todas</option>`;
+
+        Object.keys(categoriasResultados).forEach((categoria) => {
+            const option = document.createElement("option");
+            option.value = categoria;
+            option.textContent = categoria;
+            dashCategoria.appendChild(option);
+        });
+    }
+
+    cargarSubtiposDashboard();
+    cargarParroquiasDashboard();
+    cargarSubcategoriasDashboard();
+}
+
+function cargarSubtiposDashboard() {
+    const dashTipo = document.getElementById("dashTipo");
+    const dashSubtipo = document.getElementById("dashSubtipo");
+
+    if (!dashTipo || !dashSubtipo) return;
+
+    const tipo = dashTipo.value;
+    const opciones = tipo ? (subtiposOperacion[tipo] || []) : [];
+
+    dashSubtipo.innerHTML = `<option value="">Todos</option>`;
+
+    opciones.forEach((subtipo) => {
+        const option = document.createElement("option");
+        option.value = subtipo;
+        option.textContent = subtipo;
+        dashSubtipo.appendChild(option);
+    });
+}
+
+function cargarParroquiasDashboard() {
+    const dashCanton = document.getElementById("dashCanton");
+    const dashParroquia = document.getElementById("dashParroquia");
+
+    if (!dashCanton || !dashParroquia) return;
+
+    const canton = dashCanton.value;
+    const parroquias = ubicacionCatalogo.parroquiasPorCanton[canton] || [];
+
+    dashParroquia.innerHTML = `<option value="">Todas</option>`;
+
+    parroquias.forEach((parroquia) => {
+        const option = document.createElement("option");
+        option.value = parroquia;
+        option.textContent = parroquia;
+        dashParroquia.appendChild(option);
+    });
+}
+
+function cargarSubcategoriasDashboard() {
+    const dashCategoria = document.getElementById("dashCategoria");
+    const dashSubcategoria = document.getElementById("dashSubcategoria");
+
+    if (!dashCategoria || !dashSubcategoria) return;
+
+    const categoria = dashCategoria.value;
+    const data = categoriasResultados[categoria];
+
+    dashSubcategoria.innerHTML = `<option value="">Todas</option>`;
+
+    if (!data) return;
+
+    data.subcategorias.forEach((subcategoria) => {
+        const option = document.createElement("option");
+        option.value = subcategoria;
+        option.textContent = subcategoria;
+        dashSubcategoria.appendChild(option);
+    });
+}
+
+function limpiarFiltrosDashboard() {
+    document.getElementById("dashFechaDesde").value = "";
+    document.getElementById("dashFechaHasta").value = "";
+    document.getElementById("dashEstado").value = "VALIDADO";
+    document.getElementById("dashTipo").value = "";
+    document.getElementById("dashCanton").value = "";
+    document.getElementById("dashCategoria").value = "";
+
+    cargarSubtiposDashboard();
+    cargarParroquiasDashboard();
+    cargarSubcategoriasDashboard();
+
+    document.getElementById("dashSubtipo").value = "";
+    document.getElementById("dashParroquia").value = "";
+    document.getElementById("dashSubcategoria").value = "";
+
+    renderDashboard();
+}
+
+function renderDashboard() {
+    const dashboardPage = document.getElementById("dashboardPage");
+    if (!dashboardPage) return;
+    recargarDatosDesdeStorage();
+
+    const datos = obtenerDatosDashboardFiltrados();
+    const operaciones = datos.operaciones;
+    const resultados = datos.resultados;
+
+    const totalOperaciones = operaciones.length;
+    const conResultados = operaciones.filter((op) => op.hubo_resultados === "SI").length;
+    const sinResultados = operaciones.filter((op) => op.hubo_resultados === "NO").length;
+    const efectividad = totalOperaciones > 0 ? ((conResultados / totalOperaciones) * 100).toFixed(1) : "0.0";
+
+    const totalOficiales = sumarCampoOperaciones(operaciones, "num_oficiales");
+    const totalVoluntarios = sumarCampoOperaciones(operaciones, "num_vol");
+    const totalSoldados = sumarCampoOperaciones(operaciones, "num_sldr");
+    const totalPersonal = totalOficiales + totalVoluntarios + totalSoldados;
+
+    setText("dashTotalOperaciones", formatNumero(totalOperaciones));
+    setText("dashConResultados", formatNumero(conResultados));
+    setText("dashSinResultados", formatNumero(sinResultados));
+    setText("dashEfectividad", `${efectividad}%`);
+    setText("dashOficiales", formatNumero(totalOficiales));
+    setText("dashVoluntarios", formatNumero(totalVoluntarios));
+    setText("dashSoldados", formatNumero(totalSoldados));
+    setText("dashPersonalTotal", formatNumero(totalPersonal));
+
+    // Armamento y municiones
+    setText("dashArmasCortas", formatNumero(sumarCategoria(resultados, "Armas de fuego cortas")));
+    setText("dashArmasLargas", formatNumero(sumarCategoria(resultados, "Armas de fuego largas")));
+    setText("dashArmasFuegoNoLetales", formatNumero(sumarCategoria(resultados, "Armas de fuego no letales")));
+    setText("dashArmasBlancas", formatNumero(sumarCategoria(resultados, "Armas blancas")));
+    setText("dashArmasNoLetales", formatNumero(sumarCategoria(resultados, "Armas no letales")));
+    setText("dashMuniciones", formatNumero(sumarCategoria(resultados, "Municiones")));
+    setText("dashMunicionPercutida", formatNumero(sumarCategoria(resultados, "Munición percutida")));
+    setText("dashAlimentadoras", formatNumero(sumarCategoria(resultados, "Alimentadoras")));
+    setText("dashAccesoriosArmas", formatNumero(sumarCategoria(resultados, "Accesorios de armas")));
+
+    // Explosivos y granadas
+    setText("dashExplosivosUnidades", formatNumero(sumarCategoria(resultados, "Explosivos", "unidades")));
+    setText("dashExplosivosMetros", `${formatDecimal(sumarCategoria(resultados, "Explosivos", "metros"))} m`);
+    setText("dashExplosivosKg", `${formatDecimal(sumarCategoria(resultados, "Explosivos", "kilogramos"))} kg`);
+    setText("dashGranadas", formatNumero(sumarCategoria(resultados, "Granadas")));
+
+    // Sustancias y procesamiento
+    setText("dashSCSFTotalKg", `${formatDecimal(calcularSCSFEnKg(resultados))} kg`);
+    setText("dashBalanzas", formatNumero(sumarSubcategoria(resultados, "Otros objetos", "Balanzas")));
+    setText("dashPipas", formatNumero(sumarSubcategoria(resultados, "Otros objetos", "Pipas")));
+    setText("dashDocumentacion", formatNumero(sumarSubcategoria(resultados, "Otros objetos", "Documentación")));
+
+    // Comunicaciones y tecnología
+    setText("dashTelefonos", formatNumero(sumarCategoria(resultados, "Teléfonos celulares")));
+    setText("dashChips", formatNumero(sumarSubcategoria(resultados, "Accesorios celulares", "Chips")));
+    setText("dashRadios", formatNumero(sumarSubcategorias(resultados, "Equipos de comunicación", ["Radios portátiles", "Radios móviles vehiculares"])));
+    setText("dashCamaras", formatNumero(sumarSubcategoria(resultados, "Equipos de videovigilancia", "Cámaras")));
+    setText("dashDrones", formatNumero(sumarSubcategoria(resultados, "Equipos de videovigilancia", "Drones")));
+    setText("dashDvr", formatNumero(sumarSubcategoria(resultados, "Equipos de videovigilancia", "DVR")));
+    setText("dashModemRouter", formatNumero(sumarSubcategorias(resultados, "Equipos de red", ["Módem", "Router"])));
+    setText("dashFibraCable", `${formatDecimal(sumarSubcategorias(resultados, "Equipos de red", ["Fibra óptica", "Cable de red"], "metros"))} m`);
+
+    // Movilidad, combustible y logística
+    setText("dashMotocicletas", formatNumero(sumarSubcategoria(resultados, "Vehículos y maquinaria", "Motocicleta")));
+    setText("dashVehiculos", formatNumero(sumarSubcategoria(resultados, "Vehículos y maquinaria", "Vehículo")));
+    setText("dashCamiones", formatNumero(sumarSubcategoria(resultados, "Vehículos y maquinaria", "Camión")));
+    setText("dashTanqueros", formatNumero(sumarSubcategoria(resultados, "Vehículos y maquinaria", "Tanquero")));
+    setText("dashMaquinaria", formatNumero(sumarSubcategoria(resultados, "Vehículos y maquinaria", "Maquinaria pesada")));
+    setText("dashCombustibleGal", `${formatDecimal(sumarCategoria(resultados, "Combustible", "galones"))} gal`);
+    setText("dashCombustibleLitros", `${formatDecimal(sumarCategoria(resultados, "Combustible", "litros"))} L`);
+    setText("dashBebidas", `${formatDecimal(sumarCategoria(resultados, "Bebidas alcohólicas", "litros"))} L`);
+    setText("dashTabacos", formatNumero(sumarCategoria(resultados, "Tabacos")));
+
+    // Humanos y financieros
+    setText("dashAprehendidos", formatNumero(sumarCategoria(resultados, "Personas aprehendidas")));
+    setText("dashDinero", `$${formatNumero(sumarCategoria(resultados, "Dinero efectivo", "dólares americanos"))}`);
+
+    renderRankingUbicacion("dashRankingCanton", operaciones, resultados, "canton");
+    renderRankingUbicacion("dashRankingParroquia", operaciones, resultados, "parroquia");
+    renderRankingUbicacion("dashRankingSector", operaciones, resultados, "sector");
+
+    renderRankingTiempoMes(operaciones, "dashTiempoMes");
+    renderRankingTiempoSemana(operaciones, "dashTiempoSemana");
+
+    renderRankingSubtipo(operaciones, "dashRankingSubtipo");
+    renderRankingTipo(operaciones, "dashRankingTipo");
+}
+
+function obtenerDatosDashboardFiltrados() {
+    const fechaDesde = document.getElementById("dashFechaDesde")?.value || "";
+    const fechaHasta = document.getElementById("dashFechaHasta")?.value || "";
+    const estado = document.getElementById("dashEstado")?.value || "";
+    const tipo = document.getElementById("dashTipo")?.value || "";
+    const subtipo = document.getElementById("dashSubtipo")?.value || "";
+    const canton = document.getElementById("dashCanton")?.value || "";
+    const parroquia = document.getElementById("dashParroquia")?.value || "";
+    const categoria = document.getElementById("dashCategoria")?.value || "";
+    const subcategoria = document.getElementById("dashSubcategoria")?.value || "";
+
+    let operaciones = operacionesSistema.filter((op) => {
+        const okFechaDesde = !fechaDesde || op.fecha_operacion >= fechaDesde;
+        const okFechaHasta = !fechaHasta || op.fecha_operacion <= fechaHasta;
+        const okEstado = !estado || op.estado_operacion === estado;
+        const okTipo = !tipo || op.tipo_operacion === tipo;
+        const okSubtipo = !subtipo || op.sub_tipo_operacion === subtipo;
+        const okCanton = !canton || op.canton === canton;
+        const okParroquia = !parroquia || op.parroquia === parroquia;
+
+        return okFechaDesde && okFechaHasta && okEstado && okTipo && okSubtipo && okCanton && okParroquia;
+    });
+
+    const idsOperaciones = new Set(operaciones.map((op) => op.id_operacion));
+
+    let resultados = resultadosSistema.filter((r) => idsOperaciones.has(r.id_operacion));
+
+    if (categoria) {
+        resultados = resultados.filter((r) => r.categoria === categoria);
+    }
+
+    if (subcategoria) {
+        resultados = resultados.filter((r) => r.subcategoria === subcategoria);
+    }
+
+    if (categoria || subcategoria) {
+        const idsConResultadoFiltrado = new Set(resultados.map((r) => r.id_operacion));
+        operaciones = operaciones.filter((op) => idsConResultadoFiltrado.has(op.id_operacion));
+    }
+
+    return {
+        operaciones,
+        resultados
+    };
+}
+
+function sumarCampoOperaciones(operaciones, campo) {
+    return operaciones.reduce((total, op) => total + (Number(op[campo]) || 0), 0);
+}
+
+function sumarCategoria(resultados, categoria, unidad = "") {
+    return resultados
+        .filter((r) => r.categoria === categoria)
+        .filter((r) => !unidad || r.unidad_medida === unidad)
+        .reduce((total, r) => total + (Number(r.cantidad) || 0), 0);
+}
+
+function sumarSubcategoria(resultados, categoria, subcategoria, unidad = "") {
+    return resultados
+        .filter((r) => r.categoria === categoria && r.subcategoria === subcategoria)
+        .filter((r) => !unidad || r.unidad_medida === unidad)
+        .reduce((total, r) => total + (Number(r.cantidad) || 0), 0);
+}
+
+function sumarSubcategorias(resultados, categoria, subcategorias, unidad = "") {
+    return resultados
+        .filter((r) => r.categoria === categoria && subcategorias.includes(r.subcategoria))
+        .filter((r) => !unidad || r.unidad_medida === unidad)
+        .reduce((total, r) => total + (Number(r.cantidad) || 0), 0);
+}
+
+function calcularSCSFEnKg(resultados) {
+    return resultados
+        .filter((r) => r.categoria === "Sustancias catalogadas sujetas a fiscalización")
+        .reduce((total, r) => {
+            const cantidad = Number(r.cantidad) || 0;
+
+            if (r.unidad_medida === "gramos") {
+                return total + (cantidad / 1000);
+            }
+
+            if (r.unidad_medida === "kilogramos") {
+                return total + cantidad;
+            }
+
+            return total;
+        }, 0);
+}
+
+function renderRankingUbicacion(tbodyId, operaciones, resultados, campo) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+
+    const mapa = new Map();
+
+    operaciones.forEach((op) => {
+        const clave = op[campo] || "SIN DATO";
+
+        if (!mapa.has(clave)) {
+            mapa.set(clave, {
+                nombre: clave,
+                operaciones: 0,
+                resultados: 0,
+                ids: new Set()
+            });
+        }
+
+        mapa.get(clave).operaciones += 1;
+        mapa.get(clave).ids.add(op.id_operacion);
+    });
+
+    resultados.forEach((r) => {
+        const op = operaciones.find((o) => o.id_operacion === r.id_operacion);
+        if (!op) return;
+
+        const clave = op[campo] || "SIN DATO";
+        if (mapa.has(clave)) {
+            mapa.get(clave).resultados += 1;
+        }
+    });
+
+    const data = Array.from(mapa.values())
+        .sort((a, b) => b.operaciones - a.operaciones)
+        .slice(0, 10);
+
+    renderTablaSimple(tbody, data, ["nombre", "operaciones", "resultados"]);
+}
+
+function renderRankingTiempoMes(operaciones, tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+
+    const mapa = new Map();
+
+    operaciones.forEach((op) => {
+        const clave = op.fecha_operacion ? op.fecha_operacion.slice(0, 7) : "SIN FECHA";
+
+        if (!mapa.has(clave)) {
+            mapa.set(clave, {
+                nombre: clave,
+                operaciones: 0,
+                con_resultados: 0
+            });
+        }
+
+        mapa.get(clave).operaciones += 1;
+
+        if (op.hubo_resultados === "SI") {
+            mapa.get(clave).con_resultados += 1;
+        }
+    });
+
+    const data = Array.from(mapa.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    renderTablaSimple(tbody, data, ["nombre", "operaciones", "con_resultados"]);
+}
+
+function renderRankingTiempoSemana(operaciones, tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+
+    const mapa = new Map();
+
+    operaciones.forEach((op) => {
+        const clave = obtenerClaveSemana(op.fecha_operacion);
+
+        if (!mapa.has(clave)) {
+            mapa.set(clave, {
+                nombre: clave,
+                operaciones: 0,
+                con_resultados: 0
+            });
+        }
+
+        mapa.get(clave).operaciones += 1;
+
+        if (op.hubo_resultados === "SI") {
+            mapa.get(clave).con_resultados += 1;
+        }
+    });
+
+    const data = Array.from(mapa.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    renderTablaSimple(tbody, data, ["nombre", "operaciones", "con_resultados"]);
+}
+
+function renderRankingSubtipo(operaciones, tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+
+    const mapa = new Map();
+
+    operaciones.forEach((op) => {
+        const clave = op.sub_tipo_operacion || "SIN SUBTIPO";
+
+        if (!mapa.has(clave)) {
+            mapa.set(clave, {
+                nombre: clave,
+                operaciones: 0,
+                con_resultados: 0,
+                efectividad: "0%"
+            });
+        }
+
+        mapa.get(clave).operaciones += 1;
+
+        if (op.hubo_resultados === "SI") {
+            mapa.get(clave).con_resultados += 1;
+        }
+    });
+
+    const data = Array.from(mapa.values()).map((item) => ({
+        ...item,
+        efectividad: item.operaciones > 0
+            ? `${((item.con_resultados / item.operaciones) * 100).toFixed(1)}%`
+            : "0%"
+    })).sort((a, b) => b.operaciones - a.operaciones);
+
+    renderTablaSimple(tbody, data, ["nombre", "operaciones", "con_resultados", "efectividad"]);
+}
+
+function renderRankingTipo(operaciones, tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+
+    const mapa = new Map();
+
+    operaciones.forEach((op) => {
+        const clave = op.tipo_operacion || "SIN TIPO";
+
+        if (!mapa.has(clave)) {
+            mapa.set(clave, {
+                nombre: clave,
+                operaciones: 0,
+                con_resultados: 0
+            });
+        }
+
+        mapa.get(clave).operaciones += 1;
+
+        if (op.hubo_resultados === "SI") {
+            mapa.get(clave).con_resultados += 1;
+        }
+    });
+
+    const data = Array.from(mapa.values()).sort((a, b) => b.operaciones - a.operaciones);
+
+    renderTablaSimple(tbody, data, ["nombre", "operaciones", "con_resultados"]);
+}
+
+function renderTablaSimple(tbody, data, campos) {
+    tbody.innerHTML = "";
+
+    if (!data || data.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="${campos.length}" class="empty-table">Sin datos disponibles.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    data.forEach((item) => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = campos.map((campo) => {
+            const valor = item[campo];
+
+            if (typeof valor === "number") {
+                return `<td>${formatNumero(valor)}</td>`;
+            }
+
+            return `<td>${valor || ""}</td>`;
+        }).join("");
+
+        tbody.appendChild(tr);
+    });
+}
+
+function obtenerClaveSemana(fechaTexto) {
+    if (!fechaTexto) return "SIN FECHA";
+
+    const fecha = new Date(`${fechaTexto}T00:00:00`);
+    if (Number.isNaN(fecha.getTime())) return "SIN FECHA";
+
+    const inicioAnio = new Date(fecha.getFullYear(), 0, 1);
+    const dias = Math.floor((fecha - inicioAnio) / 86400000);
+    const semana = Math.ceil((dias + inicioAnio.getDay() + 1) / 7);
+
+    return `${fecha.getFullYear()}-S${String(semana).padStart(2, "0")}`;
+}
+
+function setText(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+}
+
+function formatNumero(value) {
+    return new Intl.NumberFormat("es-EC").format(Number(value) || 0);
+}
+
+function formatDecimal(value) {
+    return new Intl.NumberFormat("es-EC", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+    }).format(Number(value) || 0);
+}
+
+function capitalizar(texto) {
+    if (!texto) return "";
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function esOperacionDelUsuarioActual(operacion) {
+    if (!usuarioActual || !operacion) return false;
+
+    return (
+        operacion.id_usuario_registro === usuarioActual.id_usuario ||
+        operacion.usuario_cedula === usuarioActual.usuario
+    );
+}
+
+window.addEventListener("storage", (event) => {
+    const claves = [
+        STORAGE_USUARIOS,
+        STORAGE_OPERACIONES,
+        STORAGE_RESULTADOS
+    ];
+
+    if (!claves.includes(event.key)) return;
+
+    recargarDatosDesdeStorage();
+
+    renderUsuariosAdmin();
+    renderMisOperaciones();
+    renderOperacionesAdmin();
+    renderDashboard();
+});

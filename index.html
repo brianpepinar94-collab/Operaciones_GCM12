@@ -637,33 +637,406 @@
 
                 <!-- DASHBOARD -->
                 <section id="dashboardPage" class="page">
-                    <div class="panel-card">
-                        <h3>Dashboard operacional</h3>
-                        <p>Panel estadístico de operaciones y resultados obtenidos.</p>
+                    <div class="dashboard-tactical">
 
-                        <div class="stats-grid">
-                            <article class="stat-card purple">
-                                <span>Total operaciones</span>
-                                <strong>0</strong>
-                            </article>
+                        <div class="dash-hero">
+                            <div>
+                                <h3>Dashboard Operacional GCM 12</h3>
+                                <p>Estadísticas de operaciones y resultados obtenidos en la jurisdicción.</p>
+                            </div>
 
-                            <article class="stat-card gold">
-                                <span>Con resultados</span>
-                                <strong>0</strong>
-                            </article>
-
-                            <article class="stat-card red">
-                                <span>Armas decomisadas</span>
-                                <strong>0</strong>
-                            </article>
-
-                            <article class="stat-card green">
-                                <span>Sustancias kg</span>
-                                <strong>0</strong>
-                            </article>
+                            <div class="dash-badge">
+                                DATOS VALIDADOS
+                            </div>
                         </div>
+
+                        <div class="dash-filter-card">
+                            <div class="dash-filter-head">
+                                <div>
+                                    <h4>Filtros de consulta</h4>
+                                    <p>Filtre por tiempo, ubicación, operación o categoría de resultado.</p>
+                                </div>
+
+                                <button type="button" id="dashToggleFiltros" class="btn btn-outline-dark btn-auto">
+                                    Mostrar / ocultar filtros
+                                </button>
+                            </div>
+
+                            <div id="dashFiltersBody" class="filters-grid dash-filters">
+                                <div class="field">
+                                    <label>Fecha desde</label>
+                                    <input type="date" id="dashFechaDesde" />
+                                </div>
+
+                                <div class="field">
+                                    <label>Fecha hasta</label>
+                                    <input type="date" id="dashFechaHasta" />
+                                </div>
+
+                                <div class="field">
+                                    <label>Estado</label>
+                                    <select id="dashEstado">
+                                        <option value="">Todos</option>
+                                        <option value="VALIDADO" selected>VALIDADO</option>
+                                        <option value="REGISTRADO">REGISTRADO</option>
+                                        <option value="OBSERVADO">OBSERVADO</option>
+                                        <option value="ANULADO">ANULADO</option>
+                                    </select>
+                                </div>
+
+                                <div class="field">
+                                    <label>Tipo de operación</label>
+                                    <select id="dashTipo">
+                                        <option value="">Todos</option>
+                                        <option value="DEFENSA EXTERNA">DEFENSA EXTERNA</option>
+                                        <option value="AMBITO INTERNO">AMBITO INTERNO</option>
+                                    </select>
+                                </div>
+
+                                <div class="field">
+                                    <label>Subtipo de operación</label>
+                                    <select id="dashSubtipo">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </div>
+
+                                <div class="field">
+                                    <label>Cantón</label>
+                                    <select id="dashCanton">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </div>
+
+                                <div class="field">
+                                    <label>Parroquia</label>
+                                    <select id="dashParroquia">
+                                        <option value="">Todas</option>
+                                    </select>
+                                </div>
+
+                                <div class="field">
+                                    <label>Categoría resultado</label>
+                                    <select id="dashCategoria">
+                                        <option value="">Todas</option>
+                                    </select>
+                                </div>
+
+                                <div class="field">
+                                    <label>Subcategoría resultado</label>
+                                    <select id="dashSubcategoria">
+                                        <option value="">Todas</option>
+                                    </select>
+                                </div>
+
+                                <div class="field dash-filter-actions">
+                                    <label>&nbsp;</label>
+                                    <button type="button" id="dashLimpiarFiltros" class="btn btn-secondary">
+                                        Limpiar filtros
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="dash-tabs">
+                            <button type="button" class="dash-tab active" data-dash-tab="resumen">Resumen</button>
+                            <button type="button" class="dash-tab" data-dash-tab="resultados">Resultados</button>
+                            <button type="button" class="dash-tab" data-dash-tab="ubicacion">Ubicación</button>
+                            <button type="button" class="dash-tab" data-dash-tab="tiempo">Tiempo</button>
+                            <button type="button" class="dash-tab" data-dash-tab="operaciones">Operaciones</button>
+                        </div>
+
+                        <!-- RESUMEN -->
+                        <div id="dashTabResumen" class="dash-tab-content active">
+                            <div class="dash-summary-grid">
+                                <article class="dash-summary-card">
+                                    <span>Total operaciones</span>
+                                    <strong id="dashTotalOperaciones">0</strong>
+                                </article>
+
+                                <article class="dash-summary-card">
+                                    <span>Con resultados</span>
+                                    <strong id="dashConResultados">0</strong>
+                                </article>
+
+                                <article class="dash-summary-card">
+                                    <span>Sin resultados</span>
+                                    <strong id="dashSinResultados">0</strong>
+                                </article>
+
+                                <article class="dash-summary-card">
+                                    <span>Efectividad</span>
+                                    <strong id="dashEfectividad">0%</strong>
+                                </article>
+
+                                <article class="dash-summary-card">
+                                    <span>Oficiales empleados</span>
+                                    <strong id="dashOficiales">0</strong>
+                                </article>
+
+                                <article class="dash-summary-card">
+                                    <span>Voluntarios empleados</span>
+                                    <strong id="dashVoluntarios">0</strong>
+                                </article>
+
+                                <article class="dash-summary-card">
+                                    <span>Soldados empleados</span>
+                                    <strong id="dashSoldados">0</strong>
+                                </article>
+
+                                <article class="dash-summary-card">
+                                    <span>Total personal</span>
+                                    <strong id="dashPersonalTotal">0</strong>
+                                </article>
+                            </div>
+                        </div>
+
+                        <!-- RESULTADOS -->
+                        <div id="dashTabResultados" class="dash-tab-content">
+
+                            <section class="dash-neon-panel cyan">
+                                <div class="dash-panel-title">
+                                    <h4>Armamento y municiones</h4>
+                                </div>
+
+                                <div class="dash-card-grid">
+                                    <article class="dash-metric-card"><span>Armas fuego cortas</span><strong
+                                            id="dashArmasCortas">0</strong></article>
+                                    <article class="dash-metric-card"><span>Armas fuego largas</span><strong
+                                            id="dashArmasLargas">0</strong></article>
+                                    <article class="dash-metric-card"><span>Armas fuego no letales</span><strong
+                                            id="dashArmasFuegoNoLetales">0</strong></article>
+                                    <article class="dash-metric-card"><span>Armas blancas</span><strong
+                                            id="dashArmasBlancas">0</strong></article>
+                                    <article class="dash-metric-card"><span>Armas no letales</span><strong
+                                            id="dashArmasNoLetales">0</strong></article>
+                                    <article class="dash-metric-card"><span>Municiones</span><strong
+                                            id="dashMuniciones">0</strong></article>
+                                    <article class="dash-metric-card"><span>Munición percutida</span><strong
+                                            id="dashMunicionPercutida">0</strong></article>
+                                    <article class="dash-metric-card"><span>Alimentadoras</span><strong
+                                            id="dashAlimentadoras">0</strong></article>
+                                    <article class="dash-metric-card"><span>Accesorios de armas</span><strong
+                                            id="dashAccesoriosArmas">0</strong></article>
+                                </div>
+                            </section>
+
+                            <section class="dash-neon-panel orange">
+                                <div class="dash-panel-title">
+                                    <h4>Explosivos y granadas</h4>
+                                </div>
+
+                                <div class="dash-card-grid">
+                                    <article class="dash-metric-card"><span>Explosivos unidades</span><strong
+                                            id="dashExplosivosUnidades">0</strong></article>
+                                    <article class="dash-metric-card"><span>Explosivos metros</span><strong
+                                            id="dashExplosivosMetros">0 m</strong></article>
+                                    <article class="dash-metric-card"><span>Explosivos kilogramos</span><strong
+                                            id="dashExplosivosKg">0 kg</strong></article>
+                                    <article class="dash-metric-card"><span>Granadas</span><strong
+                                            id="dashGranadas">0</strong></article>
+                                </div>
+                            </section>
+
+                            <section class="dash-neon-panel purple-panel">
+                                <div class="dash-panel-title">
+                                    <h4>Sustancias y procesamiento</h4>
+                                </div>
+
+                                <div class="dash-card-grid">
+                                    <article class="dash-metric-card large"><span>SCSF total equivalente</span><strong
+                                            id="dashSCSFTotalKg">0 kg</strong></article>
+                                    <article class="dash-metric-card"><span>Balanzas</span><strong
+                                            id="dashBalanzas">0</strong></article>
+                                    <article class="dash-metric-card"><span>Pipas</span><strong
+                                            id="dashPipas">0</strong></article>
+                                    <article class="dash-metric-card"><span>Documentación</span><strong
+                                            id="dashDocumentacion">0</strong></article>
+                                </div>
+                            </section>
+
+                            <section class="dash-neon-panel cyan">
+                                <div class="dash-panel-title">
+                                    <h4>Comunicaciones, vigilancia y tecnología</h4>
+                                </div>
+
+                                <div class="dash-card-grid">
+                                    <article class="dash-metric-card"><span>Teléfonos celulares</span><strong
+                                            id="dashTelefonos">0</strong></article>
+                                    <article class="dash-metric-card"><span>Chips</span><strong
+                                            id="dashChips">0</strong></article>
+                                    <article class="dash-metric-card"><span>Radios</span><strong
+                                            id="dashRadios">0</strong></article>
+                                    <article class="dash-metric-card"><span>Cámaras</span><strong
+                                            id="dashCamaras">0</strong></article>
+                                    <article class="dash-metric-card"><span>Drones</span><strong
+                                            id="dashDrones">0</strong></article>
+                                    <article class="dash-metric-card"><span>DVR</span><strong id="dashDvr">0</strong>
+                                    </article>
+                                    <article class="dash-metric-card"><span>Módem / Router</span><strong
+                                            id="dashModemRouter">0</strong></article>
+                                    <article class="dash-metric-card"><span>Fibra / cable red</span><strong
+                                            id="dashFibraCable">0 m</strong></article>
+                                </div>
+                            </section>
+
+                            <section class="dash-neon-panel green-panel">
+                                <div class="dash-panel-title">
+                                    <h4>Movilidad, combustible y logística</h4>
+                                </div>
+
+                                <div class="dash-card-grid">
+                                    <article class="dash-metric-card"><span>Motocicletas</span><strong
+                                            id="dashMotocicletas">0</strong></article>
+                                    <article class="dash-metric-card"><span>Vehículos</span><strong
+                                            id="dashVehiculos">0</strong></article>
+                                    <article class="dash-metric-card"><span>Camiones</span><strong
+                                            id="dashCamiones">0</strong></article>
+                                    <article class="dash-metric-card"><span>Tanqueros</span><strong
+                                            id="dashTanqueros">0</strong></article>
+                                    <article class="dash-metric-card"><span>Maquinaria pesada</span><strong
+                                            id="dashMaquinaria">0</strong></article>
+                                    <article class="dash-metric-card"><span>Combustible galones</span><strong
+                                            id="dashCombustibleGal">0 gal</strong></article>
+                                    <article class="dash-metric-card"><span>Combustible litros</span><strong
+                                            id="dashCombustibleLitros">0 L</strong></article>
+                                    <article class="dash-metric-card"><span>Bebidas alcohólicas</span><strong
+                                            id="dashBebidas">0 L</strong></article>
+                                    <article class="dash-metric-card"><span>Tabacos</span><strong
+                                            id="dashTabacos">0</strong></article>
+                                </div>
+                            </section>
+
+                            <section class="dash-neon-panel red-panel">
+                                <div class="dash-panel-title">
+                                    <h4>Resultados humanos y financieros</h4>
+                                </div>
+
+                                <div class="dash-card-grid">
+                                    <article class="dash-metric-card large"><span>Personas aprehendidas</span><strong
+                                            id="dashAprehendidos">0</strong></article>
+                                    <article class="dash-metric-card large"><span>Dinero efectivo</span><strong
+                                            id="dashDinero">$0</strong></article>
+                                </div>
+                            </section>
+                        </div>
+
+                        <!-- UBICACIÓN -->
+                        <div id="dashTabUbicacion" class="dash-tab-content">
+                            <div class="dash-tables-grid">
+                                <section class="dash-table-panel">
+                                    <h4>Ranking por cantón</h4>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Cantón</th>
+                                                <th>Oper.</th>
+                                                <th>Resultados</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dashRankingCanton"></tbody>
+                                    </table>
+                                </section>
+
+                                <section class="dash-table-panel">
+                                    <h4>Ranking por parroquia</h4>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Parroquia</th>
+                                                <th>Oper.</th>
+                                                <th>Resultados</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dashRankingParroquia"></tbody>
+                                    </table>
+                                </section>
+
+                                <section class="dash-table-panel">
+                                    <h4>Ranking por sector</h4>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Sector</th>
+                                                <th>Oper.</th>
+                                                <th>Resultados</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dashRankingSector"></tbody>
+                                    </table>
+                                </section>
+                            </div>
+                        </div>
+
+                        <!-- TIEMPO -->
+                        <div id="dashTabTiempo" class="dash-tab-content">
+                            <div class="dash-tables-grid">
+                                <section class="dash-table-panel">
+                                    <h4>Operaciones por mes</h4>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Mes</th>
+                                                <th>Operaciones</th>
+                                                <th>Con resultados</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dashTiempoMes"></tbody>
+                                    </table>
+                                </section>
+
+                                <section class="dash-table-panel">
+                                    <h4>Operaciones por semana</h4>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Semana</th>
+                                                <th>Operaciones</th>
+                                                <th>Con resultados</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dashTiempoSemana"></tbody>
+                                    </table>
+                                </section>
+                            </div>
+                        </div>
+
+                        <!-- OPERACIONES -->
+                        <div id="dashTabOperaciones" class="dash-tab-content">
+                            <div class="dash-tables-grid">
+                                <section class="dash-table-panel">
+                                    <h4>Ranking por subtipo de operación</h4>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Subtipo</th>
+                                                <th>Oper.</th>
+                                                <th>Con resultados</th>
+                                                <th>Efectividad</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dashRankingSubtipo"></tbody>
+                                    </table>
+                                </section>
+
+                                <section class="dash-table-panel">
+                                    <h4>Operaciones por tipo</h4>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Tipo</th>
+                                                <th>Operaciones</th>
+                                                <th>Con resultados</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dashRankingTipo"></tbody>
+                                    </table>
+                                </section>
+                            </div>
+                        </div>
+
                     </div>
-                </section>
+                </section><!-- DASHBOARD -->
+
 
                 <!-- REPORTES -->
                 <section id="reportesPage" class="page">
