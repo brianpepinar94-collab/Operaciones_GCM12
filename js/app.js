@@ -382,8 +382,11 @@ document.addEventListener("DOMContentLoaded", () => {
     configurarFormularioMobile();
     configurarGestionUsuarios();
     configurarMisOperaciones();
+    configurarAdministrarOperaciones();
+
     renderUsuariosAdmin();
     renderMisOperaciones();
+    renderOperacionesAdmin();
 });
 ubicacionBtn.addEventListener("click", () => {
     const coordenadasInput = document.getElementById("coordenadas");
@@ -774,6 +777,7 @@ function crearNuevaOperacion() {
 
     mostrarMensaje("Operación guardada correctamente en modo demo.", "success");
     renderMisOperaciones();
+    renderOperacionesAdmin();
 }
 
 function actualizarOperacionExistente() {
@@ -838,6 +842,7 @@ function actualizarOperacionExistente() {
 
     mostrarMensaje("Operación actualizada correctamente.", "success");
     renderMisOperaciones();
+    renderOperacionesAdmin();
 }
 
 function limpiarFormularioOperacion() {
@@ -1366,15 +1371,16 @@ function renderMisOperaciones() {
                         Ver
                     </button>
 
+                    ${puedeEditar ? `
                     <button 
                         type="button" 
                         class="btn btn-warning btn-small" 
                         data-action="editar" 
                         data-id="${op.id_operacion}"
-                        ${puedeEditar ? "" : "disabled"}
                     >
                         Editar
                     </button>
+                ` : ""}
                 </div>
             </td>
         `;
@@ -1626,4 +1632,448 @@ function mostrarMensajeMisOperaciones(mensaje, tipo) {
         message.textContent = "";
         message.className = "form-message";
     }, 4500);
+}
+
+
+// ======================================================
+// ADMINISTRAR OPERACIONES - ADMIN
+// ======================================================
+
+function configurarAdministrarOperaciones() {
+    const buscar = document.getElementById("buscarOperacionesAdmin");
+    const filtroEstado = document.getElementById("filtroEstadoOperacionesAdmin");
+    const filtroTipo = document.getElementById("filtroTipoOperacionesAdmin");
+    const filtroResultados = document.getElementById("filtroResultadosOperacionesAdmin");
+    const tbody = document.getElementById("operacionesAdminTableBody");
+
+    if (!tbody) return;
+
+    if (buscar) buscar.addEventListener("input", renderOperacionesAdmin);
+    if (filtroEstado) filtroEstado.addEventListener("change", renderOperacionesAdmin);
+    if (filtroTipo) filtroTipo.addEventListener("change", renderOperacionesAdmin);
+    if (filtroResultados) filtroResultados.addEventListener("change", renderOperacionesAdmin);
+
+    tbody.addEventListener("click", (event) => {
+        const button = event.target.closest("button");
+        if (!button) return;
+
+        const idOperacion = button.dataset.id;
+        const accion = button.dataset.action;
+
+        if (accion === "ver-admin") {
+            verDetalleOperacionAdmin(idOperacion);
+        }
+
+        if (accion === "editar-admin") {
+            cargarOperacionParaEditar(idOperacion);
+        }
+
+        if (accion === "validar") {
+            cambiarEstadoOperacionAdmin(idOperacion, "VALIDADO");
+        }
+
+        if (accion === "observar") {
+            observarOperacionAdmin(idOperacion);
+        }
+
+        if (accion === "anular") {
+            anularOperacionAdmin(idOperacion);
+        }
+    });
+}
+
+function renderOperacionesAdmin() {
+    const tbody = document.getElementById("operacionesAdminTableBody");
+    if (!tbody) return;
+
+    const texto = (document.getElementById("buscarOperacionesAdmin")?.value || "").toLowerCase().trim();
+    const estado = document.getElementById("filtroEstadoOperacionesAdmin")?.value || "";
+    const tipo = document.getElementById("filtroTipoOperacionesAdmin")?.value || "";
+    const resultados = document.getElementById("filtroResultadosOperacionesAdmin")?.value || "";
+
+    let operaciones = [...operacionesSistema];
+
+    operaciones = operaciones.filter((op) => {
+        const textoOperacion = `
+            ${op.id_operacion}
+            ${op.fecha_operacion}
+            ${op.tipo_operacion}
+            ${op.sub_tipo_operacion}
+            ${op.canton}
+            ${op.parroquia}
+            ${op.sector}
+            ${op.responsable}
+            ${op.grado_responsable}
+            ${op.registrado_por}
+            ${op.estado_operacion}
+        `.toLowerCase();
+
+        const coincideTexto = !texto || textoOperacion.includes(texto);
+        const coincideEstado = !estado || op.estado_operacion === estado;
+        const coincideTipo = !tipo || op.tipo_operacion === tipo;
+        const coincideResultados = !resultados || op.hubo_resultados === resultados;
+
+        return coincideTexto && coincideEstado && coincideTipo && coincideResultados;
+    });
+
+    tbody.innerHTML = "";
+
+    if (operaciones.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="empty-table">Sin operaciones registradas.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    operaciones.forEach((op) => {
+        const estadoClass = normalizarEstadoClass(op.estado_operacion);
+
+        const puedeValidar = op.estado_operacion !== "VALIDADO" && op.estado_operacion !== "ANULADO";
+        const puedeObservar = op.estado_operacion !== "OBSERVADO" && op.estado_operacion !== "ANULADO";
+        const puedeAnular = op.estado_operacion !== "ANULADO";
+
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${op.id_operacion}</td>
+            <td>${formatearFecha(op.fecha_operacion)}</td>
+            <td>${op.tipo_operacion}</td>
+            <td>${op.sub_tipo_operacion}</td>
+            <td>${op.canton}</td>
+            <td>${op.grado_responsable} ${op.responsable}</td>
+            <td>${op.hubo_resultados}</td>
+            <td><span class="op-status ${estadoClass}">${op.estado_operacion}</span></td>
+            <td>
+                <div class="admin-actions">
+                    <button type="button" class="btn btn-outline-dark btn-small" data-action="ver-admin" data-id="${op.id_operacion}">
+                        Ver
+                    </button>
+
+                    <button type="button" class="btn btn-warning btn-small" data-action="editar-admin" data-id="${op.id_operacion}">
+                        Editar
+                    </button>
+
+                    <button 
+                        type="button" 
+                        class="btn btn-success btn-small" 
+                        data-action="validar" 
+                        data-id="${op.id_operacion}"
+                        ${puedeValidar ? "" : "disabled"}
+                    >
+                        Validar
+                    </button>
+
+                    <button 
+                        type="button" 
+                        class="btn btn-blue btn-small" 
+                        data-action="observar" 
+                        data-id="${op.id_operacion}"
+                        ${puedeObservar ? "" : "disabled"}
+                    >
+                        Observar
+                    </button>
+
+                    <button 
+                        type="button" 
+                        class="btn btn-danger btn-small" 
+                        data-action="anular" 
+                        data-id="${op.id_operacion}"
+                        ${puedeAnular ? "" : "disabled"}
+                    >
+                        Anular
+                    </button>
+                </div>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+function verDetalleOperacionAdmin(idOperacion) {
+    const operacion = operacionesSistema.find((op) => op.id_operacion === idOperacion);
+
+    if (!operacion) {
+        mostrarMensajeOperacionesAdmin("Operación no encontrada.", "error");
+        return;
+    }
+
+    const resultados = resultadosSistema.filter((r) => r.id_operacion === idOperacion);
+
+    const panel = document.getElementById("detalleOperacionAdminPanel");
+    const content = document.getElementById("detalleOperacionAdminContent");
+
+    const resultadosHtml = resultados.length === 0
+        ? `<p class="empty-table">Esta operación no tiene resultados asociados.</p>`
+        : `
+            <div class="resultado-list">
+                ${resultados.map((r, index) => `
+                    <div class="resultado-card">
+                        <strong>Resultado ${index + 1}: ${r.categoria}</strong>
+                        <p>
+                            Subcategoría: ${r.subcategoria}<br>
+                            Cantidad: ${r.cantidad} ${r.unidad_medida}<br>
+                            Descripción: ${r.descripcion || "Sin descripción"}<br>
+                            Registrado por: ${r.registrado_por}
+                        </p>
+                    </div>
+                `).join("")}
+            </div>
+        `;
+
+    content.innerHTML = `
+        <div class="detail-grid">
+            <div class="detail-item">
+                <span>ID operación</span>
+                <strong>${operacion.id_operacion}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Estado</span>
+                <strong>${operacion.estado_operacion}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Fecha de operación</span>
+                <strong>${formatearFecha(operacion.fecha_operacion)}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Hora inicio / fin</span>
+                <strong>${operacion.hora_inicio} - ${operacion.hora_fin}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Tipo de operación</span>
+                <strong>${operacion.tipo_operacion}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Subtipo de operación</span>
+                <strong>${operacion.sub_tipo_operacion}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Provincia</span>
+                <strong>${operacion.provincia}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Cantón</span>
+                <strong>${operacion.canton}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Parroquia</span>
+                <strong>${operacion.parroquia || "No aplica"}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Sector</span>
+                <strong>${operacion.sector || "Sin sector"}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Coordenadas</span>
+                <strong>${operacion.coordenadas || "Sin coordenadas"}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Responsable</span>
+                <strong>${operacion.grado_responsable} ${operacion.responsable}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Personal participante</span>
+                <strong>Of: ${operacion.num_oficiales} | Vol: ${operacion.num_vol} | Sldr: ${operacion.num_sldr}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Hubo resultados</span>
+                <strong>${operacion.hubo_resultados}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Registrado por</span>
+                <strong>${operacion.registrado_por}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Fecha de registro</span>
+                <strong>${formatearFechaHora(operacion.fecha_registro)}</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Última modificación</span>
+                <strong>${formatearFechaHora(operacion.ultima_modificacion)}</strong>
+            </div>
+        </div>
+
+        ${operacion.observacion_admin ? `
+            <div class="admin-note">
+                <strong>Observación administrativa:</strong><br>
+                ${operacion.observacion_admin}
+            </div>
+        ` : ""}
+
+        ${operacion.motivo_anulacion ? `
+            <div class="admin-note">
+                <strong>Motivo de anulación:</strong><br>
+                ${operacion.motivo_anulacion}
+            </div>
+        ` : ""}
+
+        <div class="section-title">
+            <h3>Resultados asociados</h3>
+        </div>
+
+        ${resultadosHtml}
+
+        <div class="section-title">
+            <h3>Observación general</h3>
+        </div>
+
+        <p>${operacion.observacion_general || "Sin observación general."}</p>
+    `;
+
+    panel.classList.remove("hidden");
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function cambiarEstadoOperacionAdmin(idOperacion, nuevoEstado) {
+    const index = operacionesSistema.findIndex((op) => op.id_operacion === idOperacion);
+
+    if (index === -1) {
+        mostrarMensajeOperacionesAdmin("Operación no encontrada.", "error");
+        return;
+    }
+
+    const confirmar = confirm(`¿Está seguro de cambiar el estado de la operación a ${nuevoEstado}?`);
+
+    if (!confirmar) return;
+
+    operacionesSistema[index] = {
+        ...operacionesSistema[index],
+        estado_operacion: nuevoEstado,
+        ultima_modificacion: new Date().toISOString(),
+        validado_por: usuarioActual ? `${usuarioActual.nombres} ${usuarioActual.apellidos}` : "",
+        fecha_validacion: nuevoEstado === "VALIDADO" ? new Date().toISOString() : operacionesSistema[index].fecha_validacion || ""
+    };
+
+    guardarOperacionesSistema();
+
+    renderOperacionesAdmin();
+    renderMisOperaciones();
+
+    mostrarMensajeOperacionesAdmin(`Operación actualizada a estado ${nuevoEstado}.`, "success");
+}
+
+function observarOperacionAdmin(idOperacion) {
+    const index = operacionesSistema.findIndex((op) => op.id_operacion === idOperacion);
+
+    if (index === -1) {
+        mostrarMensajeOperacionesAdmin("Operación no encontrada.", "error");
+        return;
+    }
+
+    if (operacionesSistema[index].estado_operacion === "ANULADO") {
+        mostrarMensajeOperacionesAdmin("No puede observar una operación anulada.", "error");
+        return;
+    }
+
+    const observacion = prompt("Ingrese la observación para que el responsable corrija la operación:");
+
+    if (!observacion || !observacion.trim()) {
+        mostrarMensajeOperacionesAdmin("Debe ingresar una observación.", "error");
+        return;
+    }
+
+    operacionesSistema[index] = {
+        ...operacionesSistema[index],
+        estado_operacion: "OBSERVADO",
+        observacion_admin: observacion.trim(),
+        observado_por: usuarioActual ? `${usuarioActual.nombres} ${usuarioActual.apellidos}` : "",
+        fecha_observacion: new Date().toISOString(),
+        ultima_modificacion: new Date().toISOString()
+    };
+
+    guardarOperacionesSistema();
+
+    renderOperacionesAdmin();
+    renderMisOperaciones();
+
+    mostrarMensajeOperacionesAdmin("Operación marcada como OBSERVADO.", "success");
+}
+
+function anularOperacionAdmin(idOperacion) {
+    const index = operacionesSistema.findIndex((op) => op.id_operacion === idOperacion);
+
+    if (index === -1) {
+        mostrarMensajeOperacionesAdmin("Operación no encontrada.", "error");
+        return;
+    }
+
+    if (operacionesSistema[index].estado_operacion === "ANULADO") {
+        mostrarMensajeOperacionesAdmin("La operación ya se encuentra anulada.", "error");
+        return;
+    }
+
+    const motivo = prompt("Ingrese el motivo de anulación de la operación:");
+
+    if (!motivo || !motivo.trim()) {
+        mostrarMensajeOperacionesAdmin("Debe ingresar un motivo de anulación.", "error");
+        return;
+    }
+
+    const confirmar = confirm("¿Confirma la anulación de esta operación? Esta acción no eliminará el registro, solo cambiará su estado.");
+
+    if (!confirmar) return;
+
+    operacionesSistema[index] = {
+        ...operacionesSistema[index],
+        estado_operacion: "ANULADO",
+        motivo_anulacion: motivo.trim(),
+        anulado_por: usuarioActual ? `${usuarioActual.nombres} ${usuarioActual.apellidos}` : "",
+        fecha_anulacion: new Date().toISOString(),
+        ultima_modificacion: new Date().toISOString()
+    };
+
+    guardarOperacionesSistema();
+
+    renderOperacionesAdmin();
+    renderMisOperaciones();
+
+    mostrarMensajeOperacionesAdmin("Operación anulada correctamente.", "success");
+}
+
+function mostrarMensajeOperacionesAdmin(mensaje, tipo) {
+    const message = document.getElementById("operacionesAdminMessage");
+
+    if (!message) return;
+
+    message.textContent = mensaje;
+    message.className = `form-message ${tipo}`;
+
+    setTimeout(() => {
+        message.textContent = "";
+        message.className = "form-message";
+    }, 4500);
+}
+
+function formatearFechaHora(fechaIso) {
+    if (!fechaIso) return "";
+
+    const fecha = new Date(fechaIso);
+
+    if (Number.isNaN(fecha.getTime())) return fechaIso;
+
+    return fecha.toLocaleString("es-EC", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
 }

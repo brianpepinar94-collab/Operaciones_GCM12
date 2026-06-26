@@ -980,3 +980,52 @@ button,
     min-width: 1050px;
   }
 }
+
+/* ============================= */
+/* ADMINISTRAR OPERACIONES */
+/* ============================= */
+
+.admin-operations-filters {
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 360px;
+}
+
+.btn-success {
+  background: var(--green);
+  color: var(--white);
+}
+
+.btn-blue {
+  background: var(--blue);
+  color: var(--white);
+}
+
+.btn-muted {
+  background: var(--gray-metal);
+  color: var(--white);
+}
+
+.admin-note {
+  background: #FAF9FC;
+  border-left: 4px solid var(--gold);
+  padding: 12px;
+  border-radius: 12px;
+  margin-top: 12px;
+  color: var(--text);
+}
+
+@media (max-width: 768px) {
+  .admin-operations-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-actions {
+    min-width: 520px;
+  }
+}

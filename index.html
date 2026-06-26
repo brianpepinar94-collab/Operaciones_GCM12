@@ -556,8 +556,82 @@
                 <!-- OPERACIONES ADMIN -->
                 <section id="operacionesPage" class="page">
                     <div class="panel-card">
-                        <h3>Administrar operaciones</h3>
-                        <p>Listado general de operaciones para revisar, validar, observar o anular.</p>
+                        <div class="admin-toolbar">
+                            <div>
+                                <h3>Administrar operaciones</h3>
+                                <p>Revisión, validación, observación y anulación de operaciones registradas.</p>
+                            </div>
+                        </div>
+
+                        <div class="filters-grid admin-operations-filters">
+                            <div class="field">
+                                <label>Buscar operación</label>
+                                <input type="text" id="buscarOperacionesAdmin"
+                                    placeholder="Buscar por ID, responsable, cantón, sector o tipo" />
+                            </div>
+
+                            <div class="field">
+                                <label>Estado</label>
+                                <select id="filtroEstadoOperacionesAdmin">
+                                    <option value="">Todos</option>
+                                    <option value="REGISTRADO">REGISTRADO</option>
+                                    <option value="VALIDADO">VALIDADO</option>
+                                    <option value="OBSERVADO">OBSERVADO</option>
+                                    <option value="ANULADO">ANULADO</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Tipo de operación</label>
+                                <select id="filtroTipoOperacionesAdmin">
+                                    <option value="">Todos</option>
+                                    <option value="DEFENSA EXTERNA">DEFENSA EXTERNA</option>
+                                    <option value="AMBITO INTERNO">AMBITO INTERNO</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Resultados</label>
+                                <select id="filtroResultadosOperacionesAdmin">
+                                    <option value="">Todos</option>
+                                    <option value="SI">SI</option>
+                                    <option value="NO">NO</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="table-wrapper">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Fecha</th>
+                                        <th>Tipo</th>
+                                        <th>Subtipo</th>
+                                        <th>Cantón</th>
+                                        <th>Responsable</th>
+                                        <th>Resultados</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="operacionesAdminTableBody">
+                                    <tr>
+                                        <td colspan="9" class="empty-table">Sin operaciones registradas.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p id="operacionesAdminMessage" class="form-message"></p>
+                    </div>
+
+                    <div id="detalleOperacionAdminPanel" class="form-card detail-panel hidden">
+                        <div class="section-title">
+                            <h3>Detalle administrativo de operación</h3>
+                        </div>
+
+                        <div id="detalleOperacionAdminContent"></div>
                     </div>
                 </section>
 
