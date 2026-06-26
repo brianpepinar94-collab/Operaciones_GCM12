@@ -876,6 +876,68 @@
                                             id="dashModemRouter">0</strong></article>
                                     <article class="dash-metric-card"><span>Fibra / cable red</span><strong
                                             id="dashFibraCable">0 m</strong></article>
+                                    <article class="dash-metric-card">
+                                        <span>Accesorios celulares</span>
+                                        <strong id="dashAccesoriosCelulares">0</strong>
+                                    </article>
+
+                                    <article class="dash-metric-card">
+                                        <span>Cargadores</span>
+                                        <strong id="dashCargadores">0</strong>
+                                    </article>
+
+                                    <article class="dash-metric-card">
+                                        <span>Cables USB</span>
+                                        <strong id="dashCablesUsb">0</strong>
+                                    </article>
+
+                                    <article class="dash-metric-card">
+                                        <span>Audífonos</span>
+                                        <strong id="dashAudifonos">0</strong>
+                                    </article>
+
+                                </div>
+                            </section>
+                            <section class="dash-neon-panel green-panel">
+                                <div class="dash-panel-title">
+                                    <h4>Equipamiento táctico</h4>
+                                </div>
+
+                                <div class="dash-card-grid">
+                                    <article class="dash-metric-card large">
+                                        <span>Total equipamiento táctico</span>
+                                        <strong id="dashEquipamientoTactico">0</strong>
+                                    </article>
+
+                                    <article class="dash-metric-card">
+                                        <span>Chalecos antibalas</span>
+                                        <strong id="dashChalecos">0</strong>
+                                    </article>
+
+                                    <article class="dash-metric-card">
+                                        <span>Uniformes policiales</span>
+                                        <strong id="dashUniformesPoliciales">0</strong>
+                                    </article>
+
+                                    <article class="dash-metric-card">
+                                        <span>Uniformes militares</span>
+                                        <strong id="dashUniformesMilitares">0</strong>
+                                    </article>
+
+                                    <article class="dash-metric-card">
+                                        <span>Prendas mil./pol.</span>
+                                        <strong id="dashPrendasMilPol">0</strong>
+                                    </article>
+
+                                    <article class="dash-metric-card">
+                                        <span>Esposas</span>
+                                        <strong id="dashEsposas">0</strong>
+                                    </article>
+
+                                    <article class="dash-metric-card">
+                                        <span>Otros equipos tácticos</span>
+                                        <strong id="dashOtrosEquiposTacticos">0</strong>
+                                    </article>
                                 </div>
                             </section>
 
@@ -918,6 +980,27 @@
                                             id="dashDinero">$0</strong></article>
                                 </div>
                             </section>
+
+                            <section class="dash-table-panel dash-detail-full">
+                                <h4>Detalle por categoría y subcategoría</h4>
+
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Categoría</th>
+                                            <th>Subcategoría</th>
+                                            <th>Unidad</th>
+                                            <th>Cantidad total</th>
+                                            <th>Registros</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashDetalleCategoriaSubcategoria">
+                                        <tr>
+                                            <td colspan="5" class="empty-table">Sin datos disponibles.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </section>
                         </div>
 
                         <!-- UBICACIÓN -->
@@ -930,7 +1013,8 @@
                                             <tr>
                                                 <th>Cantón</th>
                                                 <th>Oper.</th>
-                                                <th>Resultados</th>
+                                                <th>Op. con resultados</th>
+                                                <th>Registros</th>
                                             </tr>
                                         </thead>
                                         <tbody id="dashRankingCanton"></tbody>
@@ -944,7 +1028,8 @@
                                             <tr>
                                                 <th>Parroquia</th>
                                                 <th>Oper.</th>
-                                                <th>Resultados</th>
+                                                <th>Op. con resultados</th>
+                                                <th>Registros</th>
                                             </tr>
                                         </thead>
                                         <tbody id="dashRankingParroquia"></tbody>
@@ -958,7 +1043,8 @@
                                             <tr>
                                                 <th>Sector</th>
                                                 <th>Oper.</th>
-                                                <th>Resultados</th>
+                                                <th>Op. con resultados</th>
+                                                <th>Registros</th>
                                             </tr>
                                         </thead>
                                         <tbody id="dashRankingSector"></tbody>
@@ -1058,6 +1144,7 @@
         </div>
     </section>
 
+    <script src="https://code.iconify.design/iconify-icon/3.0.2/iconify-icon.min.js"></script>
     <script src="js/app.js"></script>
 </body>
 

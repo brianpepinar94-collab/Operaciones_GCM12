@@ -21,6 +21,20 @@
 
   --danger: #B42318;
   --shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
+   --dash-bg-1: #140a22;
+  --dash-bg-2: #1b1030;
+  --dash-card: #0f2230;
+  --dash-card-2: #132838;
+  --dash-border-soft: rgba(255, 255, 255, 0.10);
+
+  --dash-cyan: #68cfe0;
+  --dash-gold: #f3c623;
+  --dash-purple: #9b6dff;
+  --dash-green: #3ea76a;
+  --dash-red: #d45464;
+
+  --dash-text: #ffffff;
+  --dash-text-soft: rgba(255, 255, 255, 0.74);
 }
 
 * {
@@ -1041,10 +1055,11 @@ button,
   border-radius: 22px;
   padding: 22px;
   background:
-    linear-gradient(135deg, rgba(5, 5, 5, 0.95), rgba(22, 13, 37, 0.96)),
-    radial-gradient(circle at top right, rgba(54, 20, 105, 0.50), transparent 35%);
-  color: var(--white);
-  box-shadow: var(--shadow);
+    linear-gradient(135deg, var(--dash-bg-1), var(--dash-bg-2)),
+    radial-gradient(circle at top right, rgba(73, 35, 120, 0.35), transparent 35%);
+  color: var(--dash-text);
+  box-shadow: 0 12px 28px rgba(23, 9, 37, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .dashboard-tactical::before {
@@ -1094,8 +1109,8 @@ button,
 }
 
 .dash-filter-card {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(104, 224, 239, 0.25);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(155, 109, 255, 0.22);
   border-radius: 18px;
   padding: 16px;
   margin-bottom: 16px;
@@ -1115,7 +1130,7 @@ button,
 
 .dash-filter-head p {
   margin: 4px 0 0;
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--dash-text-soft);
   font-size: 13px;
 }
 
@@ -1145,20 +1160,26 @@ button,
 }
 
 .dash-tab {
-  border: 1px solid rgba(104, 224, 239, 0.35);
-  background: rgba(104, 224, 239, 0.08);
-  color: var(--white);
+  border: 1px solid rgba(104, 207, 224, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--dash-text);
   border-radius: 999px;
-  padding: 10px 14px;
+  padding: 10px 16px;
   font-weight: 800;
   white-space: nowrap;
   cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.dash-tab:hover {
+  background: rgba(255, 255, 255, 0.09);
 }
 
 .dash-tab.active {
-  background: var(--gold);
-  color: var(--primary-dark);
-  border-color: var(--gold);
+  background: var(--dash-gold);
+  color: #24152f;
+  border-color: var(--dash-gold);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
 }
 
 .dash-tab-content {
@@ -1176,16 +1197,16 @@ button,
 }
 
 .dash-summary-card {
-  background: rgba(7, 31, 43, 0.84);
-  border: 1px solid rgba(104, 224, 239, 0.35);
+  background: linear-gradient(135deg, #0d2230, #122a3a);
+  border: 1px solid rgba(104, 207, 224, 0.18);
   border-radius: 16px;
   padding: 18px;
-  box-shadow: inset 0 0 18px rgba(104, 224, 239, 0.06);
+  box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.03);
 }
 
 .dash-summary-card span {
   display: block;
-  color: rgba(255, 255, 255, 0.70);
+  color: var(--dash-text-soft);
   font-size: 13px;
   margin-bottom: 8px;
 }
@@ -1199,33 +1220,28 @@ button,
   border-radius: 18px;
   padding: 16px;
   margin-bottom: 16px;
-  background: rgba(3, 24, 33, 0.78);
-  border: 1px solid rgba(104, 224, 239, 0.45);
-  box-shadow: 0 0 18px rgba(104, 224, 239, 0.12);
+  background: linear-gradient(135deg, rgba(4, 28, 39, 0.88), rgba(8, 40, 53, 0.82));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
 }
-
 .dash-neon-panel.cyan {
-  border-color: rgba(104, 224, 239, 0.55);
+  border-color: rgba(104, 207, 224, 0.40);
 }
 
 .dash-neon-panel.orange {
-  border-color: rgba(249, 171, 54, 0.75);
-  box-shadow: 0 0 18px rgba(249, 171, 54, 0.12);
+  border-color: rgba(243, 198, 35, 0.42);
 }
 
 .dash-neon-panel.purple-panel {
-  border-color: rgba(168, 85, 247, 0.75);
-  box-shadow: 0 0 18px rgba(168, 85, 247, 0.12);
+  border-color: rgba(155, 109, 255, 0.42);
 }
 
 .dash-neon-panel.green-panel {
-  border-color: rgba(47, 107, 63, 0.85);
-  box-shadow: 0 0 18px rgba(47, 107, 63, 0.16);
+  border-color: rgba(62, 167, 106, 0.42);
 }
 
 .dash-neon-panel.red-panel {
-  border-color: rgba(194, 26, 38, 0.75);
-  box-shadow: 0 0 18px rgba(194, 26, 38, 0.14);
+  border-color: rgba(212, 84, 100, 0.42);
 }
 
 .dash-panel-title {
@@ -1247,10 +1263,11 @@ button,
 
 .dash-metric-card {
   min-height: 105px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 14px;
   padding: 14px;
+  backdrop-filter: blur(2px);
 }
 
 .dash-metric-card.large {
@@ -1259,7 +1276,7 @@ button,
 
 .dash-metric-card span {
   display: block;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--dash-text-soft);
   font-size: 13px;
   margin-bottom: 8px;
 }
@@ -1407,4 +1424,91 @@ button,
 .dash-table-panel .empty-table {
   background: rgba(3, 24, 33, 0.72) !important;
   color: rgba(255, 255, 255, 0.72) !important;
+}
+
+/* ============================= */
+/* ICONOS ICONIFY DASHBOARD */
+/* ============================= */
+
+.dash-summary-card,
+.dash-metric-card {
+  position: relative;
+  overflow: hidden;
+  padding-right: 78px;
+}
+
+.dash-card-icon {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  width: 48px;
+  height: 48px;
+  font-size: 48px;
+  color: #7bd3e2;
+  opacity: 0.50;
+  filter: drop-shadow(0 0 6px rgba(123, 211, 226, 0.35));
+  pointer-events: none;
+}
+
+.dash-summary-card .dash-card-icon {
+  opacity: 0.46;
+}
+
+.dash-neon-panel.orange .dash-card-icon {
+  color: #f1c04d;
+  filter: drop-shadow(0 0 6px rgba(241, 192, 77, 0.30));
+}
+
+.dash-neon-panel.purple-panel .dash-card-icon {
+  color: #ae89ff;
+  filter: drop-shadow(0 0 6px rgba(174, 137, 255, 0.30));
+}
+
+.dash-neon-panel.green-panel .dash-card-icon {
+  color: #69c488;
+  filter: drop-shadow(0 0 6px rgba(105, 196, 136, 0.30));
+}
+
+.dash-neon-panel.red-panel .dash-card-icon {
+  color: #e17886;
+  filter: drop-shadow(0 0 6px rgba(225, 120, 134, 0.30));
+}
+
+@media (max-width: 768px) {
+  .dash-card-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 40px;
+    right: 14px;
+    top: 14px;
+  }
+
+  .dash-summary-card,
+  .dash-metric-card {
+    padding-right: 66px;
+  }
+}
+
+/* ============================= */
+/* DETALLE RESULTADOS DASHBOARD */
+/* ============================= */
+
+.dash-detail-full {
+  margin-top: 16px;
+  width: 100%;
+}
+
+.dash-detail-full table {
+  min-width: 780px;
+}
+
+.dash-detail-full th,
+.dash-detail-full td {
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .dash-detail-full {
+    overflow-x: auto;
+  }
 }

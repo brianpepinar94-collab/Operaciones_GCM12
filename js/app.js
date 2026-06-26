@@ -235,8 +235,7 @@ const categoriasResultados = {
     "Equipamiento táctico": {
         subcategorias: [
             "Chalecos antibalas",
-            "Uniformes policiales",
-            "Uniformes militares",
+            "Uniformes militares/policiales",
             "Otras prendas militares o policiales",
             "Esposas",
             "Otros equipos tácticos"
@@ -401,6 +400,8 @@ document.addEventListener("DOMContentLoaded", () => {
     configurarMisOperaciones();
     configurarAdministrarOperaciones();
     configurarDashboard();
+
+    aplicarIconosDashboard();
 
     renderUsuariosAdmin();
     renderMisOperaciones();
@@ -2368,12 +2369,25 @@ function renderDashboard() {
     // Comunicaciones y tecnología
     setText("dashTelefonos", formatNumero(sumarCategoria(resultados, "Teléfonos celulares")));
     setText("dashChips", formatNumero(sumarSubcategoria(resultados, "Accesorios celulares", "Chips")));
+    setText("dashAccesoriosCelulares", formatNumero(sumarCategoria(resultados, "Accesorios celulares")));
+    setText("dashCargadores", formatNumero(sumarSubcategoria(resultados, "Accesorios celulares", "Cargadores")));
+    setText("dashCablesUsb", formatNumero(sumarSubcategoria(resultados, "Accesorios celulares", "Cables USB")));
+    setText("dashAudifonos", formatNumero(sumarSubcategoria(resultados, "Accesorios celulares", "Audífonos")));
     setText("dashRadios", formatNumero(sumarSubcategorias(resultados, "Equipos de comunicación", ["Radios portátiles", "Radios móviles vehiculares"])));
     setText("dashCamaras", formatNumero(sumarSubcategoria(resultados, "Equipos de videovigilancia", "Cámaras")));
     setText("dashDrones", formatNumero(sumarSubcategoria(resultados, "Equipos de videovigilancia", "Drones")));
     setText("dashDvr", formatNumero(sumarSubcategoria(resultados, "Equipos de videovigilancia", "DVR")));
     setText("dashModemRouter", formatNumero(sumarSubcategorias(resultados, "Equipos de red", ["Módem", "Router"])));
     setText("dashFibraCable", `${formatDecimal(sumarSubcategorias(resultados, "Equipos de red", ["Fibra óptica", "Cable de red"], "metros"))} m`);
+
+    // Equipamiento táctico
+    setText("dashEquipamientoTactico", formatNumero(sumarCategoria(resultados, "Equipamiento táctico")));
+    setText("dashChalecos", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Chalecos antibalas")));
+    setText("dashUniformesPoliciales", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Uniformes policiales")));
+    setText("dashUniformesMilitares", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Uniformes militares")));
+    setText("dashPrendasMilPol", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Otras prendas militares o policiales")));
+    setText("dashEsposas", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Esposas")));
+    setText("dashOtrosEquiposTacticos", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Otros equipos tácticos")));
 
     // Movilidad, combustible y logística
     setText("dashMotocicletas", formatNumero(sumarSubcategoria(resultados, "Vehículos y maquinaria", "Motocicleta")));
@@ -2399,6 +2413,7 @@ function renderDashboard() {
 
     renderRankingSubtipo(operaciones, "dashRankingSubtipo");
     renderRankingTipo(operaciones, "dashRankingTipo");
+    renderDetalleCategoriaSubcategoria(resultados, "dashDetalleCategoriaSubcategoria");
 }
 
 function obtenerDatosDashboardFiltrados() {
@@ -2503,13 +2518,17 @@ function renderRankingUbicacion(tbodyId, operaciones, resultados, campo) {
             mapa.set(clave, {
                 nombre: clave,
                 operaciones: 0,
-                resultados: 0,
-                ids: new Set()
+                operaciones_con_resultados: 0,
+                registros_resultado: 0,
+                ids_operaciones_con_resultado: new Set()
             });
         }
 
         mapa.get(clave).operaciones += 1;
-        mapa.get(clave).ids.add(op.id_operacion);
+
+        if (op.hubo_resultados === "SI") {
+            mapa.get(clave).ids_operaciones_con_resultado.add(op.id_operacion);
+        }
     });
 
     resultados.forEach((r) => {
@@ -2517,16 +2536,28 @@ function renderRankingUbicacion(tbodyId, operaciones, resultados, campo) {
         if (!op) return;
 
         const clave = op[campo] || "SIN DATO";
+
         if (mapa.has(clave)) {
-            mapa.get(clave).resultados += 1;
+            mapa.get(clave).registros_resultado += 1;
         }
     });
 
     const data = Array.from(mapa.values())
+        .map((item) => ({
+            nombre: item.nombre,
+            operaciones: item.operaciones,
+            operaciones_con_resultados: item.ids_operaciones_con_resultado.size,
+            registros_resultado: item.registros_resultado
+        }))
         .sort((a, b) => b.operaciones - a.operaciones)
         .slice(0, 10);
 
-    renderTablaSimple(tbody, data, ["nombre", "operaciones", "resultados"]);
+    renderTablaSimple(tbody, data, [
+        "nombre",
+        "operaciones",
+        "operaciones_con_resultados",
+        "registros_resultado"
+    ]);
 }
 
 function renderRankingTiempoMes(operaciones, tbodyId) {
@@ -2739,3 +2770,165 @@ window.addEventListener("storage", (event) => {
     renderOperacionesAdmin();
     renderDashboard();
 });
+
+// ======================================================
+// ICONOS DASHBOARD CON ICONIFY
+// ======================================================
+
+function aplicarIconosDashboard() {
+    const iconosPorMetrica = {
+        // Resumen
+        dashTotalOperaciones: "mdi:clipboard-text-outline",
+        dashConResultados: "mdi:checkbox-marked-circle-outline",
+        dashSinResultados: "mdi:close-circle-outline",
+        dashEfectividad: "mdi:chart-line",
+        dashOficiales: "mdi:account-star-outline",
+        dashVoluntarios: "mdi:account-group-outline",
+        dashSoldados: "mdi:account-outline",
+        dashPersonalTotal: "mdi:account-multiple-outline",
+
+        // Armamento y municiones
+        dashArmasCortas: "game-icons:pistol-gun",
+        dashArmasLargas: "game-icons:machine-gun",
+        dashArmasFuegoNoLetales: "game-icons:gunshot",
+        dashArmasBlancas: "game-icons:knife-thrust",
+        dashArmasNoLetales: "game-icons:police-badge",
+        dashMuniciones: "game-icons:bullets",
+        dashMunicionPercutida: "game-icons:bullet-impacts",
+        dashAlimentadoras: "game-icons:ammo-box",
+        dashAccesoriosArmas: "game-icons:laser-gun",
+
+        // Explosivos
+        dashExplosivosUnidades: "game-icons:explosive-materials",
+        dashExplosivosMetros: "game-icons:rope-coil",
+        dashExplosivosKg: "game-icons:powder",
+        dashGranadas: "game-icons:grenade",
+
+        // Sustancias y procesamiento
+        dashSCSFTotalKg: "game-icons:powder-bag",
+        dashBalanzas: "mdi:scale-balance",
+        dashPipas: "game-icons:smoking-pipe",
+        dashDocumentacion: "mdi:file-document-outline",
+
+        // Comunicaciones y tecnología
+        dashTelefonos: "mdi:cellphone",
+        dashChips: "mdi:sim",
+        dashRadios: "mdi:radio-handheld",
+        dashCamaras: "mdi:cctv",
+        dashDrones: "mdi:drone",
+        dashDvr: "mdi:harddisk",
+        dashModemRouter: "mdi:router-wireless",
+        dashFibraCable: "mdi:ethernet-cable",
+
+        // Accesorios celulares
+        dashAccesoriosCelulares: "mdi:cellphone-cog",
+        dashCargadores: "mdi:power-plug",
+        dashCablesUsb: "mdi:usb",
+        dashAudifonos: "mdi:headphones",
+
+        // Equipamiento táctico
+        dashEquipamientoTactico: "game-icons:kevlar-vest",
+        dashChalecos: "game-icons:kevlar-vest",
+        dashUniformesPoliciales: "mdi:police-badge-outline",
+        dashUniformesMilitares: "game-icons:military-fort",
+        dashPrendasMilPol: "game-icons:clothes",
+        dashEsposas: "game-icons:handcuffs",
+        dashOtrosEquiposTacticos: "mdi:shield-half-full",
+
+        // Movilidad, combustible y logística
+        dashMotocicletas: "mdi:motorbike",
+        dashVehiculos: "mdi:car",
+        dashCamiones: "mdi:truck",
+        dashTanqueros: "mdi:tanker-truck",
+        dashMaquinaria: "mdi:excavator",
+        dashCombustibleGal: "mdi:gas-station",
+        dashCombustibleLitros: "mdi:gas-station",
+        dashBebidas: "mdi:bottle-wine-outline",
+        dashTabacos: "mdi:cigar",
+
+        // Humanos y financieros
+        dashAprehendidos: "mdi:account-lock-outline",
+        dashDinero: "mdi:cash-multiple"
+    };
+
+    Object.entries(iconosPorMetrica).forEach(([idMetrica, iconName]) => {
+        const metrica = document.getElementById(idMetrica);
+        if (!metrica) return;
+
+        const tarjeta = metrica.closest(".dash-summary-card, .dash-metric-card");
+        if (!tarjeta) return;
+
+        const yaTieneIcono = tarjeta.querySelector(".dash-card-icon");
+        if (yaTieneIcono) {
+            yaTieneIcono.setAttribute("icon", iconName);
+            return;
+        }
+
+        const icon = document.createElement("iconify-icon");
+        icon.setAttribute("icon", iconName);
+        icon.setAttribute("class", "dash-card-icon");
+        icon.setAttribute("aria-hidden", "true");
+
+        tarjeta.appendChild(icon);
+    });
+}
+
+function renderDetalleCategoriaSubcategoria(resultados, tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+
+    const mapa = new Map();
+
+    resultados.forEach((r) => {
+        const categoria = r.categoria || "SIN CATEGORÍA";
+        const subcategoria = r.subcategoria || "SIN SUBCATEGORÍA";
+        const unidad = r.unidad_medida || "SIN UNIDAD";
+        const clave = `${categoria}||${subcategoria}||${unidad}`;
+
+        if (!mapa.has(clave)) {
+            mapa.set(clave, {
+                categoria,
+                subcategoria,
+                unidad,
+                cantidad: 0,
+                registros: 0
+            });
+        }
+
+        const item = mapa.get(clave);
+        item.cantidad += Number(r.cantidad) || 0;
+        item.registros += 1;
+    });
+
+    const data = Array.from(mapa.values()).sort((a, b) => {
+        const catCompare = a.categoria.localeCompare(b.categoria);
+        if (catCompare !== 0) return catCompare;
+
+        return a.subcategoria.localeCompare(b.subcategoria);
+    });
+
+    tbody.innerHTML = "";
+
+    if (data.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="empty-table">Sin datos disponibles.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    data.forEach((item) => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${item.categoria}</td>
+            <td>${item.subcategoria}</td>
+            <td>${item.unidad}</td>
+            <td>${formatDecimal(item.cantidad)}</td>
+            <td>${formatNumero(item.registros)}</td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
