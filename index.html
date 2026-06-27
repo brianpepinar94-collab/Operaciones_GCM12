@@ -418,7 +418,7 @@
                                 <select id="filtroRolUsuario">
                                     <option value="">Todos</option>
                                     <option value="ADMIN">ADMIN</option>
-                                    <option value="COMANDANTE_OPERACIONES">COMANDANTE_OPERACIONES</option>
+                                    <option value="COMANDANTE_ECO">COMANDANTE_ECO</option>
                                     <option value="COMANDANTE_UNIDAD">COMANDANTE_UNIDAD</option>
                                 </select>
                             </div>
@@ -479,7 +479,21 @@
 
                                 <div class="field">
                                     <label>Grado</label>
-                                    <input type="text" id="userGrado" placeholder="Ej. TNTE., CAPT., MAYO." required />
+                                    <select id="userGrado" required>
+                                        <option value="">Seleccione...</option>
+                                        <option value="SLDO">SLDO</option>
+                                        <option value="CBOS">CBOS</option>
+                                        <option value="CBOP">CBOP</option>
+                                        <option value="SGOS">SGOS</option>
+                                        <option value="SGOP">SGOP</option>
+                                        <option value="SUBS">SUBS</option>
+                                        <option value="SUBP">SUBP</option>
+                                        <option value="SUBT">SUBT</option>
+                                        <option value="TNTE">TNTE</option>
+                                        <option value="CAPT">CAPT</option>
+                                        <option value="MAYO">MAYO</option>
+                                        <option value="TCRN">TCRN</option>
+                                    </select>
                                 </div>
 
                                 <div class="field">
@@ -513,7 +527,7 @@
                                     <select id="userRol" required>
                                         <option value="">Seleccione...</option>
                                         <option value="ADMIN">ADMIN</option>
-                                        <option value="COMANDANTE_OPERACIONES">COMANDANTE_OPERACIONES</option>
+                                        <option value="COMANDANTE_ECO">COMANDANTE_ECO</option>
                                         <option value="COMANDANTE_UNIDAD">COMANDANTE_UNIDAD</option>
                                     </select>
                                 </div>
@@ -781,10 +795,31 @@
                                     <strong id="dashPersonalTotal">0</strong>
                                 </article>
                             </div>
+                            <div class="dash-chart-grid">
+                                <section class="dash-chart-panel">
+                                    <h4>Operaciones con resultados vs sin resultados</h4>
+                                    <div class="dash-chart-box small">
+                                        <canvas id="dashChartEfectividad"></canvas>
+                                    </div>
+                                </section>
+
+                                <section class="dash-chart-panel">
+                                    <h4>Personal empleado</h4>
+                                    <div class="dash-chart-box small">
+                                        <canvas id="dashChartPersonal"></canvas>
+                                    </div>
+                                </section>
+                            </div>
                         </div>
 
                         <!-- RESULTADOS -->
                         <div id="dashTabResultados" class="dash-tab-content">
+                            <section class="dash-chart-panel">
+                                <h4>Registros de resultado por categoría</h4>
+                                <div class="dash-chart-box">
+                                    <canvas id="dashChartCategorias"></canvas>
+                                </div>
+                            </section>
 
                             <section class="dash-neon-panel cyan">
                                 <div class="dash-panel-title">
@@ -998,6 +1033,12 @@
 
                         <!-- UBICACIÓN -->
                         <div id="dashTabUbicacion" class="dash-tab-content">
+                            <section class="dash-chart-panel">
+                                <h4>Operaciones por cantón</h4>
+                                <div class="dash-chart-box">
+                                    <canvas id="dashChartCanton"></canvas>
+                                </div>
+                            </section>
                             <div class="dash-tables-grid">
                                 <section class="dash-table-panel">
                                     <h4>Ranking por cantón</h4>
@@ -1048,6 +1089,13 @@
 
                         <!-- TIEMPO -->
                         <div id="dashTabTiempo" class="dash-tab-content">
+                            <section class="dash-chart-panel">
+                                <h4>Operaciones por mes</h4>
+                                <div class="dash-chart-box">
+                                    <canvas id="dashChartMes"></canvas>
+                                </div>
+                            </section>
+
                             <div class="dash-tables-grid">
                                 <section class="dash-table-panel">
                                     <h4>Operaciones por mes</h4>
@@ -1062,25 +1110,18 @@
                                         <tbody id="dashTiempoMes"></tbody>
                                     </table>
                                 </section>
-
-                                <section class="dash-table-panel">
-                                    <h4>Operaciones por semana</h4>
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Semana</th>
-                                                <th>Operaciones</th>
-                                                <th>Con resultados</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="dashTiempoSemana"></tbody>
-                                    </table>
-                                </section>
                             </div>
                         </div>
 
                         <!-- OPERACIONES -->
                         <div id="dashTabOperaciones" class="dash-tab-content">
+
+                            <section class="dash-chart-panel">
+                                <h4>Operaciones por subtipo</h4>
+                                <div class="dash-chart-box">
+                                    <canvas id="dashChartSubtipo"></canvas>
+                                </div>
+                            </section>
                             <div class="dash-tables-grid">
                                 <section class="dash-table-panel">
                                     <h4>Ranking por subtipo de operación</h4>
@@ -1275,8 +1316,8 @@
 
                     <p id="reportesMessage" class="form-message"></p>
                 </section>
-                
-                 <!-- AUDITORIA -->
+
+                <!-- AUDITORIA -->
                 <section id="auditoriaPage" class="page">
                     <div class="panel-card">
                         <div class="admin-toolbar">
@@ -1333,7 +1374,7 @@
                                 <select id="auditoriaRol">
                                     <option value="">Todos</option>
                                     <option value="ADMIN">ADMIN</option>
-                                    <option value="COMANDANTE_OPERACIONES">COMANDANTE_OPERACIONES</option>
+                                    <option value="COMANDANTE_ECO">COMANDANTE_ECO</option>
                                     <option value="COMANDANTE_UNIDAD">COMANDANTE_UNIDAD</option>
                                     <option value="NO_IDENTIFICADO">NO_IDENTIFICADO</option>
                                 </select>
@@ -1384,6 +1425,7 @@
     </section>
 
     <script src="https://code.iconify.design/iconify-icon/3.0.2/iconify-icon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/app.js"></script>
 </body>
 

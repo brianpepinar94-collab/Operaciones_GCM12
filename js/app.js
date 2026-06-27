@@ -22,21 +22,21 @@ const usuariosDemo = [
     {
         id_usuario: "USR-002",
         nombres: "Comandante",
-        apellidos: "Operaciones",
-        grado: "TNTE.",
-        cargo: "Comandante de operaciones",
+        apellidos: "ECO",
+        grado: "TNTE",
+        cargo: "Comandante de ECO",
         unidad: "GCM 12",
         correo: "operaciones@gcm12.local",
         usuario: "123456",
         password: "Oper123",
-        rol: "COMANDANTE_OPERACIONES",
+        rol: "COMANDANTE_ECO",
         estado: "ACTIVO"
     },
     {
         id_usuario: "USR-003",
         nombres: "Comandante",
         apellidos: "Unidad",
-        grado: "TCRN.",
+        grado: "TCRN",
         cargo: "Comandante de unidad",
         unidad: "GCM 12",
         correo: "comandante@gcm12.local",
@@ -365,7 +365,7 @@ const menuPorRol = {
         { id: "reportesPage", title: "Reportes", subtitle: "Consulta y exportación de información", label: "Reportes" },
         { id: "auditoriaPage", title: "Auditoría", subtitle: "Historial de acciones del sistema", label: "Auditoría" }
     ],
-    COMANDANTE_OPERACIONES: [
+    COMANDANTE_ECO: [
         { id: "inicioPage", title: "Inicio", subtitle: "Panel del comandante de operaciones", label: "Inicio" },
         { id: "registrarPage", title: "Registrar operación", subtitle: "Registro de operaciones y resultados", label: "Registrar operación" },
         { id: "misOperacionesPage", title: "Mis operaciones", subtitle: "Operaciones registradas por el usuario", label: "Mis operaciones" }
@@ -426,6 +426,7 @@ document.addEventListener("DOMContentLoaded", () => {
     configurarReportes();
     configurarAuditoria();
 
+    migrarRolesAntiguos();
     aplicarIconosDashboard();
 
     renderUsuariosAdmin();
@@ -1186,7 +1187,7 @@ function abrirFormularioNuevoUsuario() {
     document.getElementById("usuarioEditId").value = "";
     document.getElementById("userUnidad").value = "GCM 12";
     document.getElementById("userEstado").value = "ACTIVO";
-    document.getElementById("userRol").value = "COMANDANTE_OPERACIONES";
+    document.getElementById("userRol").value = "COMANDANTE_ECO";
 
     formPanel.classList.remove("hidden");
     formPanel.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1450,7 +1451,7 @@ function renderMisOperaciones() {
 
     let operaciones = [...operacionesSistema];
 
-    if (usuarioActual && usuarioActual.rol === "COMANDANTE_OPERACIONES") {
+    if (usuarioActual && usuarioActual.rol === "COMANDANTE_ECO") {
         operaciones = operaciones.filter((op) => esOperacionDelUsuarioActual(op));
     }
 
@@ -1729,7 +1730,7 @@ function puedeEditarOperacion(operacion) {
         return true;
     }
 
-    if (usuarioActual && usuarioActual.rol === "COMANDANTE_OPERACIONES") {
+    if (usuarioActual && usuarioActual.rol === "COMANDANTE_ECO") {
         return operacion.id_usuario_registro === usuarioActual.id_usuario;
     }
 
@@ -2296,8 +2297,12 @@ function configurarDashboard() {
     }
 
     const limpiarBtn = document.getElementById("dashLimpiarFiltros");
+
     if (limpiarBtn) {
-        limpiarBtn.addEventListener("click", limpiarFiltrosDashboard);
+        limpiarBtn.addEventListener("click", (event) => {
+            event.preventDefault();
+            limpiarFiltrosDashboard();
+        });
     }
 
     const toggleBtn = document.getElementById("dashToggleFiltros");
@@ -2415,20 +2420,34 @@ function cargarSubcategoriasDashboard() {
 }
 
 function limpiarFiltrosDashboard() {
-    document.getElementById("dashFechaDesde").value = "";
-    document.getElementById("dashFechaHasta").value = "";
-    document.getElementById("dashEstado").value = "VALIDADO";
-    document.getElementById("dashTipo").value = "";
-    document.getElementById("dashCanton").value = "";
-    document.getElementById("dashCategoria").value = "";
+    const fechaDesde = document.getElementById("dashFechaDesde");
+    const fechaHasta = document.getElementById("dashFechaHasta");
+    const estado = document.getElementById("dashEstado");
+    const tipo = document.getElementById("dashTipo");
+    const subtipo = document.getElementById("dashSubtipo");
+    const canton = document.getElementById("dashCanton");
+    const parroquia = document.getElementById("dashParroquia");
+    const categoria = document.getElementById("dashCategoria");
+    const subcategoria = document.getElementById("dashSubcategoria");
 
+    if (fechaDesde) fechaDesde.value = "";
+    if (fechaHasta) fechaHasta.value = "";
+
+    // El dashboard oficial siempre debe quedar en VALIDADO.
+    if (estado) estado.value = "VALIDADO";
+
+    if (tipo) tipo.value = "";
+    if (canton) canton.value = "";
+    if (categoria) categoria.value = "";
+
+    // Recargar listas dependientes después de limpiar tipo, cantón y categoría.
     cargarSubtiposDashboard();
     cargarParroquiasDashboard();
     cargarSubcategoriasDashboard();
 
-    document.getElementById("dashSubtipo").value = "";
-    document.getElementById("dashParroquia").value = "";
-    document.getElementById("dashSubcategoria").value = "";
+    if (subtipo) subtipo.value = "";
+    if (parroquia) parroquia.value = "";
+    if (subcategoria) subcategoria.value = "";
 
     renderDashboard();
 }
@@ -2527,10 +2546,11 @@ function renderDashboard() {
     renderRankingUbicacion("dashRankingSector", operaciones, resultados, "sector");
 
     renderRankingTiempoMes(operaciones, "dashTiempoMes");
-    renderRankingTiempoSemana(operaciones, "dashTiempoSemana");
 
     renderRankingSubtipo(operaciones, "dashRankingSubtipo");
     renderRankingTipo(operaciones, "dashRankingTipo");
+
+    renderGraficosDashboard(operaciones, resultados);
     renderDetalleCategoriaSubcategoria(resultados, "dashDetalleCategoriaSubcategoria");
 }
 
@@ -3507,7 +3527,13 @@ function exportarReportePDF() {
     const usuarioGenera = usuarioActual
         ? `${usuarioActual.grado} ${usuarioActual.nombres} ${usuarioActual.apellidos}`
         : "Usuario no identificado";
-
+    const fechaGeneracion = new Date().toLocaleString("es-EC", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
     const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf("/") + 1);
     const logoGrupo = `${baseUrl}assets/logo-gcm12.png`;
     const logoEjercito = `${baseUrl}assets/logo-ejercito.png`;
@@ -3539,6 +3565,8 @@ function exportarReportePDF() {
         ? "Reporte Operacional Detallado"
         : "Reporte Operacional General";
 
+
+
     ventana.document.write(`
         <!DOCTYPE html>
         <html lang="es">
@@ -3567,7 +3595,7 @@ function exportarReportePDF() {
                     grid-template-columns: 90px 1fr 90px;
                     align-items: center;
                     gap: 14px;
-                    border-bottom: 3px solid #361469;
+                    
                     padding-bottom: 12px;
                     margin-bottom: 14px;
                 }
@@ -3658,6 +3686,19 @@ function exportarReportePDF() {
                 .generated-by strong {
                     color: #361469;
                 }
+                .generated-info {
+                    margin-top: 18px;
+                    font-size: 12px;
+                    color: #1f2937;
+                }
+
+                .generated-info p {
+                    margin: 4px 0;
+                }
+
+                .generated-info strong {
+                    color: #2d0b5c;
+                }
 
                 .footer {
                     margin-top: 8px;
@@ -3691,7 +3732,7 @@ function exportarReportePDF() {
                 <div class="institutional-title">
                     <h1>Fuerza Terrestre</h1>
                     <h1>Grupo de Caballería Mecanizado Nº 12</h1>
-                    <h1>“Tnte. Hugo Ortiz”</h1>
+                    <h1>“Tnte Hugo Ortiz”</h1>
                 </div>
 
                 <img src="${logoEjercito}" alt="Logo Ejército" class="right-logo">
@@ -3699,7 +3740,7 @@ function exportarReportePDF() {
 
             <div class="report-title">
                 <h4>${tituloReporte} GCM 12</h4>
-                <p>Información generada conforme a los filtros aplicados en el módulo de reportes.</p>
+                
             </div>
 
             <table>
@@ -3714,8 +3755,9 @@ function exportarReportePDF() {
                 </tbody>
             </table>
 
-            <div class="generated-by">
-                <strong>Generado por:</strong> ${escaparHtml(usuarioGenera)}
+            <div class="generated-info">
+                <p><strong>Generado por:</strong> ${usuarioActual.grado} ${usuarioActual.nombres} ${usuarioActual.apellidos}</p>
+                <p><strong>Fecha de generación:</strong> ${fechaGeneracion}</p>
             </div>
 
             <div class="footer">
@@ -4003,7 +4045,7 @@ function renderInicioPorRol() {
         return;
     }
 
-    if (usuarioActual.rol === "COMANDANTE_OPERACIONES") {
+    if (usuarioActual.rol === "COMANDANTE_ECO") {
         renderInicioComandanteOperaciones(statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody);
         return;
     }
@@ -4179,4 +4221,325 @@ function renderInicioComandanteUnidad(statsGrid, actions) {
         ${crearBotonInicio("Ir al dashboard", "dashboardPage", "Dashboard", "Estadísticas generales de operaciones")}
         ${crearBotonInicio("Ver reportes", "reportesPage", "Reportes", "Consulta y exportación de información", "btn-secondary")}
     `;
+}
+
+// ======================================================
+// GRÁFICOS DASHBOARD - CHART.JS
+// ======================================================
+
+let dashboardCharts = {};
+
+function renderGraficosDashboard(operaciones, resultados) {
+    if (typeof Chart === "undefined") {
+        console.warn("Chart.js no está cargado.");
+        return;
+    }
+
+    renderGraficoEfectividad(operaciones);
+    renderGraficoPersonal(operaciones);
+    renderGraficoCategorias(resultados);
+    renderGraficoCanton(operaciones);
+    renderGraficoMes(operaciones);
+    renderGraficoSubtipo(operaciones);
+}
+
+function crearOActualizarGrafico(canvasId, tipo, labels, data, label, extraOptions = {}) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    if (dashboardCharts[canvasId]) {
+        dashboardCharts[canvasId].destroy();
+    }
+
+    const ctx = canvas.getContext("2d");
+
+    const colores = generarColores(data.length);
+
+    dashboardCharts[canvasId] = new Chart(ctx, {
+        type: tipo,
+        data: {
+            labels,
+            datasets: [
+                {
+                    label,
+                    data,
+                    borderWidth: tipo === "line" ? 3 : 1.5,
+                    borderColor: tipo === "line"
+                        ? "rgba(243, 198, 35, 0.95)"
+                        : "rgba(255, 255, 255, 0.18)",
+                    backgroundColor: tipo === "line"
+                        ? "rgba(243, 198, 35, 0.18)"
+                        : colores,
+                    pointBackgroundColor: "rgba(243, 198, 35, 0.95)",
+                    pointBorderColor: "#ffffff",
+                    pointRadius: 4,
+                    tension: 0.35,
+                    fill: tipo === "line"
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: tipo === "doughnut",
+                    position: "bottom",
+                    labels: {
+                        color: "rgba(255, 255, 255, 0.82)",
+                        font: {
+                            size: 12,
+                            weight: "bold"
+                        },
+                        padding: 14
+                    }
+                },
+                tooltip: {
+                    backgroundColor: "rgba(20, 10, 34, 0.96)",
+                    titleColor: "#ffffff",
+                    bodyColor: "#ffffff",
+                    borderColor: "rgba(243, 198, 35, 0.45)",
+                    borderWidth: 1,
+                    padding: 10
+                }
+            },
+            scales: tipo === "doughnut" ? {} : {
+                x: {
+                    ticks: {
+                        color: "rgba(255, 255, 255, 0.78)",
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: "rgba(255, 255, 255, 0.06)"
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: "rgba(255, 255, 255, 0.78)",
+                        precision: 0,
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: "rgba(255, 255, 255, 0.08)"
+                    }
+                }
+            },
+            ...extraOptions
+        }
+    });
+}
+
+function generarColores(cantidad) {
+    const base = [
+        "rgba(243, 198, 35, 0.82)",   // dorado institucional
+        "rgba(104, 207, 224, 0.70)",  // cian táctico suave
+        "rgba(155, 109, 255, 0.68)",  // morado claro
+        "rgba(62, 167, 106, 0.68)",   // verde operativo
+        "rgba(212, 84, 100, 0.68)",   // rojo vino controlado
+        "rgba(118, 115, 111, 0.70)",  // gris metálico
+        "rgba(179, 152, 77, 0.68)",   // dorado oscuro
+        "rgba(74, 42, 122, 0.72)"     // morado institucional
+    ];
+
+    const colores = [];
+
+    for (let i = 0; i < cantidad; i++) {
+        colores.push(base[i % base.length]);
+    }
+
+    return colores;
+}
+
+function renderGraficoEfectividad(operaciones) {
+    const conResultados = operaciones.filter((op) => op.hubo_resultados === "SI").length;
+    const sinResultados = operaciones.filter((op) => op.hubo_resultados === "NO").length;
+
+    const canvasId = "dashChartEfectividad";
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || typeof Chart === "undefined") return;
+
+    if (dashboardCharts[canvasId]) {
+        dashboardCharts[canvasId].destroy();
+    }
+
+    dashboardCharts[canvasId] = new Chart(canvas.getContext("2d"), {
+        type: "doughnut",
+        data: {
+            labels: ["Con resultados", "Sin resultados"],
+            datasets: [
+                {
+                    data: [conResultados, sinResultados],
+                    backgroundColor: [
+                        "rgba(243, 198, 35, 0.85)",
+                        "rgba(118, 115, 111, 0.75)"
+                    ],
+                    borderColor: "rgba(255, 255, 255, 0.18)",
+                    borderWidth: 1.5
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: "62%",
+            plugins: {
+                legend: {
+                    display: true,
+                    position: "bottom",
+                    labels: {
+                        color: "rgba(255, 255, 255, 0.82)",
+                        font: {
+                            size: 12,
+                            weight: "bold"
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: "rgba(20, 10, 34, 0.96)",
+                    titleColor: "#ffffff",
+                    bodyColor: "#ffffff",
+                    borderColor: "rgba(243, 198, 35, 0.45)",
+                    borderWidth: 1
+                }
+            }
+        }
+    });
+}
+
+function renderGraficoPersonal(operaciones) {
+    const oficiales = sumarCampoOperaciones(operaciones, "num_oficiales");
+    const voluntarios = sumarCampoOperaciones(operaciones, "num_vol");
+    const soldados = sumarCampoOperaciones(operaciones, "num_sldr");
+
+    crearOActualizarGrafico(
+        "dashChartPersonal",
+        "bar",
+        ["Oficiales", "Voluntarios", "Soldados"],
+        [oficiales, voluntarios, soldados],
+        "Personal empleado"
+    );
+}
+
+function renderGraficoCategorias(resultados) {
+    const mapa = new Map();
+
+    resultados.forEach((r) => {
+        const categoria = r.categoria || "SIN CATEGORÍA";
+        mapa.set(categoria, (mapa.get(categoria) || 0) + 1);
+    });
+
+    const data = Array.from(mapa.entries())
+        .map(([nombre, valor]) => ({ nombre, valor }))
+        .sort((a, b) => b.valor - a.valor)
+        .slice(0, 10);
+
+    crearOActualizarGrafico(
+        "dashChartCategorias",
+        "bar",
+        data.map((item) => item.nombre),
+        data.map((item) => item.valor),
+        "Registros de resultado"
+    );
+}
+
+function renderGraficoCanton(operaciones) {
+    const mapa = new Map();
+
+    operaciones.forEach((op) => {
+        const canton = op.canton || "SIN CANTÓN";
+        mapa.set(canton, (mapa.get(canton) || 0) + 1);
+    });
+
+    const data = Array.from(mapa.entries())
+        .map(([nombre, valor]) => ({ nombre, valor }))
+        .sort((a, b) => b.valor - a.valor);
+
+    crearOActualizarGrafico(
+        "dashChartCanton",
+        "bar",
+        data.map((item) => item.nombre),
+        data.map((item) => item.valor),
+        "Operaciones por cantón"
+    );
+}
+
+function renderGraficoMes(operaciones) {
+    const mapa = new Map();
+
+    operaciones.forEach((op) => {
+        const mes = op.fecha_operacion ? op.fecha_operacion.slice(0, 7) : "SIN FECHA";
+        mapa.set(mes, (mapa.get(mes) || 0) + 1);
+    });
+
+    const data = Array.from(mapa.entries())
+        .map(([nombre, valor]) => ({ nombre, valor }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    crearOActualizarGrafico(
+        "dashChartMes",
+        "line",
+        data.map((item) => item.nombre),
+        data.map((item) => item.valor),
+        "Operaciones por mes"
+    );
+}
+
+function renderGraficoSubtipo(operaciones) {
+    const mapa = new Map();
+
+    operaciones.forEach((op) => {
+        const subtipo = op.sub_tipo_operacion || "SIN SUBTIPO";
+        mapa.set(subtipo, (mapa.get(subtipo) || 0) + 1);
+    });
+
+    const data = Array.from(mapa.entries())
+        .map(([nombre, valor]) => ({ nombre, valor }))
+        .sort((a, b) => b.valor - a.valor)
+        .slice(0, 10);
+
+    crearOActualizarGrafico(
+        "dashChartSubtipo",
+        "bar",
+        data.map((item) => item.nombre),
+        data.map((item) => item.valor),
+        "Operaciones por subtipo",
+        {
+            indexAxis: "y"
+        }
+    );
+}
+
+function migrarRolesAntiguos() {
+    let huboCambios = false;
+
+    usuariosSistema = usuariosSistema.map((usuario) => {
+        if (usuario.rol === "COMANDANTE_OPERACIONES") {
+            huboCambios = true;
+
+            return {
+                ...usuario,
+                rol: "COMANDANTE_ECO",
+                cargo: usuario.cargo === "Comandante de operaciones"
+                    ? "Comandante ECO"
+                    : usuario.cargo
+            };
+        }
+
+        return usuario;
+    });
+
+    if (usuarioActual && usuarioActual.rol === "COMANDANTE_OPERACIONES") {
+        usuarioActual.rol = "COMANDANTE_ECO";
+        huboCambios = true;
+    }
+
+    if (huboCambios) {
+        guardarUsuariosSistema();
+        localStorage.setItem("gcm12_usuario_actual", JSON.stringify(usuarioActual));
+    }
 }

@@ -1756,3 +1756,53 @@ button,
     max-height: 520px;
   }
 }
+
+/* ============================= */
+/* GRÁFICOS DASHBOARD */
+/* ============================= */
+
+.dash-chart-panel {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(104, 207, 224, 0.25);
+  border-radius: 18px;
+  padding: 16px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.dash-chart-panel h4 {
+  margin: 0 0 12px;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.dash-chart-box {
+  position: relative;
+  height: 280px;
+  width: 100%;
+}
+
+.dash-chart-box.small {
+  height: 240px;
+}
+
+.dash-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+  .dash-chart-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-chart-box {
+    height: 260px;
+  }
+
+  .dash-chart-box.small {
+    height: 230px;
+  }
+}
