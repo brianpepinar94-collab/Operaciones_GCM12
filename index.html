@@ -87,26 +87,19 @@
                         </p>
                     </div>
 
-                    <div class="stats-grid">
-                        <article class="stat-card purple">
-                            <span>Total operaciones</span>
-                            <strong>0</strong>
-                        </article>
+                    <div id="inicioStatsGrid" class="stats-grid"></div>
 
-                        <article class="stat-card gold">
-                            <span>Con resultados</span>
-                            <strong>0</strong>
-                        </article>
+                    <div id="inicioActions" class="home-actions"></div>
 
-                        <article class="stat-card gray">
-                            <span>Sin resultados</span>
-                            <strong>0</strong>
-                        </article>
+                    <div id="inicioRecentPanel" class="panel-card home-recent-panel hidden">
+                        <h3 id="inicioRecentTitle">Últimos registros</h3>
 
-                        <article class="stat-card red">
-                            <span>Armas decomisadas</span>
-                            <strong>0</strong>
-                        </article>
+                        <div class="table-wrapper">
+                            <table class="admin-table">
+                                <thead id="inicioRecentHead"></thead>
+                                <tbody id="inicioRecentBody"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
@@ -645,9 +638,9 @@
                                 <p>Estadísticas de operaciones y resultados obtenidos en la jurisdicción.</p>
                             </div>
 
-                            <div class="dash-badge">
+                            <!-- <div class="dash-badge">
                                 DATOS VALIDADOS
-                            </div>
+                            </div> -->
                         </div>
 
                         <div class="dash-filter-card">
@@ -673,7 +666,7 @@
                                     <input type="date" id="dashFechaHasta" />
                                 </div>
 
-                                <div class="field">
+                                <!-- <div class="field">
                                     <label>Estado</label>
                                     <select id="dashEstado">
                                         <option value="">Todos</option>
@@ -682,7 +675,7 @@
                                         <option value="OBSERVADO">OBSERVADO</option>
                                         <option value="ANULADO">ANULADO</option>
                                     </select>
-                                </div>
+                                </div> -->
 
                                 <div class="field">
                                     <label>Tipo de operación</label>
@@ -1135,6 +1128,10 @@
                             </div>
 
                             <div class="report-actions">
+                                <button type="button" id="repModoDetalladoBtn" class="btn btn-outline-dark btn-auto">
+                                    Detallado: NO
+                                </button>
+
                                 <button type="button" id="exportCsvBtn" class="btn btn-secondary btn-auto">
                                     Exportar CSV
                                 </button>
@@ -1144,154 +1141,246 @@
                                 </button>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="filters-grid report-filters">
+                    <div class="filters-grid report-filters">
+                        <div class="field">
+                            <label>Fecha desde</label>
+                            <input type="date" id="repFechaDesde" />
+                        </div>
+
+                        <div class="field">
+                            <label>Fecha hasta</label>
+                            <input type="date" id="repFechaHasta" />
+                        </div>
+
+                        <!-- <div class="field">
+                            <label>Estado</label>
+                            <select id="repEstado">
+                                <option value="">Todos</option>
+                                <option value="VALIDADO" selected>VALIDADO</option>
+                                <option value="REGISTRADO">REGISTRADO</option>
+                                <option value="OBSERVADO">OBSERVADO</option>
+                                <option value="ANULADO">ANULADO</option>
+                            </select>
+                        </div> -->
+
+                        <div class="field">
+                            <label>Hubo resultados</label>
+                            <select id="repHuboResultados">
+                                <option value="">Todos</option>
+                                <option value="SI">SI</option>
+                                <option value="NO">NO</option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label>Tipo de operación</label>
+                            <select id="repTipo">
+                                <option value="">Todos</option>
+                                <option value="DEFENSA EXTERNA">DEFENSA EXTERNA</option>
+                                <option value="AMBITO INTERNO">AMBITO INTERNO</option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label>Subtipo de operación</label>
+                            <select id="repSubtipo">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label>Cantón</label>
+                            <select id="repCanton">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label>Parroquia</label>
+                            <select id="repParroquia">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label>Categoría resultado</label>
+                            <select id="repCategoria">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label>Subcategoría resultado</label>
+                            <select id="repSubcategoria">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label>Responsable</label>
+                            <input type="text" id="repResponsable" placeholder="Buscar responsable" />
+                        </div>
+
+                        <div class="field report-filter-buttons">
+                            <label>&nbsp;</label>
+                            <button type="button" id="repLimpiarFiltros" class="btn btn-outline-dark">
+                                Limpiar filtros
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="report-summary">
+                        <div>
+                            <span>Registros mostrados</span>
+                            <strong id="repTotalFilas">0</strong>
+                        </div>
+
+                        <div>
+                            <span>Operaciones únicas</span>
+                            <strong id="repTotalOperaciones">0</strong>
+                        </div>
+
+                        <div>
+                            <span>Operaciones con resultados</span>
+                            <strong id="repOperacionesResultados">0</strong>
+                        </div>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table class="admin-table report-table">
+                            <thead id="reportesTableHead">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>ID operación</th>
+                                    <th>Tipo</th>
+                                    <th>Subtipo</th>
+                                    <th>Cantón</th>
+                                    <th>Parroquia</th>
+                                    <th>Sector</th>
+                                    <th>Responsable</th>
+                                    <th>Hubo resultados</th>
+                                    <th>Observación general</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="reportesTableBody">
+                                <tr>
+                                    <td colspan="10" class="empty-table">Sin datos disponibles.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p id="reportesMessage" class="form-message"></p>
+                </section>
+                
+                 <!-- AUDITORIA -->
+                <section id="auditoriaPage" class="page">
+                    <div class="panel-card">
+                        <div class="admin-toolbar">
+                            <div>
+                                <h3>Auditoría del sistema</h3>
+                                <p>Registro histórico de acciones realizadas por los usuarios.</p>
+                            </div>
+
+                            <button type="button" id="limpiarFiltrosAuditoriaBtn" class="btn btn-outline-dark btn-auto">
+                                Limpiar filtros
+                            </button>
+                        </div>
+
+                        <div class="filters-grid auditoria-filters">
+                            <div class="field">
+                                <label>Buscar</label>
+                                <input type="text" id="auditoriaBuscar"
+                                    placeholder="Buscar por usuario, acción, módulo, detalle o ID" />
+                            </div>
+
+                            <div class="field">
+                                <label>Acción</label>
+                                <select id="auditoriaAccion">
+                                    <option value="">Todas</option>
+                                    <option value="LOGIN">LOGIN</option>
+                                    <option value="LOGIN_FALLIDO">LOGIN_FALLIDO</option>
+                                    <option value="CREAR">CREAR</option>
+                                    <option value="EDITAR">EDITAR</option>
+                                    <option value="ACTIVAR">ACTIVAR</option>
+                                    <option value="INACTIVAR">INACTIVAR</option>
+                                    <option value="ELIMINAR">ELIMINAR</option>
+                                    <option value="VALIDAR">VALIDAR</option>
+                                    <option value="OBSERVAR">OBSERVAR</option>
+                                    <option value="ANULAR">ANULAR</option>
+                                    <option value="EXPORTAR_CSV">EXPORTAR_CSV</option>
+                                    <option value="EXPORTAR_PDF">EXPORTAR_PDF</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Módulo</label>
+                                <select id="auditoriaModulo">
+                                    <option value="">Todos</option>
+                                    <option value="LOGIN">LOGIN</option>
+                                    <option value="USUARIOS">USUARIOS</option>
+                                    <option value="OPERACIONES">OPERACIONES</option>
+                                    <option value="REPORTES">REPORTES</option>
+                                    <option value="DASHBOARD">DASHBOARD</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Rol</label>
+                                <select id="auditoriaRol">
+                                    <option value="">Todos</option>
+                                    <option value="ADMIN">ADMIN</option>
+                                    <option value="COMANDANTE_OPERACIONES">COMANDANTE_OPERACIONES</option>
+                                    <option value="COMANDANTE_UNIDAD">COMANDANTE_UNIDAD</option>
+                                    <option value="NO_IDENTIFICADO">NO_IDENTIFICADO</option>
+                                </select>
+                            </div>
+
                             <div class="field">
                                 <label>Fecha desde</label>
-                                <input type="date" id="repFechaDesde" />
+                                <input type="date" id="auditoriaFechaDesde" />
                             </div>
 
                             <div class="field">
                                 <label>Fecha hasta</label>
-                                <input type="date" id="repFechaHasta" />
-                            </div>
-
-                            <div class="field">
-                                <label>Estado</label>
-                                <select id="repEstado">
-                                    <option value="">Todos</option>
-                                    <option value="VALIDADO" selected>VALIDADO</option>
-                                    <option value="REGISTRADO">REGISTRADO</option>
-                                    <option value="OBSERVADO">OBSERVADO</option>
-                                    <option value="ANULADO">ANULADO</option>
-                                </select>
-                            </div>
-
-                            <div class="field">
-                                <label>Hubo resultados</label>
-                                <select id="repHuboResultados">
-                                    <option value="">Todos</option>
-                                    <option value="SI">SI</option>
-                                    <option value="NO">NO</option>
-                                </select>
-                            </div>
-
-                            <div class="field">
-                                <label>Tipo de operación</label>
-                                <select id="repTipo">
-                                    <option value="">Todos</option>
-                                    <option value="DEFENSA EXTERNA">DEFENSA EXTERNA</option>
-                                    <option value="AMBITO INTERNO">AMBITO INTERNO</option>
-                                </select>
-                            </div>
-
-                            <div class="field">
-                                <label>Subtipo de operación</label>
-                                <select id="repSubtipo">
-                                    <option value="">Todos</option>
-                                </select>
-                            </div>
-
-                            <div class="field">
-                                <label>Cantón</label>
-                                <select id="repCanton">
-                                    <option value="">Todos</option>
-                                </select>
-                            </div>
-
-                            <div class="field">
-                                <label>Parroquia</label>
-                                <select id="repParroquia">
-                                    <option value="">Todas</option>
-                                </select>
-                            </div>
-
-                            <div class="field">
-                                <label>Categoría resultado</label>
-                                <select id="repCategoria">
-                                    <option value="">Todas</option>
-                                </select>
-                            </div>
-
-                            <div class="field">
-                                <label>Subcategoría resultado</label>
-                                <select id="repSubcategoria">
-                                    <option value="">Todas</option>
-                                </select>
-                            </div>
-
-                            <div class="field">
-                                <label>Responsable</label>
-                                <input type="text" id="repResponsable" placeholder="Buscar responsable" />
-                            </div>
-
-                            <div class="field report-filter-buttons">
-                                <label>&nbsp;</label>
-                                <button type="button" id="repLimpiarFiltros" class="btn btn-outline-dark">
-                                    Limpiar filtros
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="report-summary">
-                            <div>
-                                <span>Registros mostrados</span>
-                                <strong id="repTotalFilas">0</strong>
-                            </div>
-
-                            <div>
-                                <span>Operaciones únicas</span>
-                                <strong id="repTotalOperaciones">0</strong>
-                            </div>
-
-                            <div>
-                                <span>Operaciones con resultados</span>
-                                <strong id="repOperacionesResultados">0</strong>
+                                <input type="date" id="auditoriaFechaHasta" />
                             </div>
                         </div>
 
                         <div class="table-wrapper">
-                            <table class="admin-table report-table">
+                            <table class="admin-table auditoria-table">
                                 <thead>
                                     <tr>
-                                        <th>Fecha</th>
-                                        <th>ID operación</th>
-                                        <th>Tipo</th>
-                                        <th>Subtipo</th>
-                                        <th>Cantón</th>
-                                        <th>Parroquia</th>
-                                        <th>Sector</th>
-                                        <th>Responsable</th>
-                                        <th>Estado</th>
-                                        <th>Categoría</th>
-                                        <th>Subcategoría</th>
-                                        <th>Cantidad</th>
-                                        <th>Unidad</th>
-                                        <th>Descripción</th>
+                                        <th>Fecha y hora</th>
+                                        <th>Usuario</th>
+                                        <th>Rol</th>
+                                        <th>Acción</th>
+                                        <th>Módulo</th>
+                                        <th>ID registro</th>
+                                        <th>Detalle</th>
                                     </tr>
                                 </thead>
-                                <tbody id="reportesTableBody">
+
+                                <tbody id="auditoriaTableBody">
                                     <tr>
-                                        <td colspan="14" class="empty-table">Sin datos disponibles.</td>
+                                        <td colspan="7" class="empty-table">Sin registros de auditoría.</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
 
-                        <p id="reportesMessage" class="form-message"></p>
+                        <p id="auditoriaMessage" class="form-message"></p>
                     </div>
                 </section>
-
-                <!-- AUDITORIA -->
-                <section id="auditoriaPage" class="page">
-                    <div class="panel-card">
-                        <h3>Auditoría</h3>
-                        <p>Registro histórico de acciones del sistema.</p>
-                    </div>
-                </section>
-
-            </main>
         </div>
+    </section>
+
+
+    </main>
+    </div>
     </section>
 
     <script src="https://code.iconify.design/iconify-icon/3.0.2/iconify-icon.min.js"></script>

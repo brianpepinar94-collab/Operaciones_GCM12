@@ -1584,3 +1584,175 @@ button,
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================= */
+/* BOTÓN MODO DETALLADO */
+/* ============================= */
+
+#repModoDetalladoBtn.active {
+  background: var(--primary);
+  color: var(--white);
+  border-color: var(--primary);
+}
+
+.report-table {
+  min-width: 1250px;
+}
+
+.report-table.detallado {
+  min-width: 1450px;
+}
+
+/* ============================= */
+/* AUDITORÍA */
+/* ============================= */
+
+.auditoria-filters {
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+}
+
+.auditoria-table {
+  min-width: 1250px;
+}
+
+.audit-badge {
+  display: inline-block;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.audit-login {
+  background: rgba(47, 107, 63, 0.14);
+  color: var(--green);
+}
+
+.audit-error {
+  background: rgba(180, 35, 24, 0.13);
+  color: var(--danger);
+}
+
+.audit-create {
+  background: rgba(10, 55, 148, 0.12);
+  color: var(--blue);
+}
+
+.audit-edit {
+  background: rgba(249, 207, 22, 0.20);
+  color: #8A6500;
+}
+
+.audit-admin {
+  background: rgba(54, 20, 105, 0.12);
+  color: var(--primary);
+}
+
+@media (max-width: 768px) {
+  .auditoria-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================= */
+/* INICIO POR ROL */
+/* ============================= */
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 22px 0;
+}
+
+.home-actions .btn {
+  width: auto;
+}
+
+.home-recent-panel {
+  margin-top: 18px;
+}
+
+.home-empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 18px;
+}
+
+@media (max-width: 768px) {
+  .home-actions {
+    flex-direction: column;
+  }
+
+  .home-actions .btn {
+    width: 100%;
+  }
+}
+
+/* ============================= */
+/* TABLAS CON SCROLL CONTROLADO */
+/* ============================= */
+
+.table-wrapper {
+  max-height: 520px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-wrapper table {
+  margin: 0;
+}
+
+.table-wrapper thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+/* Alturas específicas por módulo */
+
+#misOperacionesPage .table-wrapper {
+  max-height: 460px;
+}
+
+#operacionesPage .table-wrapper {
+  max-height: 520px;
+}
+
+#usuariosPage .table-wrapper {
+  max-height: 500px;
+}
+
+#reportesPage .table-wrapper {
+  max-height: 600px;
+}
+
+#auditoriaPage .table-wrapper {
+  max-height: 560px;
+}
+
+/* Paneles de detalle no deben quedar demasiado largos */
+
+.detail-panel {
+  max-height: 620px;
+  overflow-y: auto;
+}
+
+/* Mejor scroll en celular */
+
+@media (max-width: 768px) {
+  .table-wrapper {
+    max-height: 430px;
+    overflow: auto;
+  }
+
+  #reportesPage .table-wrapper,
+  #auditoriaPage .table-wrapper {
+    max-height: 480px;
+  }
+
+  .detail-panel {
+    max-height: 520px;
+  }
+}
