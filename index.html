@@ -35,7 +35,7 @@
             </form>
 
             <p class="login-footer">
-                Grupo de Caballería Mecanizado N.º 12 “Tnte. Hugo Ortiz”
+                Grupo de Caballería Mecanizado Nº 12 “Tnte Hugo Ortiz”
             </p>
         </section>
     </main>
@@ -774,12 +774,12 @@
                                 </article>
 
                                 <article class="dash-summary-card">
-                                    <span>Voluntarios empleados</span>
+                                    <span>PTP empleados</span>
                                     <strong id="dashVoluntarios">0</strong>
                                 </article>
 
                                 <article class="dash-summary-card">
-                                    <span>Soldados empleados</span>
+                                    <span>Soldados de reserva </span>
                                     <strong id="dashSoldados">0</strong>
                                 </article>
 
@@ -1125,10 +1125,160 @@
 
 
                 <!-- REPORTES -->
+                <!-- REPORTES -->
                 <section id="reportesPage" class="page">
                     <div class="panel-card">
-                        <h3>Reportes</h3>
-                        <p>Consulta filtrada y exportación de operaciones.</p>
+                        <div class="admin-toolbar">
+                            <div>
+                                <h3>Reportes operacionales</h3>
+                                <p>Consulta consolidada de operaciones y resultados. Permite exportar a CSV y PDF.</p>
+                            </div>
+
+                            <div class="report-actions">
+                                <button type="button" id="exportCsvBtn" class="btn btn-secondary btn-auto">
+                                    Exportar CSV
+                                </button>
+
+                                <button type="button" id="exportPdfBtn" class="btn btn-primary btn-auto">
+                                    Exportar PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="filters-grid report-filters">
+                            <div class="field">
+                                <label>Fecha desde</label>
+                                <input type="date" id="repFechaDesde" />
+                            </div>
+
+                            <div class="field">
+                                <label>Fecha hasta</label>
+                                <input type="date" id="repFechaHasta" />
+                            </div>
+
+                            <div class="field">
+                                <label>Estado</label>
+                                <select id="repEstado">
+                                    <option value="">Todos</option>
+                                    <option value="VALIDADO" selected>VALIDADO</option>
+                                    <option value="REGISTRADO">REGISTRADO</option>
+                                    <option value="OBSERVADO">OBSERVADO</option>
+                                    <option value="ANULADO">ANULADO</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Hubo resultados</label>
+                                <select id="repHuboResultados">
+                                    <option value="">Todos</option>
+                                    <option value="SI">SI</option>
+                                    <option value="NO">NO</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Tipo de operación</label>
+                                <select id="repTipo">
+                                    <option value="">Todos</option>
+                                    <option value="DEFENSA EXTERNA">DEFENSA EXTERNA</option>
+                                    <option value="AMBITO INTERNO">AMBITO INTERNO</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Subtipo de operación</label>
+                                <select id="repSubtipo">
+                                    <option value="">Todos</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Cantón</label>
+                                <select id="repCanton">
+                                    <option value="">Todos</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Parroquia</label>
+                                <select id="repParroquia">
+                                    <option value="">Todas</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Categoría resultado</label>
+                                <select id="repCategoria">
+                                    <option value="">Todas</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Subcategoría resultado</label>
+                                <select id="repSubcategoria">
+                                    <option value="">Todas</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label>Responsable</label>
+                                <input type="text" id="repResponsable" placeholder="Buscar responsable" />
+                            </div>
+
+                            <div class="field report-filter-buttons">
+                                <label>&nbsp;</label>
+                                <button type="button" id="repLimpiarFiltros" class="btn btn-outline-dark">
+                                    Limpiar filtros
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="report-summary">
+                            <div>
+                                <span>Registros mostrados</span>
+                                <strong id="repTotalFilas">0</strong>
+                            </div>
+
+                            <div>
+                                <span>Operaciones únicas</span>
+                                <strong id="repTotalOperaciones">0</strong>
+                            </div>
+
+                            <div>
+                                <span>Operaciones con resultados</span>
+                                <strong id="repOperacionesResultados">0</strong>
+                            </div>
+                        </div>
+
+                        <div class="table-wrapper">
+                            <table class="admin-table report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>ID operación</th>
+                                        <th>Tipo</th>
+                                        <th>Subtipo</th>
+                                        <th>Cantón</th>
+                                        <th>Parroquia</th>
+                                        <th>Sector</th>
+                                        <th>Responsable</th>
+                                        <th>Estado</th>
+                                        <th>Categoría</th>
+                                        <th>Subcategoría</th>
+                                        <th>Cantidad</th>
+                                        <th>Unidad</th>
+                                        <th>Descripción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportesTableBody">
+                                    <tr>
+                                        <td colspan="14" class="empty-table">Sin datos disponibles.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p id="reportesMessage" class="form-message"></p>
                     </div>
                 </section>
 

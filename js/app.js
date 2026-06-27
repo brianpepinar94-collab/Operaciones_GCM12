@@ -36,7 +36,7 @@ const usuariosDemo = [
         id_usuario: "USR-003",
         nombres: "Comandante",
         apellidos: "Unidad",
-        grado: "MAYO.",
+        grado: "TCRN.",
         cargo: "Comandante de unidad",
         unidad: "GCM 12",
         correo: "comandante@gcm12.local",
@@ -400,6 +400,7 @@ document.addEventListener("DOMContentLoaded", () => {
     configurarMisOperaciones();
     configurarAdministrarOperaciones();
     configurarDashboard();
+    configurarReportes();
 
     aplicarIconosDashboard();
 
@@ -407,6 +408,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderMisOperaciones();
     renderOperacionesAdmin();
     renderDashboard();
+    renderReportes();
 });
 ubicacionBtn.addEventListener("click", () => {
     const coordenadasInput = document.getElementById("coordenadas");
@@ -816,6 +818,7 @@ function crearNuevaOperacion() {
     renderMisOperaciones();
     renderOperacionesAdmin();
     renderDashboard();
+    renderReportes();
 }
 
 function actualizarOperacionExistente() {
@@ -882,6 +885,7 @@ function actualizarOperacionExistente() {
     renderMisOperaciones();
     renderOperacionesAdmin();
     renderDashboard();
+    renderReportes();
 }
 
 function limpiarFormularioOperacion() {
@@ -2011,6 +2015,7 @@ function cambiarEstadoOperacionAdmin(idOperacion, nuevoEstado) {
     renderOperacionesAdmin();
     renderMisOperaciones();
     renderDashboard();
+    renderReportes();
 
     mostrarMensajeOperacionesAdmin(`Operación actualizada a estado ${nuevoEstado}.`, "success");
 }
@@ -2049,6 +2054,7 @@ function observarOperacionAdmin(idOperacion) {
     renderOperacionesAdmin();
     renderMisOperaciones();
     renderDashboard();
+    renderReportes();
     mostrarMensajeOperacionesAdmin("Operación marcada como OBSERVADO.", "success");
 }
 
@@ -2090,6 +2096,7 @@ function anularOperacionAdmin(idOperacion) {
     renderOperacionesAdmin();
     renderMisOperaciones();
     renderDashboard();
+    renderReportes();
 
     mostrarMensajeOperacionesAdmin("Operación anulada correctamente.", "success");
 }
@@ -2931,4 +2938,679 @@ function renderDetalleCategoriaSubcategoria(resultados, tbodyId) {
 
         tbody.appendChild(tr);
     });
+}
+
+// ======================================================
+// REPORTES
+// ======================================================
+
+function configurarReportes() {
+    const reportesPage = document.getElementById("reportesPage");
+    if (!reportesPage) return;
+
+    cargarFiltrosReportes();
+
+    const filtros = [
+        "repFechaDesde",
+        "repFechaHasta",
+        "repEstado",
+        "repHuboResultados",
+        "repTipo",
+        "repSubtipo",
+        "repCanton",
+        "repParroquia",
+        "repCategoria",
+        "repSubcategoria",
+        "repResponsable"
+    ];
+
+    filtros.forEach((id) => {
+        const element = document.getElementById(id);
+        if (!element) return;
+
+        const evento = element.tagName === "INPUT" ? "input" : "change";
+        element.addEventListener(evento, renderReportes);
+    });
+
+    const repTipo = document.getElementById("repTipo");
+    const repCanton = document.getElementById("repCanton");
+    const repCategoria = document.getElementById("repCategoria");
+
+    if (repTipo) {
+        repTipo.addEventListener("change", () => {
+            cargarSubtiposReportes();
+            renderReportes();
+        });
+    }
+
+    if (repCanton) {
+        repCanton.addEventListener("change", () => {
+            cargarParroquiasReportes();
+            renderReportes();
+        });
+    }
+
+    if (repCategoria) {
+        repCategoria.addEventListener("change", () => {
+            cargarSubcategoriasReportes();
+            renderReportes();
+        });
+    }
+
+    const limpiarBtn = document.getElementById("repLimpiarFiltros");
+    if (limpiarBtn) {
+        limpiarBtn.addEventListener("click", limpiarFiltrosReportes);
+    }
+
+    const exportCsvBtn = document.getElementById("exportCsvBtn");
+    if (exportCsvBtn) {
+        exportCsvBtn.addEventListener("click", exportarReporteCSV);
+    }
+
+    const exportPdfBtn = document.getElementById("exportPdfBtn");
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener("click", exportarReportePDF);
+    }
+}
+
+function cargarFiltrosReportes() {
+    const repCanton = document.getElementById("repCanton");
+    const repCategoria = document.getElementById("repCategoria");
+
+    if (repCanton) {
+        repCanton.innerHTML = `<option value="">Todos</option>`;
+
+        ubicacionCatalogo.cantones.forEach((canton) => {
+            const option = document.createElement("option");
+            option.value = canton;
+            option.textContent = canton;
+            repCanton.appendChild(option);
+        });
+    }
+
+    if (repCategoria) {
+        repCategoria.innerHTML = `<option value="">Todas</option>`;
+
+        Object.keys(categoriasResultados).forEach((categoria) => {
+            const option = document.createElement("option");
+            option.value = categoria;
+            option.textContent = categoria;
+            repCategoria.appendChild(option);
+        });
+    }
+
+    cargarSubtiposReportes();
+    cargarParroquiasReportes();
+    cargarSubcategoriasReportes();
+}
+
+function cargarSubtiposReportes() {
+    const repTipo = document.getElementById("repTipo");
+    const repSubtipo = document.getElementById("repSubtipo");
+
+    if (!repTipo || !repSubtipo) return;
+
+    const tipo = repTipo.value;
+    const opciones = tipo ? (subtiposOperacion[tipo] || []) : [];
+
+    repSubtipo.innerHTML = `<option value="">Todos</option>`;
+
+    opciones.forEach((subtipo) => {
+        const option = document.createElement("option");
+        option.value = subtipo;
+        option.textContent = subtipo;
+        repSubtipo.appendChild(option);
+    });
+}
+
+function cargarParroquiasReportes() {
+    const repCanton = document.getElementById("repCanton");
+    const repParroquia = document.getElementById("repParroquia");
+
+    if (!repCanton || !repParroquia) return;
+
+    const canton = repCanton.value;
+    const parroquias = ubicacionCatalogo.parroquiasPorCanton[canton] || [];
+
+    repParroquia.innerHTML = `<option value="">Todas</option>`;
+
+    parroquias.forEach((parroquia) => {
+        const option = document.createElement("option");
+        option.value = parroquia;
+        option.textContent = parroquia;
+        repParroquia.appendChild(option);
+    });
+}
+
+function cargarSubcategoriasReportes() {
+    const repCategoria = document.getElementById("repCategoria");
+    const repSubcategoria = document.getElementById("repSubcategoria");
+
+    if (!repCategoria || !repSubcategoria) return;
+
+    const categoria = repCategoria.value;
+    const data = categoriasResultados[categoria];
+
+    repSubcategoria.innerHTML = `<option value="">Todas</option>`;
+
+    if (!data) return;
+
+    data.subcategorias.forEach((subcategoria) => {
+        const option = document.createElement("option");
+        option.value = subcategoria;
+        option.textContent = subcategoria;
+        repSubcategoria.appendChild(option);
+    });
+}
+
+function limpiarFiltrosReportes() {
+    document.getElementById("repFechaDesde").value = "";
+    document.getElementById("repFechaHasta").value = "";
+    document.getElementById("repEstado").value = usuarioActual && usuarioActual.rol === "ADMIN" ? "" : "VALIDADO";
+    document.getElementById("repHuboResultados").value = "";
+    document.getElementById("repTipo").value = "";
+    document.getElementById("repCanton").value = "";
+    document.getElementById("repCategoria").value = "";
+    document.getElementById("repResponsable").value = "";
+
+    cargarSubtiposReportes();
+    cargarParroquiasReportes();
+    cargarSubcategoriasReportes();
+
+    document.getElementById("repSubtipo").value = "";
+    document.getElementById("repParroquia").value = "";
+    document.getElementById("repSubcategoria").value = "";
+
+    renderReportes();
+}
+
+function obtenerFilasReporteFiltradas() {
+    recargarDatosDesdeStorage();
+
+    const fechaDesde = document.getElementById("repFechaDesde")?.value || "";
+    const fechaHasta = document.getElementById("repFechaHasta")?.value || "";
+    const estado = document.getElementById("repEstado")?.value || "";
+    const huboResultados = document.getElementById("repHuboResultados")?.value || "";
+    const tipo = document.getElementById("repTipo")?.value || "";
+    const subtipo = document.getElementById("repSubtipo")?.value || "";
+    const canton = document.getElementById("repCanton")?.value || "";
+    const parroquia = document.getElementById("repParroquia")?.value || "";
+    const categoria = document.getElementById("repCategoria")?.value || "";
+    const subcategoria = document.getElementById("repSubcategoria")?.value || "";
+    const responsable = (document.getElementById("repResponsable")?.value || "").toLowerCase().trim();
+
+    let operaciones = [...operacionesSistema];
+
+    // El comandante de unidad debe trabajar con reportes validados por defecto.
+    // El administrador sí puede ver todos los estados.
+    operaciones = operaciones.filter((op) => {
+        const okFechaDesde = !fechaDesde || op.fecha_operacion >= fechaDesde;
+        const okFechaHasta = !fechaHasta || op.fecha_operacion <= fechaHasta;
+        const okEstado = !estado || op.estado_operacion === estado;
+        const okHuboResultados = !huboResultados || op.hubo_resultados === huboResultados;
+        const okTipo = !tipo || op.tipo_operacion === tipo;
+        const okSubtipo = !subtipo || op.sub_tipo_operacion === subtipo;
+        const okCanton = !canton || op.canton === canton;
+        const okParroquia = !parroquia || op.parroquia === parroquia;
+
+        const textoResponsable = `${op.grado_responsable || ""} ${op.responsable || ""} ${op.registrado_por || ""}`.toLowerCase();
+        const okResponsable = !responsable || textoResponsable.includes(responsable);
+
+        return okFechaDesde &&
+            okFechaHasta &&
+            okEstado &&
+            okHuboResultados &&
+            okTipo &&
+            okSubtipo &&
+            okCanton &&
+            okParroquia &&
+            okResponsable;
+    });
+
+    const filas = [];
+
+    operaciones.forEach((op) => {
+        let resultados = resultadosSistema.filter((r) => r.id_operacion === op.id_operacion);
+
+        if (categoria) {
+            resultados = resultados.filter((r) => r.categoria === categoria);
+        }
+
+        if (subcategoria) {
+            resultados = resultados.filter((r) => r.subcategoria === subcategoria);
+        }
+
+        if (categoria || subcategoria) {
+            if (resultados.length === 0) return;
+        }
+
+        if (resultados.length === 0) {
+            filas.push(crearFilaReporte(op, null));
+        } else {
+            resultados.forEach((resultado) => {
+                filas.push(crearFilaReporte(op, resultado));
+            });
+        }
+    });
+
+    return filas;
+}
+
+function crearFilaReporte(op, resultado) {
+    return {
+        fecha_operacion: op.fecha_operacion || "",
+        id_operacion: op.id_operacion || "",
+        tipo_operacion: op.tipo_operacion || "",
+        sub_tipo_operacion: op.sub_tipo_operacion || "",
+        canton: op.canton || "",
+        parroquia: op.parroquia || "",
+        sector: op.sector || "",
+        responsable: `${op.grado_responsable || ""} ${op.responsable || ""}`.trim(),
+        estado_operacion: op.estado_operacion || "",
+        hubo_resultados: op.hubo_resultados || "",
+        categoria: resultado ? resultado.categoria : "Sin resultados",
+        subcategoria: resultado ? resultado.subcategoria : "Sin resultados",
+        cantidad: resultado ? resultado.cantidad : "",
+        unidad_medida: resultado ? resultado.unidad_medida : "",
+        descripcion: resultado ? (resultado.descripcion || "") : (op.observacion_general || "")
+    };
+}
+
+function renderReportes() {
+    const tbody = document.getElementById("reportesTableBody");
+    if (!tbody) return;
+
+    const filas = obtenerFilasReporteFiltradas();
+
+    tbody.innerHTML = "";
+
+    if (filas.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="14" class="empty-table">Sin datos disponibles con los filtros seleccionados.</td>
+            </tr>
+        `;
+
+        actualizarResumenReportes([]);
+        return;
+    }
+
+    filas.forEach((fila) => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${formatearFecha(fila.fecha_operacion)}</td>
+            <td>${fila.id_operacion}</td>
+            <td>${fila.tipo_operacion}</td>
+            <td>${fila.sub_tipo_operacion}</td>
+            <td>${fila.canton}</td>
+            <td>${fila.parroquia || "No aplica"}</td>
+            <td>${fila.sector || "Sin sector"}</td>
+            <td>${fila.responsable}</td>
+            <td>${fila.estado_operacion}</td>
+            <td>${fila.categoria}</td>
+            <td>${fila.subcategoria}</td>
+            <td>${fila.cantidad}</td>
+            <td>${fila.unidad_medida}</td>
+            <td>${fila.descripcion}</td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+
+    actualizarResumenReportes(filas);
+}
+
+function actualizarResumenReportes(filas) {
+    const idsOperaciones = new Set(filas.map((f) => f.id_operacion).filter(Boolean));
+    const idsConResultados = new Set(
+        filas
+            .filter((f) => f.categoria !== "Sin resultados")
+            .map((f) => f.id_operacion)
+            .filter(Boolean)
+    );
+
+    setText("repTotalFilas", formatNumero(filas.length));
+    setText("repTotalOperaciones", formatNumero(idsOperaciones.size));
+    setText("repOperacionesResultados", formatNumero(idsConResultados.size));
+}
+
+function exportarReporteCSV() {
+    const filas = obtenerFilasReporteFiltradas();
+
+    if (filas.length === 0) {
+        mostrarMensajeReportes("No existen datos para exportar.", "error");
+        return;
+    }
+
+    const columnas = [
+        "Fecha operación",
+        "ID operación",
+        "Tipo operación",
+        "Subtipo operación",
+        "Cantón",
+        "Parroquia",
+        "Sector",
+        "Responsable",
+        "Estado operación",
+        "Hubo resultados",
+        "Categoría resultado",
+        "Subcategoría resultado",
+        "Cantidad",
+        "Unidad medida",
+        "Descripción"
+    ];
+
+    const filasCsv = filas.map((fila) => [
+        formatearFecha(fila.fecha_operacion),
+        fila.id_operacion,
+        fila.tipo_operacion,
+        fila.sub_tipo_operacion,
+        fila.canton,
+        fila.parroquia,
+        fila.sector,
+        fila.responsable,
+        fila.estado_operacion,
+        fila.hubo_resultados,
+        fila.categoria,
+        fila.subcategoria,
+        fila.cantidad,
+        fila.unidad_medida,
+        fila.descripcion
+    ]);
+
+    const csv = convertirACsv([columnas, ...filasCsv]);
+    descargarArchivo(csv, `reporte_operaciones_${obtenerFechaArchivo()}.csv`, "text/csv;charset=utf-8;");
+
+    mostrarMensajeReportes("Reporte CSV exportado correctamente.", "success");
+}
+
+function convertirACsv(filas) {
+    return filas.map((fila) => {
+        return fila.map((valor) => {
+            const texto = String(valor ?? "").replace(/"/g, '""');
+            return `"${texto}"`;
+        }).join(";");
+    }).join("\n");
+}
+
+function descargarArchivo(contenido, nombreArchivo, tipoMime) {
+    const blob = new Blob(["\uFEFF" + contenido], { type: tipoMime });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function exportarReportePDF() {
+    const filas = obtenerFilasReporteFiltradas();
+
+    if (filas.length === 0) {
+        mostrarMensajeReportes("No existen datos para exportar.", "error");
+        return;
+    }
+
+    const fechaGeneracion = new Date().toLocaleString("es-EC");
+    const usuarioGenera = usuarioActual
+        ? `${usuarioActual.grado} ${usuarioActual.nombres} ${usuarioActual.apellidos}`
+        : "Usuario no identificado";
+
+    const filasHtml = filas.map((fila) => `
+        <tr>
+            <td>${formatearFecha(fila.fecha_operacion)}</td>
+            <td>${escaparHtml(fila.id_operacion)}</td>
+            <td>${escaparHtml(fila.tipo_operacion)}</td>
+            <td>${escaparHtml(fila.sub_tipo_operacion)}</td>
+            <td>${escaparHtml(fila.canton)}</td>
+            <td>${escaparHtml(fila.parroquia || "No aplica")}</td>
+            <td>${escaparHtml(fila.sector || "Sin sector")}</td>
+            <td>${escaparHtml(fila.responsable)}</td>
+            <td>${escaparHtml(fila.estado_operacion)}</td>
+            <td>${escaparHtml(fila.categoria)}</td>
+            <td>${escaparHtml(fila.subcategoria)}</td>
+            <td>${escaparHtml(fila.cantidad)}</td>
+            <td>${escaparHtml(fila.unidad_medida)}</td>
+            <td>${escaparHtml(fila.descripcion)}</td>
+        </tr>
+    `).join("");
+
+    const ventana = window.open("", "_blank");
+
+    if (!ventana) {
+        mostrarMensajeReportes("El navegador bloqueó la ventana emergente. Permita pop-ups para exportar PDF.", "error");
+        return;
+    }
+
+    ventana.document.write(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <title>Reporte Operacional GCM 12</title>
+
+            <style>
+                * {
+                    box-sizing: border-box;
+                }
+
+                body {
+                    font-family: Arial, Helvetica, sans-serif;
+                    margin: 24px;
+                    color: #111827;
+                }
+
+                .header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    border-bottom: 3px solid #361469;
+                    padding-bottom: 14px;
+                    margin-bottom: 18px;
+                }
+
+                .header h1 {
+                    margin: 0;
+                    color: #361469;
+                    font-size: 22px;
+                }
+
+                .header p {
+                    margin: 4px 0 0;
+                    color: #4b5563;
+                    font-size: 12px;
+                }
+
+                .badge {
+                    border: 1px solid #C9A227;
+                    color: #361469;
+                    padding: 8px 12px;
+                    border-radius: 999px;
+                    font-weight: 700;
+                    font-size: 12px;
+                }
+
+                .meta {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 10px;
+                    margin-bottom: 16px;
+                }
+
+                .meta div {
+                    background: #F4F3F7;
+                    border: 1px solid #E6E3EA;
+                    padding: 10px;
+                    border-radius: 8px;
+                    font-size: 12px;
+                }
+
+                .meta strong {
+                    display: block;
+                    color: #361469;
+                    margin-bottom: 4px;
+                }
+
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 10px;
+                }
+
+                th {
+                    background: #361469;
+                    color: #ffffff;
+                    padding: 7px;
+                    border: 1px solid #24113F;
+                    text-align: left;
+                }
+
+                td {
+                    padding: 6px;
+                    border: 1px solid #d1d5db;
+                    vertical-align: top;
+                }
+
+                tr:nth-child(even) td {
+                    background: #F9FAFB;
+                }
+
+                .footer {
+                    margin-top: 18px;
+                    font-size: 11px;
+                    color: #6b7280;
+                    border-top: 1px solid #E6E3EA;
+                    padding-top: 10px;
+                }
+
+                @media print {
+                    body {
+                        margin: 10mm;
+                    }
+
+                    .no-print {
+                        display: none;
+                    }
+
+                    table {
+                        page-break-inside: auto;
+                    }
+
+                    tr {
+                        page-break-inside: avoid;
+                        page-break-after: auto;
+                    }
+                }
+            </style>
+        </head>
+
+        <body>
+            <div class="header">
+                <div>
+                    <h1>Reporte Operacional GCM 12</h1>
+                    <p>Grupo de Caballería Mecanizado N.º 12 “Tnte. Hugo Ortiz”</p>
+                </div>
+
+                <div class="badge">
+                    SIS-OPERACIONES
+                </div>
+            </div>
+
+            <div class="meta">
+                <div>
+                    <strong>Generado por</strong>
+                    ${escaparHtml(usuarioGenera)}
+                </div>
+
+                <div>
+                    <strong>Fecha de generación</strong>
+                    ${escaparHtml(fechaGeneracion)}
+                </div>
+
+                <div>
+                    <strong>Registros exportados</strong>
+                    ${formatNumero(filas.length)}
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>ID</th>
+                        <th>Tipo</th>
+                        <th>Subtipo</th>
+                        <th>Cantón</th>
+                        <th>Parroquia</th>
+                        <th>Sector</th>
+                        <th>Responsable</th>
+                        <th>Estado</th>
+                        <th>Categoría</th>
+                        <th>Subcategoría</th>
+                        <th>Cant.</th>
+                        <th>Unidad</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    ${filasHtml}
+                </tbody>
+            </table>
+
+            <div class="footer">
+                Documento generado desde SIS-OPERACIONES GCM 12. La información corresponde a los filtros aplicados en el módulo de reportes.
+            </div>
+
+            <script>
+                window.onload = function() {
+                    window.print();
+                };
+            </script>
+        </body>
+        </html>
+    `);
+
+    ventana.document.close();
+
+    mostrarMensajeReportes("Vista PDF generada. Use Guardar como PDF en la ventana de impresión.", "success");
+}
+
+function escaparHtml(valor) {
+    return String(valor ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function obtenerFechaArchivo() {
+    const fecha = new Date();
+    const yyyy = fecha.getFullYear();
+    const mm = String(fecha.getMonth() + 1).padStart(2, "0");
+    const dd = String(fecha.getDate()).padStart(2, "0");
+    const hh = String(fecha.getHours()).padStart(2, "0");
+    const mi = String(fecha.getMinutes()).padStart(2, "0");
+
+    return `${yyyy}${mm}${dd}_${hh}${mi}`;
+}
+
+function mostrarMensajeReportes(mensaje, tipo) {
+    const message = document.getElementById("reportesMessage");
+
+    if (!message) return;
+
+    message.textContent = mensaje;
+    message.className = `form-message ${tipo}`;
+
+    setTimeout(() => {
+        message.textContent = "";
+        message.className = "form-message";
+    }, 4500);
 }

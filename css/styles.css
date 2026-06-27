@@ -1512,3 +1512,75 @@ button,
     overflow-x: auto;
   }
 }
+
+/* ============================= */
+/* REPORTES */
+/* ============================= */
+
+.report-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.report-filters {
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+}
+
+.report-filter-buttons .btn {
+  width: 100%;
+}
+
+.report-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.report-summary div {
+  background: #FAF9FC;
+  border: 1px solid #E8E3EF;
+  border-radius: 14px;
+  padding: 14px;
+  border-left: 5px solid var(--gold);
+}
+
+.report-summary span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.report-summary strong {
+  color: var(--primary-dark);
+  font-size: 26px;
+}
+
+.report-table {
+  min-width: 1500px;
+}
+
+.report-table th,
+.report-table td {
+  vertical-align: top;
+}
+
+@media (max-width: 768px) {
+  .report-actions {
+    width: 100%;
+  }
+
+  .report-actions .btn {
+    width: 100%;
+  }
+
+  .report-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .report-summary {
+    grid-template-columns: 1fr;
+  }
+}
