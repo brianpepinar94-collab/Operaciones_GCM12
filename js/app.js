@@ -3129,9 +3129,13 @@ function configurarReportes() {
         });
     }
 
-    const limpiarBtn = document.getElementById("repLimpiarFiltros");
+    const limpiarBtn = document.getElementById("repLimpiarFiltrosBtn");
+
     if (limpiarBtn) {
-        limpiarBtn.addEventListener("click", limpiarFiltrosReportes);
+        limpiarBtn.addEventListener("click", (event) => {
+            event.preventDefault();
+            limpiarFiltrosReportes();
+        });
     }
 
     const exportCsvBtn = document.getElementById("exportCsvBtn");
@@ -3246,27 +3250,49 @@ function cargarSubcategoriasReportes() {
         repSubcategoria.appendChild(option);
     });
 }
-
 function limpiarFiltrosReportes() {
-    document.getElementById("repFechaDesde").value = "";
-    document.getElementById("repFechaHasta").value = "";
-    document.getElementById("repEstado").value = usuarioActual && usuarioActual.rol === "ADMIN" ? "" : "VALIDADO";
-    document.getElementById("repHuboResultados").value = "";
-    document.getElementById("repTipo").value = "";
-    document.getElementById("repCanton").value = "";
-    document.getElementById("repCategoria").value = "";
-    document.getElementById("repResponsable").value = "";
+    const fechaDesde = document.getElementById("repFechaDesde");
+    const fechaHasta = document.getElementById("repFechaHasta");
+    const estado = document.getElementById("repEstado");
+    const tipo = document.getElementById("repTipo");
+    const subtipo = document.getElementById("repSubtipo");
+    const canton = document.getElementById("repCanton");
+    const parroquia = document.getElementById("repParroquia");
+    const categoria = document.getElementById("repCategoria");
+    const subcategoria = document.getElementById("repSubcategoria");
+    const buscar = document.getElementById("repBuscar");
 
-    cargarSubtiposReportes();
-    cargarParroquiasReportes();
-    cargarSubcategoriasReportes();
+    if (fechaDesde) fechaDesde.value = "";
+    if (fechaHasta) fechaHasta.value = "";
 
-    document.getElementById("repSubtipo").value = "";
-    document.getElementById("repParroquia").value = "";
-    document.getElementById("repSubcategoria").value = "";
+    // Reportes por defecto deben trabajar con operaciones validadas.
+    if (estado) estado.value = "VALIDADO";
+
+    if (tipo) tipo.value = "";
+    if (canton) canton.value = "";
+    if (categoria) categoria.value = "";
+    if (buscar) buscar.value = "";
+
+    // Recargar listas dependientes si existen estas funciones.
+    if (typeof cargarSubtiposReportes === "function") {
+        cargarSubtiposReportes();
+    }
+
+    if (typeof cargarParroquiasReportes === "function") {
+        cargarParroquiasReportes();
+    }
+
+    if (typeof cargarSubcategoriasReportes === "function") {
+        cargarSubcategoriasReportes();
+    }
+
+    if (subtipo) subtipo.value = "";
+    if (parroquia) parroquia.value = "";
+    if (subcategoria) subcategoria.value = "";
 
     renderReportes();
 }
+
 function obtenerColumnasReporte() {
     if (reporteDetallado) {
         return [

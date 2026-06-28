@@ -1525,6 +1525,7 @@ button,
 
 .report-filters {
   grid-template-columns: repeat(4, minmax(180px, 1fr));
+  margin-top: 18px;
 }
 
 .report-filter-buttons .btn {
