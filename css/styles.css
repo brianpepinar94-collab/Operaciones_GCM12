@@ -1807,3 +1807,182 @@ button,
     height: 230px;
   }
 }
+
+/* ============================= */
+/* AJUSTES CUENTA / USUARIOS */
+/* ============================= */
+
+.user-box {
+  position: relative;
+  min-width: 390px;
+  justify-content: space-between;
+}
+
+.user-info {
+  min-width: 0;
+}
+
+.account-menu-btn {
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.10);
+  color: var(--white);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 800;
+  cursor: pointer;
+  min-height: 42px;
+}
+
+.account-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.account-dropdown {
+  position: absolute;
+  right: 10px;
+  top: calc(100% + 8px);
+  width: 220px;
+  background: var(--white);
+  border: 1px solid #E6E3EA;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  padding: 8px;
+  z-index: 200;
+}
+
+.account-dropdown button {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--primary-dark);
+  text-align: left;
+  padding: 11px 12px;
+  border-radius: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  min-height: 40px;
+}
+
+.account-dropdown button:hover {
+  background: #F2EFF7;
+}
+
+#usuariosPage .panel-card,
+#usuariosPage .user-form-panel {
+  width: 100%;
+  max-width: none;
+}
+
+#usuariosPage .user-form-panel {
+  margin-top: 22px;
+}
+
+#usuariosPage .form-grid {
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+}
+
+#usuariosFormMessage {
+  margin-top: 12px;
+}
+
+/* ============================= */
+/* MODAL CAMBIAR CONTRASEÑA */
+/* ============================= */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 5, 0.62);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 9999;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--white);
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.35);
+  position: relative;
+  border-top: 6px solid var(--gold);
+}
+
+.modal-close {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: #F2EFF7;
+  color: var(--primary-dark);
+  font-size: 24px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  background: #E6E3EA;
+}
+
+.modal-help {
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.modal-card .form-actions {
+  justify-content: flex-end;
+}
+
+.modal-card .btn-primary {
+  width: auto;
+}
+
+@media (max-width: 768px) {
+  .user-box {
+    min-width: 0;
+    grid-template-columns: 1fr auto;
+  }
+
+  .account-dropdown {
+    right: 0;
+    width: 100%;
+  }
+
+  #usuariosPage .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-card .form-actions {
+    flex-direction: column;
+  }
+
+  .modal-card .btn,
+  .modal-card .btn-primary {
+    width: 100%;
+  }
+}
+
+.reset-user-box {
+  background: #FAF9FC;
+  border: 1px solid #E8E3EF;
+  border-left: 5px solid var(--gold);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  color: var(--primary-dark);
+  font-weight: 800;
+}
+
+.reset-user-box span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}

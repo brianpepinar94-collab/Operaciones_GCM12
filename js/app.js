@@ -426,7 +426,12 @@ document.addEventListener("DOMContentLoaded", () => {
     configurarReportes();
     configurarAuditoria();
 
+    configurarMenuCuenta();
+    configurarModalPassword();
+    configurarModalResetPassword();
+
     migrarRolesAntiguos();
+    migrarCamposPasswordUsuarios();
     aplicarIconosDashboard();
 
     renderUsuariosAdmin();
@@ -527,20 +532,25 @@ loginForm.addEventListener("submit", (event) => {
         return;
     }
 
-    usuarioActual = encontrado;
+    usuarioActual = { ...encontrado };
+    localStorage.setItem("gcm12_usuario_actual", JSON.stringify(usuarioActual));
+
     iniciarSistema();
+
     registrarAuditoria(
         "LOGIN",
         "LOGIN",
         usuarioActual.id_usuario,
         "Inicio de sesión exitoso"
     );
+
+    mostrarAvisoPasswordReseteada();
 });
 
 logoutBtn.addEventListener("click", () => {
     usuarioActual = null;
     resultadosTemporales = [];
-
+    localStorage.removeItem("gcm12_usuario_actual");
     loginForm.reset();
     loginError.textContent = "";
 
@@ -1077,6 +1087,13 @@ function configurarGestionUsuarios() {
     const filtroRolUsuario = document.getElementById("filtroRolUsuario");
     const filtroEstadoUsuario = document.getElementById("filtroEstadoUsuario");
     const usuariosTableBody = document.getElementById("usuariosTableBody");
+    const userCedulaInput = document.getElementById("userCedula");
+
+    if (userCedulaInput) {
+        userCedulaInput.addEventListener("input", () => {
+            userCedulaInput.value = limpiarSoloNumeros(userCedulaInput.value, 10);
+        });
+    }
 
     if (!nuevoUsuarioBtn || !usuarioAdminForm) return;
 
@@ -1163,6 +1180,9 @@ function renderUsuariosAdmin() {
                     <button type="button" class="btn btn-outline-dark btn-small" data-action="editar" data-id="${u.id_usuario}">
                         Editar
                     </button>
+                    <button type="button" class="btn btn-warning btn-small" onclick="resetearPasswordUsuario('${u.id_usuario}')">
+                        Resetear clave
+                    </button>
                     <button type="button" class="btn btn-warning btn-small" data-action="estado" data-id="${u.id_usuario}">
                         ${u.estado === "ACTIVO" ? "Inactivar" : "Activar"}
                     </button>
@@ -1241,6 +1261,11 @@ function guardarUsuarioDesdeAdmin(event) {
         return;
     }
 
+    if (!validarCedula10Digitos(cedula)) {
+        mostrarMensajeUsuarios("La cédula debe contener exactamente 10 dígitos numéricos.", "error");
+        return;
+    }
+
     const cedulaDuplicada = usuariosSistema.some((u) => {
         return u.usuario === cedula && u.id_usuario !== idEditando;
     });
@@ -1251,8 +1276,17 @@ function guardarUsuarioDesdeAdmin(event) {
     }
 
     if (!idEditando && !password) {
-        mostrarMensajeUsuarios("Para crear un usuario debe ingresar una contraseña temporal.", "error");
+        mostrarMensajeUsuarios("Para crear un usuario debe ingresar una contraseña.", "error");
         return;
+    }
+
+    if (password) {
+        const validacionPassword = validarPasswordSegura(password);
+
+        if (!validacionPassword.valido) {
+            mostrarMensajeUsuarios(validacionPassword.mensaje, "error");
+            return;
+        }
     }
 
     if (idEditando) {
@@ -1263,8 +1297,10 @@ function guardarUsuarioDesdeAdmin(event) {
             return;
         }
 
+        const usuarioAnterior = usuariosSistema[index];
+
         usuariosSistema[index] = {
-            ...usuariosSistema[index],
+            ...usuarioAnterior,
             nombres,
             apellidos,
             grado,
@@ -1272,13 +1308,19 @@ function guardarUsuarioDesdeAdmin(event) {
             unidad,
             correo,
             usuario: cedula,
-            password: password || usuariosSistema[index].password,
+            password: password || usuarioAnterior.password,
             rol,
             estado,
-            observacion
+            observacion,
+            debe_cambiar_password: "NO",
+            fecha_cambio_password: usuarioAnterior.fecha_cambio_password || "",
+            ultimo_reset_password: usuarioAnterior.ultimo_reset_password || "",
+            reset_password_por: usuarioAnterior.reset_password_por || "",
+            password_reseteada: password ? "SI" : (usuarioAnterior.password_reseteada || "NO")
         };
 
         mostrarMensajeUsuarios("Usuario actualizado correctamente.", "success");
+
         registrarAuditoria(
             "EDITAR",
             "USUARIOS",
@@ -1300,11 +1342,18 @@ function guardarUsuarioDesdeAdmin(event) {
             estado,
             fecha_creacion: new Date().toISOString(),
             ultimo_acceso: "",
-            observacion
+            observacion,
+            debe_cambiar_password: "NO",
+            fecha_cambio_password: "",
+            ultimo_reset_password: "",
+            reset_password_por: "",
+            password_reseteada: "NO"
         };
 
         usuariosSistema.push(nuevoUsuario);
+
         mostrarMensajeUsuarios("Usuario creado correctamente.", "success");
+
         registrarAuditoria(
             "CREAR",
             "USUARIOS",
@@ -1312,8 +1361,9 @@ function guardarUsuarioDesdeAdmin(event) {
             `Creó el usuario ${nombres} ${apellidos} con rol ${rol}`
         );
     }
-    renderInicioPorRol();
+
     guardarUsuariosSistema();
+    renderInicioPorRol();
     renderUsuariosAdmin();
     cerrarFormularioUsuario();
 }
@@ -1391,13 +1441,42 @@ function generarIdUsuario() {
     return `USR-${String(numero).padStart(3, "0")}`;
 }
 
-function mostrarMensajeUsuarios(mensaje, tipo) {
-    const message = document.getElementById("usuariosMessage");
+function mostrarMensajeUsuarios(mensaje, tipo, destino = "auto") {
+    const mensajeTabla = document.getElementById("usuariosMessage");
+    const mensajeFormulario = document.getElementById("usuariosFormMessage");
+    const formPanel = document.getElementById("usuarioFormPanel");
+
+    const formVisible = formPanel && !formPanel.classList.contains("hidden");
+
+    if (mensajeTabla) {
+        mensajeTabla.textContent = "";
+        mensajeTabla.className = "form-message";
+    }
+
+    if (mensajeFormulario) {
+        mensajeFormulario.textContent = "";
+        mensajeFormulario.className = "form-message";
+    }
+
+    const usarFormulario =
+        destino === "form" ||
+        (destino === "auto" && formVisible && tipo === "error");
+
+    const message = usarFormulario && mensajeFormulario
+        ? mensajeFormulario
+        : mensajeTabla;
 
     if (!message) return;
 
     message.textContent = mensaje;
     message.className = `form-message ${tipo}`;
+
+    if (usarFormulario) {
+        message.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
+    }
 
     setTimeout(() => {
         message.textContent = "";
@@ -4568,4 +4647,429 @@ function migrarRolesAntiguos() {
         guardarUsuariosSistema();
         localStorage.setItem("gcm12_usuario_actual", JSON.stringify(usuarioActual));
     }
+}
+
+function migrarCamposPasswordUsuarios() {
+    let huboCambios = false;
+
+    usuariosSistema = usuariosSistema.map((u) => {
+        const actualizado = { ...u };
+
+        if (actualizado.debe_cambiar_password === undefined) {
+            actualizado.debe_cambiar_password = "NO";
+            huboCambios = true;
+        }
+
+        if (actualizado.fecha_cambio_password === undefined) {
+            actualizado.fecha_cambio_password = "";
+            huboCambios = true;
+        }
+
+        if (actualizado.ultimo_reset_password === undefined) {
+            actualizado.ultimo_reset_password = "";
+            huboCambios = true;
+        }
+
+        if (actualizado.reset_password_por === undefined) {
+            actualizado.reset_password_por = "";
+            huboCambios = true;
+        }
+
+        if (actualizado.password_reseteada === undefined) {
+            actualizado.password_reseteada = "NO";
+            huboCambios = true;
+        }
+
+        return actualizado;
+    });
+
+    if (huboCambios) {
+        guardarUsuariosSistema();
+    }
+}
+
+function limpiarSoloNumeros(valor, maximo = 10) {
+    return String(valor || "")
+        .replace(/\D/g, "")
+        .slice(0, maximo);
+}
+
+function validarCedula10Digitos(cedula) {
+    return /^\d{10}$/.test(String(cedula || "").trim());
+}
+
+function validarPasswordSegura(password) {
+    const valor = String(password || "").trim();
+
+    if (valor.length < 6) {
+        return {
+            valido: false,
+            mensaje: "La contraseña debe tener al menos 6 caracteres."
+        };
+    }
+
+    return {
+        valido: true,
+        mensaje: ""
+    };
+}
+
+function cambiarPasswordUsuarioActual() {
+    abrirModalCambiarPassword();
+}
+
+function resetearPasswordUsuario(idUsuario) {
+    abrirModalResetPassword(idUsuario);
+}
+
+function mostrarAvisoPasswordReseteada() {
+    if (!usuarioActual || usuarioActual.password_reseteada !== "SI") return;
+
+    setTimeout(() => {
+        alert("Su contraseña fue reseteada por el administrador. Puede cambiarla desde el botón 'Cambiar contraseña' si lo desea.");
+
+        recargarDatosDesdeStorage();
+
+        const usuario = usuariosSistema.find((u) => u.id_usuario === usuarioActual.id_usuario);
+
+        if (usuario) {
+            usuario.password_reseteada = "NO";
+            usuarioActual.password_reseteada = "NO";
+
+            guardarUsuariosSistema();
+            localStorage.setItem("gcm12_usuario_actual", JSON.stringify(usuarioActual));
+        }
+    }, 300);
+}
+
+function configurarMenuCuenta() {
+    const accountMenuBtn = document.getElementById("accountMenuBtn");
+    const accountDropdown = document.getElementById("accountDropdown");
+    const userBox = document.querySelector(".user-box");
+
+    if (!accountMenuBtn || !accountDropdown) return;
+
+    accountMenuBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        accountDropdown.classList.toggle("hidden");
+    });
+
+    document.addEventListener("click", (event) => {
+        if (!userBox) return;
+
+        if (!userBox.contains(event.target)) {
+            cerrarMenuCuenta();
+        }
+    });
+}
+
+function cerrarMenuCuenta() {
+    const accountDropdown = document.getElementById("accountDropdown");
+
+    if (accountDropdown) {
+        accountDropdown.classList.add("hidden");
+    }
+}
+
+function configurarModalPassword() {
+    const cambiarPasswordBtn = document.getElementById("cambiarPasswordBtn");
+    const passwordForm = document.getElementById("passwordForm");
+    const cerrarBtn = document.getElementById("passwordModalClose");
+    const cancelarBtn = document.getElementById("passwordCancelarBtn");
+
+    if (cambiarPasswordBtn) {
+        cambiarPasswordBtn.addEventListener("click", () => {
+            cerrarMenuCuenta();
+            abrirModalCambiarPassword();
+        });
+    }
+
+    if (passwordForm) {
+        passwordForm.addEventListener("submit", procesarCambioPasswordDesdeModal);
+    }
+
+    if (cerrarBtn) {
+        cerrarBtn.addEventListener("click", cerrarModalPassword);
+    }
+
+    if (cancelarBtn) {
+        cancelarBtn.addEventListener("click", cerrarModalPassword);
+    }
+}
+
+function abrirModalCambiarPassword() {
+    const modal = document.getElementById("passwordModal");
+    const form = document.getElementById("passwordForm");
+    const message = document.getElementById("passwordMessage");
+
+    if (!modal || !form) return;
+
+    form.reset();
+
+    if (message) {
+        message.textContent = "";
+        message.className = "form-message";
+    }
+
+    modal.classList.remove("hidden");
+
+    setTimeout(() => {
+        document.getElementById("passwordActual")?.focus();
+    }, 100);
+}
+
+function cerrarModalPassword() {
+    const modal = document.getElementById("passwordModal");
+    const form = document.getElementById("passwordForm");
+    const message = document.getElementById("passwordMessage");
+
+    if (form) form.reset();
+
+    if (message) {
+        message.textContent = "";
+        message.className = "form-message";
+    }
+
+    if (modal) {
+        modal.classList.add("hidden");
+    }
+}
+
+function mostrarMensajePassword(mensaje, tipo) {
+    const message = document.getElementById("passwordMessage");
+
+    if (!message) return;
+
+    message.textContent = mensaje;
+    message.className = `form-message ${tipo}`;
+}
+
+function procesarCambioPasswordDesdeModal(event) {
+    event.preventDefault();
+
+    if (!usuarioActual) {
+        mostrarMensajePassword("No existe una sesión activa.", "error");
+        return;
+    }
+
+    recargarDatosDesdeStorage();
+
+    const usuario = usuariosSistema.find((u) => u.id_usuario === usuarioActual.id_usuario);
+
+    if (!usuario) {
+        mostrarMensajePassword("Usuario no encontrado.", "error");
+        return;
+    }
+
+    const passwordActual = document.getElementById("passwordActual").value.trim();
+    const nuevaPassword = document.getElementById("passwordNueva").value.trim();
+    const confirmarPassword = document.getElementById("passwordConfirmar").value.trim();
+
+    if (!passwordActual || !nuevaPassword || !confirmarPassword) {
+        mostrarMensajePassword("Complete todos los campos.", "error");
+        return;
+    }
+
+    if (usuario.password !== passwordActual) {
+        mostrarMensajePassword("La contraseña actual no es correcta.", "error");
+        return;
+    }
+
+    const validacion = validarPasswordSegura(nuevaPassword);
+
+    if (!validacion.valido) {
+        mostrarMensajePassword(validacion.mensaje, "error");
+        return;
+    }
+
+    if (nuevaPassword === passwordActual) {
+        mostrarMensajePassword("La nueva contraseña no puede ser igual a la contraseña actual.", "error");
+        return;
+    }
+
+    if (nuevaPassword !== confirmarPassword) {
+        mostrarMensajePassword("Las contraseñas no coinciden.", "error");
+        return;
+    }
+
+    usuario.password = nuevaPassword;
+    usuario.debe_cambiar_password = "NO";
+    usuario.password_reseteada = "NO";
+    usuario.fecha_cambio_password = new Date().toISOString();
+
+    usuarioActual = { ...usuario };
+
+    guardarUsuariosSistema();
+    localStorage.setItem("gcm12_usuario_actual", JSON.stringify(usuarioActual));
+
+    registrarAuditoria(
+        "CAMBIAR_PASSWORD",
+        "USUARIOS",
+        usuario.id_usuario,
+        `El usuario ${usuario.usuario} cambió su contraseña`
+    );
+
+    mostrarMensajePassword("Contraseña actualizada correctamente.", "success");
+
+    setTimeout(() => {
+        cerrarModalPassword();
+    }, 1200);
+}
+
+function configurarModalResetPassword() {
+    const resetForm = document.getElementById("resetPasswordForm");
+    const cerrarBtn = document.getElementById("resetPasswordModalClose");
+    const cancelarBtn = document.getElementById("resetPasswordCancelarBtn");
+
+    if (resetForm) {
+        resetForm.addEventListener("submit", procesarResetPasswordDesdeModal);
+    }
+
+    if (cerrarBtn) {
+        cerrarBtn.addEventListener("click", cerrarModalResetPassword);
+    }
+
+    if (cancelarBtn) {
+        cancelarBtn.addEventListener("click", cerrarModalResetPassword);
+    }
+}
+
+function abrirModalResetPassword(idUsuario) {
+    if (!usuarioActual || usuarioActual.rol !== "ADMIN") {
+        alert("No tiene permisos para resetear contraseñas.");
+        return;
+    }
+
+    recargarDatosDesdeStorage();
+
+    const usuario = usuariosSistema.find((u) => u.id_usuario === idUsuario);
+
+    if (!usuario) {
+        alert("Usuario no encontrado.");
+        return;
+    }
+
+    if (usuarioActual.id_usuario === usuario.id_usuario) {
+        alert("No puede resetear la contraseña del usuario con sesión activa.");
+        return;
+    }
+
+    const modal = document.getElementById("resetPasswordModal");
+    const form = document.getElementById("resetPasswordForm");
+    const inputId = document.getElementById("resetPasswordUsuarioId");
+    const userInfo = document.getElementById("resetPasswordUserInfo");
+    const message = document.getElementById("resetPasswordMessage");
+
+    if (!modal || !form || !inputId || !userInfo) return;
+
+    form.reset();
+    inputId.value = usuario.id_usuario;
+
+    userInfo.innerHTML = `
+        ${usuario.grado || ""} ${usuario.nombres || ""} ${usuario.apellidos || ""}
+        <span>Cédula: ${usuario.usuario || ""} | Rol: ${usuario.rol || ""}</span>
+    `;
+
+    if (message) {
+        message.textContent = "";
+        message.className = "form-message";
+    }
+
+    modal.classList.remove("hidden");
+
+    setTimeout(() => {
+        document.getElementById("resetPasswordNueva")?.focus();
+    }, 100);
+}
+
+function cerrarModalResetPassword() {
+    const modal = document.getElementById("resetPasswordModal");
+    const form = document.getElementById("resetPasswordForm");
+    const message = document.getElementById("resetPasswordMessage");
+
+    if (form) form.reset();
+
+    if (message) {
+        message.textContent = "";
+        message.className = "form-message";
+    }
+
+    if (modal) {
+        modal.classList.add("hidden");
+    }
+}
+
+function mostrarMensajeResetPassword(mensaje, tipo) {
+    const message = document.getElementById("resetPasswordMessage");
+
+    if (!message) return;
+
+    message.textContent = mensaje;
+    message.className = `form-message ${tipo}`;
+}
+
+function procesarResetPasswordDesdeModal(event) {
+    event.preventDefault();
+
+    if (!usuarioActual || usuarioActual.rol !== "ADMIN") {
+        mostrarMensajeResetPassword("No tiene permisos para resetear contraseñas.", "error");
+        return;
+    }
+
+    recargarDatosDesdeStorage();
+
+    const idUsuario = document.getElementById("resetPasswordUsuarioId").value;
+    const nuevaPassword = document.getElementById("resetPasswordNueva").value.trim();
+    const confirmarPassword = document.getElementById("resetPasswordConfirmar").value.trim();
+
+    const usuario = usuariosSistema.find((u) => u.id_usuario === idUsuario);
+
+    if (!usuario) {
+        mostrarMensajeResetPassword("Usuario no encontrado.", "error");
+        return;
+    }
+
+    if (!nuevaPassword || !confirmarPassword) {
+        mostrarMensajeResetPassword("Complete todos los campos.", "error");
+        return;
+    }
+
+    const validacion = validarPasswordSegura(nuevaPassword);
+
+    if (!validacion.valido) {
+        mostrarMensajeResetPassword(validacion.mensaje, "error");
+        return;
+    }
+
+    if (nuevaPassword !== confirmarPassword) {
+        mostrarMensajeResetPassword("Las contraseñas no coinciden.", "error");
+        return;
+    }
+
+    usuario.password = nuevaPassword;
+
+    // Cambio opcional: el usuario podrá cambiarla, pero no será obligatorio.
+    usuario.debe_cambiar_password = "NO";
+    usuario.password_reseteada = "SI";
+    usuario.ultimo_reset_password = new Date().toISOString();
+    usuario.reset_password_por = `${usuarioActual.grado} ${usuarioActual.nombres} ${usuarioActual.apellidos}`;
+    usuario.fecha_cambio_password = "";
+
+    guardarUsuariosSistema();
+
+    registrarAuditoria(
+        "RESET_PASSWORD",
+        "USUARIOS",
+        usuario.id_usuario,
+        `Se reseteó la contraseña del usuario ${usuario.usuario}`
+    );
+
+    renderUsuariosAdmin();
+    renderAuditoria();
+
+    mostrarMensajeResetPassword("Contraseña reseteada correctamente.", "success");
+
+    setTimeout(() => {
+        cerrarModalResetPassword();
+    }, 1200);
 }

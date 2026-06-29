@@ -67,11 +67,24 @@
                 </div>
 
                 <div class="user-box">
-                    <div>
+                    <div class="user-info">
                         <strong id="userName">Usuario</strong>
                         <span id="userRole">Rol</span>
                     </div>
-                    <button id="logoutBtn" class="btn btn-outline">Salir</button>
+
+                    <button type="button" id="accountMenuBtn" class="account-menu-btn">
+                        Cuenta ▾
+                    </button>
+
+                    <div id="accountDropdown" class="account-dropdown hidden">
+                        <button type="button" id="cambiarPasswordBtn">
+                            Cambiar contraseña
+                        </button>
+
+                        <button type="button" id="logoutBtn">
+                            Salir
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -455,7 +468,7 @@
                             </table>
                         </div>
 
-                        <p id="usuariosMessage" class="form-message"></p>
+
                     </div>
 
                     <div id="usuarioFormPanel" class="form-card user-form-panel hidden">
@@ -513,7 +526,8 @@
 
                                 <div class="field">
                                     <label>Usuario / Cédula</label>
-                                    <input type="text" id="userCedula" inputmode="numeric" required />
+                                    <input type="text" id="userCedula" maxlength="10" inputmode="numeric"
+                                        placeholder="Ingrese 10 dígitos" required />
                                 </div>
 
                                 <div class="field">
@@ -556,6 +570,7 @@
                                     Guardar usuario
                                 </button>
                             </div>
+                            <p id="usuariosMessage" class="form-message"></p>
                         </form>
                     </div>
                 </section>
@@ -1423,6 +1438,98 @@
     </main>
     </div>
     </section>
+
+    <div id="passwordModal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <button type="button" id="passwordModalClose" class="modal-close">
+                ×
+            </button>
+
+            <div class="section-title">
+                <h3>Cambiar contraseña</h3>
+            </div>
+
+            <p class="modal-help">
+                Ingrese su contraseña actual y registre una nueva contraseña.
+            </p>
+
+            <form id="passwordForm">
+                <div class="field">
+                    <label>Contraseña actual</label>
+                    <input type="password" id="passwordActual" required />
+                </div>
+
+                <div class="field">
+                    <label>Nueva contraseña</label>
+                    <input type="password" id="passwordNueva" minlength="6" required />
+                </div>
+
+                <div class="field">
+                    <label>Confirmar nueva contraseña</label>
+                    <input type="password" id="passwordConfirmar" minlength="6" required />
+                </div>
+
+                <p id="passwordMessage" class="form-message"></p>
+
+                <div class="form-actions">
+                    <button type="button" id="passwordCancelarBtn" class="btn btn-outline-dark">
+                        Cancelar
+                    </button>
+
+                    <button type="submit" class="btn btn-primary btn-auto">
+                        Guardar contraseña
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="resetPasswordModal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <button type="button" id="resetPasswordModalClose" class="modal-close">
+                ×
+            </button>
+
+            <div class="section-title">
+                <h3>Resetear contraseña</h3>
+            </div>
+
+            <p class="modal-help">
+                El administrador asignará una nueva contraseña al usuario seleccionado.
+                El usuario podrá cambiarla desde su sesión si lo desea.
+            </p>
+
+            <div id="resetPasswordUserInfo" class="reset-user-box">
+                Usuario seleccionado
+            </div>
+
+            <form id="resetPasswordForm">
+                <input type="hidden" id="resetPasswordUsuarioId" />
+
+                <div class="field">
+                    <label>Nueva contraseña</label>
+                    <input type="password" id="resetPasswordNueva" minlength="6" required />
+                </div>
+
+                <div class="field">
+                    <label>Confirmar nueva contraseña</label>
+                    <input type="password" id="resetPasswordConfirmar" minlength="6" required />
+                </div>
+
+                <p id="resetPasswordMessage" class="form-message"></p>
+
+                <div class="form-actions">
+                    <button type="button" id="resetPasswordCancelarBtn" class="btn btn-outline-dark">
+                        Cancelar
+                    </button>
+
+                    <button type="submit" class="btn btn-primary btn-auto">
+                        Resetear contraseña
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script src="https://code.iconify.design/iconify-icon/3.0.2/iconify-icon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
