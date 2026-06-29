@@ -378,6 +378,9 @@ const menuPorRol = {
 
 let usuarioActual = null;
 let resultadosTemporales = [];
+let mapaOperacion = null;
+let marcadorOperacion = null;
+let coordenadasSeleccionadasMapa = null;
 
 // Elementos principales
 const loginView = document.getElementById("loginView");
@@ -426,6 +429,8 @@ document.addEventListener("DOMContentLoaded", () => {
     configurarReportes();
     configurarAuditoria();
 
+    configurarMapaOperacion();
+
     configurarMenuCuenta();
     configurarModalPassword();
     configurarModalResetPassword();
@@ -468,6 +473,11 @@ ubicacionBtn.addEventListener("click", () => {
             const accuracy = Math.round(position.coords.accuracy || 0);
 
             coordenadasInput.value = `${lat}, ${lng}`;
+            const sectorInput = document.getElementById("sector");
+
+            if (sectorInput && !sectorInput.value.trim()) {
+                sectorInput.value = "Ubicación GPS actual";
+            }
 
             geoStatus.textContent = `Ubicación capturada correctamente. Precisión aproximada: ${accuracy} m.`;
             geoStatus.style.color = "#2F6B3F";
@@ -5072,4 +5082,218 @@ function procesarResetPasswordDesdeModal(event) {
     setTimeout(() => {
         cerrarModalResetPassword();
     }, 1200);
+}
+
+function configurarMapaOperacion() {
+    const mapaBtn = document.getElementById("mapaBtn");
+    const cerrarBtn = document.getElementById("mapaModalClose");
+    const cancelarBtn = document.getElementById("mapaCancelarBtn");
+    const confirmarBtn = document.getElementById("mapaConfirmarBtn");
+
+    if (mapaBtn) {
+        mapaBtn.addEventListener("click", abrirMapaOperacion);
+    }
+
+    if (cerrarBtn) {
+        cerrarBtn.addEventListener("click", cerrarMapaOperacion);
+    }
+
+    if (cancelarBtn) {
+        cancelarBtn.addEventListener("click", cerrarMapaOperacion);
+    }
+
+    if (confirmarBtn) {
+        confirmarBtn.addEventListener("click", confirmarPuntoMapaOperacion);
+    }
+}
+
+function abrirMapaOperacion() {
+    const modal = document.getElementById("mapaModal");
+    const sectorInput = document.getElementById("sector");
+    const sectorMapaInput = document.getElementById("sectorMapaReferencia");
+    const coordenadasInput = document.getElementById("coordenadas");
+    const message = document.getElementById("mapaMessage");
+
+    if (!modal) return;
+
+    if (message) {
+        message.textContent = "";
+        message.className = "form-message";
+    }
+
+    if (sectorMapaInput) {
+        sectorMapaInput.value = sectorInput ? sectorInput.value.trim() : "";
+    }
+
+    coordenadasSeleccionadasMapa = obtenerCoordenadasDesdeTexto(coordenadasInput?.value || "");
+
+    modal.classList.remove("hidden");
+
+    setTimeout(() => {
+        inicializarMapaOperacion();
+    }, 200);
+}
+
+function cerrarMapaOperacion() {
+    const modal = document.getElementById("mapaModal");
+    const message = document.getElementById("mapaMessage");
+
+    if (message) {
+        message.textContent = "";
+        message.className = "form-message";
+    }
+
+    if (modal) {
+        modal.classList.add("hidden");
+    }
+}
+
+function inicializarMapaOperacion() {
+    if (typeof L === "undefined") {
+        mostrarMensajeMapa("No se pudo cargar Leaflet. Revise la conexión a internet o el script en index.html.", "error");
+        return;
+    }
+
+    const mapaDiv = document.getElementById("mapaOperacion");
+    if (!mapaDiv) return;
+
+    const coordenadasInput = document.getElementById("coordenadas");
+
+    const puntoActual = obtenerCoordenadasDesdeTexto(coordenadasInput?.value || "");
+
+    const centroInicial = puntoActual || {
+        lat: -1.05458,
+        lng: -80.45445
+    };
+
+    if (!mapaOperacion) {
+        mapaOperacion = L.map("mapaOperacion").setView([centroInicial.lat, centroInicial.lng], 13);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "&copy; OpenStreetMap"
+        }).addTo(mapaOperacion);
+
+        mapaOperacion.on("click", (event) => {
+            establecerPuntoMapaOperacion(event.latlng.lat, event.latlng.lng);
+        });
+    } else {
+        mapaOperacion.setView([centroInicial.lat, centroInicial.lng], 13);
+        mapaOperacion.invalidateSize();
+    }
+
+    if (puntoActual) {
+        establecerPuntoMapaOperacion(puntoActual.lat, puntoActual.lng);
+    } else {
+        actualizarPreviewCoordenadas(null);
+    }
+
+    setTimeout(() => {
+        mapaOperacion.invalidateSize();
+    }, 300);
+}
+
+function establecerPuntoMapaOperacion(lat, lng) {
+    const latFixed = Number(lat).toFixed(6);
+    const lngFixed = Number(lng).toFixed(6);
+
+    coordenadasSeleccionadasMapa = {
+        lat: Number(latFixed),
+        lng: Number(lngFixed)
+    };
+
+    if (!mapaOperacion) return;
+
+    if (!marcadorOperacion) {
+        marcadorOperacion = L.marker([latFixed, lngFixed], {
+            draggable: true
+        }).addTo(mapaOperacion);
+
+        marcadorOperacion.on("dragend", () => {
+            const posicion = marcadorOperacion.getLatLng();
+            establecerPuntoMapaOperacion(posicion.lat, posicion.lng);
+        });
+    } else {
+        marcadorOperacion.setLatLng([latFixed, lngFixed]);
+    }
+
+    actualizarPreviewCoordenadas(coordenadasSeleccionadasMapa);
+}
+
+function actualizarPreviewCoordenadas(punto) {
+    const preview = document.getElementById("mapaCoordenadasPreview");
+
+    if (!preview) return;
+
+    if (!punto) {
+        preview.textContent = "Ningún punto seleccionado";
+        return;
+    }
+
+    preview.textContent = `${punto.lat.toFixed(6)}, ${punto.lng.toFixed(6)}`;
+}
+
+function confirmarPuntoMapaOperacion() {
+    const coordenadasInput = document.getElementById("coordenadas");
+    const sectorInput = document.getElementById("sector");
+    const sectorMapaInput = document.getElementById("sectorMapaReferencia");
+
+    if (!coordenadasSeleccionadasMapa) {
+        mostrarMensajeMapa("Seleccione un punto en el mapa antes de confirmar.", "error");
+        return;
+    }
+
+    const coordenadasTexto = `${coordenadasSeleccionadasMapa.lat.toFixed(6)}, ${coordenadasSeleccionadasMapa.lng.toFixed(6)}`;
+
+    if (coordenadasInput) {
+        coordenadasInput.value = coordenadasTexto;
+    }
+
+    if (sectorInput) {
+        const sectorMapa = sectorMapaInput ? sectorMapaInput.value.trim() : "";
+
+        if (sectorMapa) {
+            sectorInput.value = sectorMapa;
+        } else if (!sectorInput.value.trim()) {
+            sectorInput.value = "Punto seleccionado en mapa";
+        }
+    }
+
+    if (geoStatus) {
+        geoStatus.textContent = `Punto seleccionado en mapa: ${coordenadasTexto}`;
+        geoStatus.style.color = "#2F6B3F";
+    }
+
+    cerrarMapaOperacion();
+}
+
+function obtenerCoordenadasDesdeTexto(texto) {
+    const valor = String(texto || "").trim();
+
+    if (!valor) return null;
+
+    const partes = valor.split(",").map((p) => p.trim());
+
+    if (partes.length !== 2) return null;
+
+    const lat = Number(partes[0]);
+    const lng = Number(partes[1]);
+
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+
+    return {
+        lat,
+        lng
+    };
+}
+
+function mostrarMensajeMapa(mensaje, tipo) {
+    const message = document.getElementById("mapaMessage");
+
+    if (!message) return;
+
+    message.textContent = mensaje;
+    message.className = `form-message ${tipo}`;
 }

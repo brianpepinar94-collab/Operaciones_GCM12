@@ -1986,3 +1986,134 @@ button,
   font-size: 13px;
   font-weight: 600;
 }
+
+/* ============================= */
+/* MAPA OPERACIONAL */
+/* ============================= */
+
+.coord-row-map {
+  grid-template-columns: 1fr auto auto;
+}
+
+.mapa-operacion {
+  width: 100%;
+  height: 430px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #D9D6E1;
+  margin: 14px 0;
+  background: #E6E3EA;
+}
+
+.modal-map-card {
+  width: 100%;
+  max-width: 980px;
+}
+
+.mapa-info-box {
+  background: #FAF9FC;
+  border: 1px solid #E8E3EF;
+  border-left: 5px solid var(--gold);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: var(--primary-dark);
+  margin-bottom: 10px;
+}
+
+.mapa-info-box strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.mapa-info-box span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.leaflet-container {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@media (max-width: 768px) {
+  .coord-row-map {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-map-card {
+    max-width: 96vw;
+    padding: 18px;
+  }
+
+  .mapa-operacion {
+    height: 360px;
+  }
+}
+
+/* ============================= */
+/* AJUSTE COORDENADAS + MAPA */
+/* ============================= */
+
+/* Hace que el bloque de coordenadas tenga más espacio en escritorio */
+#registrarPage .field:has(#coordenadas) {
+  grid-column: span 2;
+}
+
+/* Input amplio + botones a la derecha */
+#registrarPage .coord-row-map {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Evita que el input de coordenadas se encoja demasiado */
+#registrarPage #coordenadas {
+  min-width: 320px;
+}
+
+/* Botones compactos y alineados */
+#registrarPage .coord-row-map .btn-location {
+  width: auto;
+  white-space: nowrap;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* El mensaje debajo ocupa todo el ancho del bloque */
+#registrarPage .field:has(#coordenadas) .field-help {
+  grid-column: 1 / -1;
+}
+
+/* En pantallas medianas, se apilan para no romper el diseño */
+@media (max-width: 1350px) {
+  #registrarPage .field:has(#coordenadas) {
+    grid-column: 1 / -1;
+  }
+
+  #registrarPage .coord-row-map {
+    grid-template-columns: 1fr auto auto;
+  }
+
+  #registrarPage #coordenadas {
+    min-width: 0;
+  }
+}
+
+/* En móvil, todo vertical */
+@media (max-width: 768px) {
+  #registrarPage .field:has(#coordenadas) {
+    grid-column: 1 / -1;
+  }
+
+  #registrarPage .coord-row-map {
+    grid-template-columns: 1fr;
+  }
+
+  #registrarPage .coord-row-map .btn-location {
+    width: 100%;
+  }
+
+  #registrarPage #coordenadas {
+    min-width: 0;
+  }
+}
