@@ -652,34 +652,24 @@ function mostrarPagina(pageId, title, subtitle) {
     pageSubtitle.textContent = subtitle;
     recargarDatosDesdeStorage();
 
-    if (pageId === "misOperacionesPage") {
-        renderMisOperaciones();
+    renderPaginaActiva();
+
+    cargarDatosDePagina(pageId);
+}
+function mostrarEstadoCargaPagina(texto = "") {
+    const pageSubtitle = document.getElementById("pageSubtitle");
+
+    if (!pageSubtitle) return;
+
+    if (texto) {
+        pageSubtitle.dataset.originalText = pageSubtitle.dataset.originalText || pageSubtitle.textContent;
+        pageSubtitle.textContent = texto;
+        return;
     }
 
-    if (pageId === "operacionesPage") {
-        renderOperacionesAdmin();
-    }
-
-    if (pageId === "dashboardPage") {
-        renderDashboard();
-    }
-
-    if (pageId === "usuariosPage") {
-        renderUsuariosAdmin();
-    }
-    if (pageId === "auditoriaPage") {
-        obtenerAuditoriaDesdeGoogleSheets()
-            .then(() => renderAuditoria())
-            .catch((error) => {
-                console.warn("No se pudo cargar auditoría desde Google Sheets:", error);
-                renderAuditoria();
-            });
-    }
-    if (pageId === "inicioPage") {
-        renderInicioPorRol();
-    }
-    if (pageId === "reportesPage") {
-        renderReportes();
+    if (pageSubtitle.dataset.originalText) {
+        pageSubtitle.textContent = pageSubtitle.dataset.originalText;
+        delete pageSubtitle.dataset.originalText;
     }
 }
 
@@ -950,7 +940,7 @@ async function crearNuevaOperacion() {
 
     limpiarFormularioOperacion();
 
-    mostrarMensaje("Operación guardada correctamente en Google Sheets.", "success");
+    mostrarMensaje("Operación guardada correctamente.", "success");
 }
 
 async function actualizarOperacionExistente() {
@@ -1545,13 +1535,13 @@ async function eliminarUsuarioAdmin(idUsuario) {
 
     await refrescarUsuariosDesdeGoogleSheets();
 
-    mostrarMensajeUsuarios("Usuario eliminado correctamente en modo demo.", "success");
+    mostrarMensajeUsuarios("Usuario eliminado correctamente.", "success");
     renderInicioPorRol();
     registrarAuditoria(
         "ELIMINAR",
         "USUARIOS",
         idUsuario,
-        `Eliminó al usuario ${usuario.nombres} ${usuario.apellidos} en modo demo`
+        `Eliminó al usuario ${usuario.nombres} ${usuario.apellidos}`
     );
 }
 
@@ -4787,6 +4777,67 @@ function renderPaginaActiva() {
     }
 
     renderInicioPorRol();
+}
+
+async function cargarDatosDePagina(pageId) {
+    if (!usuarioActual) return;
+
+    try {
+        mostrarEstadoCargaPagina("Actualizando información desde Google Sheets...");
+
+        if (pageId === "usuariosPage") {
+            await obtenerUsuariosDesdeGoogleSheets();
+            renderUsuariosAdmin();
+            return;
+        }
+
+        if (
+            pageId === "inicioPage" ||
+            pageId === "misOperacionesPage" ||
+            pageId === "operacionesPage" ||
+            pageId === "dashboardPage" ||
+            pageId === "reportesPage"
+        ) {
+            await obtenerOperacionesDesdeGoogleSheets();
+
+            if (pageId === "inicioPage") {
+                renderInicioPorRol();
+                return;
+            }
+
+            if (pageId === "misOperacionesPage") {
+                renderMisOperaciones();
+                return;
+            }
+
+            if (pageId === "operacionesPage") {
+                renderOperacionesAdmin();
+                return;
+            }
+
+            if (pageId === "dashboardPage") {
+                renderDashboard();
+                return;
+            }
+
+            if (pageId === "reportesPage") {
+                renderReportes();
+                return;
+            }
+        }
+
+        if (pageId === "auditoriaPage") {
+            await obtenerAuditoriaDesdeGoogleSheets();
+            renderAuditoria();
+            return;
+        }
+
+    } catch (error) {
+        console.warn("No se pudo cargar datos actualizados para la página:", error);
+        renderPaginaActiva();
+    } finally {
+        mostrarEstadoCargaPagina("");
+    }
 }
 
 // ======================================================
