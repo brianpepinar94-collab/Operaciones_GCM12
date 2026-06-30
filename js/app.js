@@ -57,6 +57,9 @@ const STORAGE_AUDITORIA = "gcm12_auditoria";
 const STORAGE_SESSION_TOKEN = "gcm12_session_token";
 let sessionToken = localStorage.getItem(STORAGE_SESSION_TOKEN) || "";
 
+const STORAGE_OPERACION_PENDIENTE_ID = "gcm12_operacion_pendiente_id";
+let guardandoOperacion = false;
+
 const API_URL = "https://script.google.com/macros/s/AKfycbx9X5R_bV3iShqXY7zFcfmEJRCMcrrOPfBbQiXQte1NAf9Z9_HUnIAopSLsRuKaL_gM/exec";
 const USAR_GOOGLE_SHEETS = true;
 
@@ -640,7 +643,7 @@ async function restaurarSesionGuardada() {
 
     sessionToken = tokenGuardado;
 
-    
+
 
     try {
         usuarioActual = JSON.parse(data);
@@ -972,6 +975,13 @@ operacionForm.addEventListener("submit", async (event) => {
         }
     }
 
+    if (guardandoOperacion) {
+        mostrarMensaje("La operación ya se está guardando. Espere unos segundos.", "error");
+        return;
+    }
+
+    guardandoOperacion = true;
+
     if (guardarBtn) {
         guardarBtn.disabled = true;
         guardarBtn.textContent = operacionEditandoId ? "Actualizando..." : "Guardando...";
@@ -985,8 +995,14 @@ operacionForm.addEventListener("submit", async (event) => {
         }
     } catch (error) {
         console.error("Error al guardar operación:", error);
-        mostrarMensaje(`No se pudo guardar la operación: ${error.message}`, "error");
+
+        mostrarMensaje(
+            "No se pudo confirmar el guardado. Revise Google Sheets antes de intentar nuevamente.",
+            "error"
+        );
     } finally {
+        guardandoOperacion = false;
+
         if (guardarBtn) {
             guardarBtn.disabled = false;
             guardarBtn.textContent = operacionEditandoId ? "Actualizar operación" : "Guardar operación";
@@ -995,7 +1011,7 @@ operacionForm.addEventListener("submit", async (event) => {
 });
 
 async function crearNuevaOperacion() {
-    const idOperacion = generarIdOperacion();
+    const idOperacion = obtenerIdOperacionPendiente();
     const fechaActual = new Date().toISOString();
 
     const operacion = {
@@ -1066,6 +1082,8 @@ async function crearNuevaOperacion() {
     );
 
     await refrescarOperacionesDesdeGoogleSheets();
+
+    limpiarIdOperacionPendiente();
 
     limpiarFormularioOperacion();
 
@@ -1170,12 +1188,17 @@ function limpiarFormularioOperacion() {
     parroquiaSelect.innerHTML = `<option value="">Seleccione cantón...</option>`;
     parroquiaSelect.disabled = false;
 
+    if (!operacionEditandoId) {
+        limpiarIdOperacionPendiente();
+    }
+
     operacionEditandoId = null;
 
     const guardarBtn = document.getElementById("guardarOperacionBtn");
     if (guardarBtn) guardarBtn.textContent = "Guardar operación";
 
     mostrarObservacionCorreccionOperacion(null);
+
 }
 
 function generarIdOperacion() {
@@ -1186,6 +1209,20 @@ function generarIdOperacion() {
     const random = Math.floor(Math.random() * 9000) + 1000;
 
     return `OP-${yyyy}${mm}${dd}-${random}`;
+}
+function obtenerIdOperacionPendiente() {
+    let idOperacion = sessionStorage.getItem(STORAGE_OPERACION_PENDIENTE_ID);
+
+    if (!idOperacion) {
+        idOperacion = generarIdOperacion();
+        sessionStorage.setItem(STORAGE_OPERACION_PENDIENTE_ID, idOperacion);
+    }
+
+    return idOperacion;
+}
+
+function limpiarIdOperacionPendiente() {
+    sessionStorage.removeItem(STORAGE_OPERACION_PENDIENTE_ID);
 }
 
 function generarIdResultado() {
