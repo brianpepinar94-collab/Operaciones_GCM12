@@ -54,6 +54,8 @@ let usuariosSistema = cargarUsuariosSistema();
 const STORAGE_OPERACIONES = "gcm12_operaciones";
 const STORAGE_RESULTADOS = "gcm12_resultados";
 const STORAGE_AUDITORIA = "gcm12_auditoria";
+const STORAGE_SESSION_TOKEN = "gcm12_session_token";
+let sessionToken = localStorage.getItem(STORAGE_SESSION_TOKEN) || "";
 
 const API_URL = "https://script.google.com/macros/s/AKfycbx9X5R_bV3iShqXY7zFcfmEJRCMcrrOPfBbQiXQte1NAf9Z9_HUnIAopSLsRuKaL_gM/exec";
 const USAR_GOOGLE_SHEETS = true;
@@ -554,6 +556,14 @@ loginForm.addEventListener("submit", async (event) => {
         usuarioActual = { ...resultadoLogin.usuario };
         localStorage.setItem("gcm12_usuario_actual", JSON.stringify(usuarioActual));
 
+        sessionToken = resultadoLogin.session_token || "";
+
+        if (!sessionToken) {
+            throw new Error("No se recibió token de sesión.");
+        }
+
+        localStorage.setItem(STORAGE_SESSION_TOKEN, sessionToken);
+
         limpiarDatosOperativosEnMemoria();
 
         iniciarSistema();
@@ -580,11 +590,15 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 logoutBtn.addEventListener("click", () => {
-
     detenerActualizacionAutomaticaSheets();
+
     usuarioActual = null;
+    sessionToken = "";
     resultadosTemporales = [];
+
     localStorage.removeItem("gcm12_usuario_actual");
+    localStorage.removeItem(STORAGE_SESSION_TOKEN);
+
     loginForm.reset();
     loginError.textContent = "";
 
@@ -615,7 +629,18 @@ function iniciarSistema() {
 async function restaurarSesionGuardada() {
     const data = localStorage.getItem("gcm12_usuario_actual");
 
+    const tokenGuardado = localStorage.getItem(STORAGE_SESSION_TOKEN);
+
     if (!data) return;
+
+    if (!tokenGuardado) {
+        localStorage.removeItem("gcm12_usuario_actual");
+        return;
+    }
+
+    sessionToken = tokenGuardado;
+
+    
 
     try {
         usuarioActual = JSON.parse(data);
@@ -764,9 +789,11 @@ function cerrarSesionForzada(mensaje = "La sesión ya no es válida. Inicie sesi
     detenerActualizacionAutomaticaSheets();
 
     usuarioActual = null;
+    sessionToken = "";
     resultadosTemporales = [];
 
     localStorage.removeItem("gcm12_usuario_actual");
+    localStorage.removeItem(STORAGE_SESSION_TOKEN);
 
     appView.classList.add("hidden");
     loginView.classList.remove("hidden");
@@ -5954,14 +5981,24 @@ async function apiPost(action, payload = {}) {
         method: "POST",
         body: JSON.stringify({
             action,
-            payload
+            payload,
+            token: sessionToken
         })
     });
 
     const data = await response.json();
 
     if (!data.ok) {
-        throw new Error(data.error || "Error desconocido en Apps Script.");
+        const mensaje = data.error || "Error desconocido en Apps Script.";
+
+        if (
+            action !== "LOGIN" &&
+            /sesión|session|expiró|expirada|inválida|válida/i.test(mensaje)
+        ) {
+            cerrarSesionForzada(mensaje);
+        }
+
+        throw new Error(mensaje);
     }
 
     return data.data;
