@@ -4720,6 +4720,56 @@ function renderInicioComandanteUnidad(statsGrid, actions) {
     `;
 }
 
+function obtenerPaginaActivaId() {
+    const paginaActiva = document.querySelector(".page.active");
+    return paginaActiva ? paginaActiva.id : "";
+}
+
+function renderPaginaActiva() {
+    const pageId = obtenerPaginaActivaId();
+
+    if (pageId === "inicioPage") {
+        renderInicioPorRol();
+        return;
+    }
+
+    if (pageId === "usuariosPage") {
+        renderUsuariosAdmin();
+        return;
+    }
+
+    if (pageId === "registrarPage") {
+        return;
+    }
+
+    if (pageId === "misOperacionesPage") {
+        renderMisOperaciones();
+        return;
+    }
+
+    if (pageId === "operacionesPage") {
+        renderOperacionesAdmin();
+        return;
+    }
+
+    if (pageId === "dashboardPage") {
+        renderDashboard();
+        return;
+    }
+
+    if (pageId === "reportesPage") {
+        renderReportes();
+        return;
+    }
+
+    if (pageId === "auditoriaPage") {
+        renderAuditoria();
+        return;
+    }
+
+    renderInicioPorRol();
+}
+
 // ======================================================
 // GRÁFICOS DASHBOARD - CHART.JS
 // ======================================================
@@ -5760,13 +5810,9 @@ async function cargarDatosDesdeGoogleSheets(renderizar = true) {
 
     if (!renderizar) return;
 
-    renderInicioPorRol();
-    renderUsuariosAdmin();
-    renderMisOperaciones();
-    renderOperacionesAdmin();
-    renderDashboard();
-    renderReportes();
-    renderAuditoria();
+    if (!renderizar) return;
+
+    renderPaginaActiva();
 }
 
 async function obtenerUsuariosDesdeGoogleSheets() {
@@ -5781,12 +5827,7 @@ async function obtenerUsuariosDesdeGoogleSheets() {
 async function refrescarUsuariosDesdeGoogleSheets() {
     await obtenerUsuariosDesdeGoogleSheets();
 
-    renderInicioPorRol();
-    renderUsuariosAdmin();
-
-    if (typeof renderAuditoria === "function") {
-        renderAuditoria();
-    }
+    renderPaginaActiva();
 }
 async function obtenerOperacionesDesdeGoogleSheets() {
     const data = await apiPost("GET_OPERATIONS_DATA");
@@ -5806,11 +5847,7 @@ async function obtenerOperacionesDesdeGoogleSheets() {
 async function refrescarOperacionesDesdeGoogleSheets() {
     await obtenerOperacionesDesdeGoogleSheets();
 
-    renderInicioPorRol();
-    renderMisOperaciones();
-    renderOperacionesAdmin();
-    renderDashboard();
-    renderReportes();
+    renderPaginaActiva();
 }
 
 
@@ -5826,7 +5863,8 @@ function limpiarDatosOperativosEnMemoria() {
 
 async function cargarDatosInicialesEnSegundoPlano() {
     try {
-        await cargarDatosDesdeGoogleSheets(true);
+        await cargarDatosDesdeGoogleSheets(false);
+        renderPaginaActiva();
     } catch (error) {
         console.error("Error cargando datos iniciales:", error);
         alert("Ingresó al sistema, pero no se pudieron cargar todos los datos desde Google Sheets. Revise la conexión.");
