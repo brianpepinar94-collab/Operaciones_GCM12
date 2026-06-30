@@ -578,6 +578,8 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 logoutBtn.addEventListener("click", () => {
+
+    detenerActualizacionAutomaticaSheets();
     usuarioActual = null;
     resultadosTemporales = [];
     localStorage.removeItem("gcm12_usuario_actual");
@@ -606,6 +608,7 @@ function iniciarSistema() {
 
     construirMenu(usuarioActual.rol);
     renderInicioPorRol();
+    iniciarActualizacionAutomaticaSheets();
 }
 
 // MENÚ POR ROL
@@ -665,7 +668,12 @@ function mostrarPagina(pageId, title, subtitle) {
         renderUsuariosAdmin();
     }
     if (pageId === "auditoriaPage") {
-        renderAuditoria();
+        obtenerAuditoriaDesdeGoogleSheets()
+            .then(() => renderAuditoria())
+            .catch((error) => {
+                console.warn("No se pudo cargar auditoría desde Google Sheets:", error);
+                renderAuditoria();
+            });
     }
     if (pageId === "inicioPage") {
         renderInicioPorRol();
@@ -4369,7 +4377,18 @@ function registrarAuditoria(accion, modulo, idRegistro = "", detalle = "", usuar
 
     auditoriaSistema.push(registro);
     guardarAuditoriaSistema();
-    renderAuditoria();
+
+    if (obtenerPaginaActivaId() === "auditoriaPage") {
+        renderAuditoria();
+    }
+
+    if (USAR_GOOGLE_SHEETS) {
+        apiPost("SAVE_AUDIT", {
+            auditoria: registro
+        }).catch((error) => {
+            console.warn("No se pudo guardar auditoría en Google Sheets:", error);
+        });
+    }
 }
 
 function generarIdAuditoria() {
@@ -5844,6 +5863,20 @@ async function obtenerOperacionesDesdeGoogleSheets() {
     };
 }
 
+async function obtenerAuditoriaDesdeGoogleSheets() {
+    const auditoria = await apiPost("GET_AUDIT");
+
+    auditoriaSistema = auditoria || [];
+    localStorage.setItem(STORAGE_AUDITORIA, JSON.stringify(auditoriaSistema));
+
+    return auditoriaSistema;
+}
+
+async function refrescarAuditoriaDesdeGoogleSheets() {
+    await obtenerAuditoriaDesdeGoogleSheets();
+    renderPaginaActiva();
+}
+
 async function refrescarOperacionesDesdeGoogleSheets() {
     await obtenerOperacionesDesdeGoogleSheets();
 
@@ -5870,3 +5903,69 @@ async function cargarDatosInicialesEnSegundoPlano() {
         alert("Ingresó al sistema, pero no se pudieron cargar todos los datos desde Google Sheets. Revise la conexión.");
     }
 }
+
+function paginaActivaUsaOperaciones() {
+    const pageId = obtenerPaginaActivaId();
+
+    return [
+        "inicioPage",
+        "misOperacionesPage",
+        "operacionesPage",
+        "dashboardPage",
+        "reportesPage"
+    ].includes(pageId);
+}
+
+async function actualizarDatosPaginaActivaDesdeSheets() {
+    if (!usuarioActual) return;
+
+    const pageId = obtenerPaginaActivaId();
+
+    try {
+        if (pageId === "usuariosPage") {
+            await obtenerUsuariosDesdeGoogleSheets();
+            renderPaginaActiva();
+            return;
+        }
+
+        if (paginaActivaUsaOperaciones()) {
+            await obtenerOperacionesDesdeGoogleSheets();
+            renderPaginaActiva();
+            return;
+        }
+
+        if (pageId === "auditoriaPage") {
+            await obtenerAuditoriaDesdeGoogleSheets();
+            renderPaginaActiva();
+            return;
+        }
+    } catch (error) {
+        console.warn("No se pudo actualizar datos de la página activa:", error);
+    }
+}
+let intervaloActualizacionSheets = null;
+
+function iniciarActualizacionAutomaticaSheets() {
+    if (intervaloActualizacionSheets) {
+        clearInterval(intervaloActualizacionSheets);
+    }
+
+    intervaloActualizacionSheets = setInterval(() => {
+        if (document.hidden) return;
+        if (!usuarioActual) return;
+
+        actualizarDatosPaginaActivaDesdeSheets();
+    }, 30000);
+}
+
+function detenerActualizacionAutomaticaSheets() {
+    if (intervaloActualizacionSheets) {
+        clearInterval(intervaloActualizacionSheets);
+        intervaloActualizacionSheets = null;
+    }
+}
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && usuarioActual) {
+        actualizarDatosPaginaActivaDesdeSheets();
+    }
+});
