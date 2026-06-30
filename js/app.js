@@ -810,9 +810,11 @@ function eliminarResultado(index) {
     renderResultados();
 }
 
-// GUARDAR OPERACIÓN EN LOCALSTORAGE
-operacionForm.addEventListener("submit", (event) => {
+// GUARDAR OPERACIÓN 
+operacionForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+
+    const guardarBtn = document.getElementById("guardarOperacionBtn");
 
     if (!usuarioActual) {
         mostrarMensaje("No existe una sesión activa.", "error");
@@ -841,14 +843,29 @@ operacionForm.addEventListener("submit", (event) => {
         }
     }
 
-    if (operacionEditandoId) {
-        actualizarOperacionExistente();
-    } else {
-        crearNuevaOperacion();
+    if (guardarBtn) {
+        guardarBtn.disabled = true;
+        guardarBtn.textContent = operacionEditandoId ? "Actualizando..." : "Guardando...";
+    }
+
+    try {
+        if (operacionEditandoId) {
+            await actualizarOperacionExistente();
+        } else {
+            await crearNuevaOperacion();
+        }
+    } catch (error) {
+        console.error("Error al guardar operación:", error);
+        mostrarMensaje(`No se pudo guardar la operación: ${error.message}`, "error");
+    } finally {
+        if (guardarBtn) {
+            guardarBtn.disabled = false;
+            guardarBtn.textContent = operacionEditandoId ? "Actualizar operación" : "Guardar operación";
+        }
     }
 });
 
-function crearNuevaOperacion() {
+async function crearNuevaOperacion() {
     const idOperacion = generarIdOperacion();
     const fechaActual = new Date().toISOString();
 
@@ -876,14 +893,24 @@ function crearNuevaOperacion() {
         usuario_cedula: usuarioActual.usuario,
         fecha_registro: fechaActual,
         ultima_modificacion: fechaActual,
-        observacion_general: document.getElementById("observacionGeneral").value.trim()
+        observacion_general: document.getElementById("observacionGeneral").value.trim(),
+        observacion_admin: "",
+        motivo_anulacion: "",
+        validado_por: "",
+        fecha_validacion: "",
+        observado_por: "",
+        fecha_observacion: "",
+        anulado_por: "",
+        fecha_anulacion: "",
+        corregido_por: "",
+        fecha_correccion_observacion: ""
     };
 
-    operacionesSistema.push(operacion);
+    const resultados = [];
 
     if (huboResultados.value === "SI") {
         resultadosTemporales.forEach((resultado) => {
-            resultadosSistema.push({
+            resultados.push({
                 id_resultado: generarIdResultado(),
                 id_operacion: idOperacion,
                 categoria: resultado.categoria,
@@ -897,8 +924,11 @@ function crearNuevaOperacion() {
         });
     }
 
-    guardarOperacionesSistema();
-    guardarResultadosSistema();
+    await apiPost("SAVE_OPERATION", {
+        operacion,
+        resultados
+    });
+
     registrarAuditoria(
         "CREAR",
         "OPERACIONES",
@@ -906,17 +936,14 @@ function crearNuevaOperacion() {
         `Registró operación ${operacion.tipo_operacion} - ${operacion.sub_tipo_operacion}`
     );
 
+    await refrescarOperacionesDesdeGoogleSheets();
+
     limpiarFormularioOperacion();
 
-    mostrarMensaje("Operación guardada correctamente en modo demo.", "success");
-    renderInicioPorRol();
-    renderMisOperaciones();
-    renderOperacionesAdmin();
-    renderDashboard();
-    renderReportes();
+    mostrarMensaje("Operación guardada correctamente en Google Sheets.", "success");
 }
 
-function actualizarOperacionExistente() {
+async function actualizarOperacionExistente() {
     const index = operacionesSistema.findIndex((op) => op.id_operacion === operacionEditandoId);
 
     if (index === -1) {
@@ -934,7 +961,7 @@ function actualizarOperacionExistente() {
     const fechaActual = new Date().toISOString();
     const estabaObservada = operacionActual.estado_operacion === "OBSERVADO";
 
-    operacionesSistema[index] = {
+    const operacionActualizada = {
         ...operacionActual,
         fecha_operacion: document.getElementById("fechaOperacion").value,
         hora_inicio: document.getElementById("horaInicio").value,
@@ -961,11 +988,11 @@ function actualizarOperacionExistente() {
         observacion_general: document.getElementById("observacionGeneral").value.trim()
     };
 
-    resultadosSistema = resultadosSistema.filter((r) => r.id_operacion !== operacionEditandoId);
+    const resultados = [];
 
     if (huboResultados.value === "SI") {
         resultadosTemporales.forEach((resultado) => {
-            resultadosSistema.push({
+            resultados.push({
                 id_resultado: generarIdResultado(),
                 id_operacion: operacionEditandoId,
                 categoria: resultado.categoria,
@@ -979,8 +1006,11 @@ function actualizarOperacionExistente() {
         });
     }
 
-    guardarOperacionesSistema();
-    guardarResultadosSistema();
+    await apiPost("SAVE_OPERATION", {
+        operacion: operacionActualizada,
+        resultados
+    });
+
     registrarAuditoria(
         estabaObservada ? "CORREGIR_OBSERVACION" : "EDITAR",
         "OPERACIONES",
@@ -990,14 +1020,11 @@ function actualizarOperacionExistente() {
             : "Actualizó operación registrada"
     );
 
+    await refrescarOperacionesDesdeGoogleSheets();
+
     limpiarFormularioOperacion();
 
-    mostrarMensaje("Operación actualizada correctamente.", "success");
-    renderInicioPorRol();
-    renderMisOperaciones();
-    renderOperacionesAdmin();
-    renderDashboard();
-    renderReportes();
+    mostrarMensaje("Operación actualizada correctamente en Google Sheets.", "success");
 }
 
 function limpiarFormularioOperacion() {
@@ -5543,6 +5570,31 @@ async function refrescarUsuariosDesdeGoogleSheets() {
         renderAuditoria();
     }
 }
+async function obtenerOperacionesDesdeGoogleSheets() {
+    const data = await apiPost("GET_OPERATIONS_DATA");
+
+    operacionesSistema = data.operaciones || [];
+    resultadosSistema = data.resultados || [];
+
+    localStorage.setItem(STORAGE_OPERACIONES, JSON.stringify(operacionesSistema));
+    localStorage.setItem(STORAGE_RESULTADOS, JSON.stringify(resultadosSistema));
+
+    return {
+        operaciones: operacionesSistema,
+        resultados: resultadosSistema
+    };
+}
+
+async function refrescarOperacionesDesdeGoogleSheets() {
+    await obtenerOperacionesDesdeGoogleSheets();
+
+    renderInicioPorRol();
+    renderMisOperaciones();
+    renderOperacionesAdmin();
+    renderDashboard();
+    renderReportes();
+}
+
 
 function limpiarDatosOperativosEnMemoria() {
     operacionesSistema = [];
