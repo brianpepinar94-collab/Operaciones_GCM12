@@ -1402,7 +1402,7 @@ button,
 }
 
 .dash-table-panel thead th {
-  background: rgba(104, 224, 239, 0.18) !important;
+  background: rgba(46, 75, 79) !important;
   color: #ffffff !important;
   border-bottom: 1px solid rgba(104, 224, 239, 0.35);
 }
@@ -2115,5 +2115,126 @@ button,
 
   #registrarPage #coordenadas {
     min-width: 0;
+  }
+}
+
+.correction-note {
+  margin-bottom: 18px;
+  border-left-color: var(--danger);
+  background: rgba(249, 207, 22, 0.13);
+}
+
+.correction-note strong {
+  color: var(--danger);
+}
+
+/* ============================= */
+/* FILTROS ADMIN OPERACIONES */
+/* ============================= */
+
+.admin-operations-filters {
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto;
+  align-items: end;
+}
+
+.admin-filter-buttons .btn {
+  width: 100%;
+  white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+  .admin-operations-filters {
+    grid-template-columns: 2fr 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-operations-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filter-buttons .btn {
+    width: 100%;
+  }
+}
+
+/* ============================= */
+/* SCROLL VERTICAL DETALLE DASHBOARD */
+/* ============================= */
+
+.dash-detail-full {
+  max-height: 420px;
+  overflow: auto  ;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mantiene la cabecera fija dentro de la tabla */
+.dash-detail-full thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+/* Evita que la tabla se comprima */
+.dash-detail-full table {
+  min-width: 780px;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .dash-detail-full {
+    max-height: 360px;
+    overflow: auto;
+  }
+}
+
+/* ============================= */
+/* SCROLL VERTICAL TABLAS DASHBOARD */
+/* ============================= */
+
+.dash-table-panel {
+  max-height: 420px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mantiene el título visible arriba del panel */
+.dash-table-panel h4 {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: rgba(31, 20, 48, 0.96);
+  padding-bottom: 10px;
+}
+
+/* Mantiene la cabecera de la tabla fija */
+.dash-table-panel thead th {
+  position: sticky;
+  top: 38px;
+  z-index: 4;
+}
+
+/* Evita que la tabla se comprima */
+.dash-table-panel table {
+  margin: 0;
+}
+
+/* Ajuste específico para la tabla grande de detalle */
+.dash-detail-full {
+  max-height: 420px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dash-detail-full thead th {
+  position: sticky;
+  top: 38px;
+  z-index: 4;
+}
+
+@media (max-width: 768px) {
+  .dash-table-panel,
+  .dash-detail-full {
+    max-height: 360px;
   }
 }

@@ -55,6 +55,9 @@ const STORAGE_OPERACIONES = "gcm12_operaciones";
 const STORAGE_RESULTADOS = "gcm12_resultados";
 const STORAGE_AUDITORIA = "gcm12_auditoria";
 
+const API_URL = "https://script.google.com/macros/s/AKfycbx9X5R_bV3iShqXY7zFcfmEJRCMcrrOPfBbQiXQte1NAf9Z9_HUnIAopSLsRuKaL_gM/exec";
+const USAR_GOOGLE_SHEETS = true;
+
 let operacionesSistema = cargarOperacionesSistema();
 let resultadosSistema = cargarResultadosSistema();
 let auditoriaSistema = cargarAuditoriaSistema();
@@ -514,47 +517,62 @@ ubicacionBtn.addEventListener("click", () => {
     );
 });
 // LOGIN
-loginForm.addEventListener("submit", (event) => {
+loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const usuario = document.getElementById("usuario").value.trim();
     const password = document.getElementById("password").value.trim();
+    const loginBtn = loginForm.querySelector('button[type="submit"]');
 
-    const encontrado = usuariosSistema.find(
-        (u) => u.usuario === usuario && u.password === password
-    );
+    loginError.textContent = "";
 
-    if (!encontrado) {
-        registrarAuditoria(
-            "LOGIN_FALLIDO",
-            "LOGIN",
+    if (!usuario || !password) {
+        loginError.textContent = "Ingrese usuario y contraseña.";
+        return;
+    }
+
+    if (loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.textContent = "Validando...";
+    }
+
+    try {
+        const resultadoLogin = await apiPost("LOGIN", {
             usuario,
-            `Intento fallido de inicio de sesión con usuario/cédula: ${usuario}`,
-            null
-        );
+            password
+        });
 
-        loginError.textContent = "Credenciales incorrectas.";
-        return;
+        if (!resultadoLogin.autorizado) {
+            loginError.textContent = resultadoLogin.mensaje || "Credenciales incorrectas.";
+            return;
+        }
+
+        usuarioActual = { ...resultadoLogin.usuario };
+        localStorage.setItem("gcm12_usuario_actual", JSON.stringify(usuarioActual));
+
+        limpiarDatosOperativosEnMemoria();
+
+        iniciarSistema();
+
+        mostrarAvisoPasswordReseteada();
+
+        cargarDatosInicialesEnSegundoPlano();
+
+        apiPost("UPDATE_LAST_ACCESS", {
+            id_usuario: usuarioActual.id_usuario
+        }).catch((error) => {
+            console.warn("No se pudo actualizar último acceso:", error);
+        });
+
+    } catch (error) {
+        console.error("Error login Google Sheets:", error);
+        loginError.textContent = `No se pudo iniciar sesión: ${error.message}`;
+    } finally {
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.textContent = "Iniciar sesión";
+        }
     }
-
-    if (encontrado.estado !== "ACTIVO") {
-        loginError.textContent = "Usuario inactivo o bloqueado.";
-        return;
-    }
-
-    usuarioActual = { ...encontrado };
-    localStorage.setItem("gcm12_usuario_actual", JSON.stringify(usuarioActual));
-
-    iniciarSistema();
-
-    registrarAuditoria(
-        "LOGIN",
-        "LOGIN",
-        usuarioActual.id_usuario,
-        "Inicio de sesión exitoso"
-    );
-
-    mostrarAvisoPasswordReseteada();
 });
 
 logoutBtn.addEventListener("click", () => {
@@ -649,6 +667,9 @@ function mostrarPagina(pageId, title, subtitle) {
     }
     if (pageId === "inicioPage") {
         renderInicioPorRol();
+    }
+    if (pageId === "reportesPage") {
+        renderReportes();
     }
 }
 
@@ -911,6 +932,7 @@ function actualizarOperacionExistente() {
     }
 
     const fechaActual = new Date().toISOString();
+    const estabaObservada = operacionActual.estado_operacion === "OBSERVADO";
 
     operacionesSistema[index] = {
         ...operacionActual,
@@ -929,6 +951,13 @@ function actualizarOperacionExistente() {
         num_sldr: Number(document.getElementById("numSldr").value),
         hubo_resultados: huboResultados.value,
         ultima_modificacion: fechaActual,
+        estado_operacion: estabaObservada ? "REGISTRADO" : operacionActual.estado_operacion,
+        corregido_por: estabaObservada && usuarioActual
+            ? `${usuarioActual.nombres} ${usuarioActual.apellidos}`
+            : operacionActual.corregido_por || "",
+        fecha_correccion_observacion: estabaObservada
+            ? fechaActual
+            : operacionActual.fecha_correccion_observacion || "",
         observacion_general: document.getElementById("observacionGeneral").value.trim()
     };
 
@@ -953,10 +982,12 @@ function actualizarOperacionExistente() {
     guardarOperacionesSistema();
     guardarResultadosSistema();
     registrarAuditoria(
-        "EDITAR",
+        estabaObservada ? "CORREGIR_OBSERVACION" : "EDITAR",
         "OPERACIONES",
         operacionEditandoId,
-        "Actualizó operación registrada"
+        estabaObservada
+            ? "Corrigió operación observada y la devolvió a estado REGISTRADO"
+            : "Actualizó operación registrada"
     );
 
     limpiarFormularioOperacion();
@@ -987,6 +1018,8 @@ function limpiarFormularioOperacion() {
 
     const guardarBtn = document.getElementById("guardarOperacionBtn");
     if (guardarBtn) guardarBtn.textContent = "Guardar operación";
+
+    mostrarObservacionCorreccionOperacion(null);
 }
 
 function generarIdOperacion() {
@@ -1249,136 +1282,165 @@ function abrirFormularioEditarUsuario(idUsuario) {
     document.getElementById("usuarioFormPanel").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function guardarUsuarioDesdeAdmin(event) {
+async function guardarUsuarioDesdeAdmin(event) {
     event.preventDefault();
 
-    const idEditando = document.getElementById("usuarioEditId").value;
+    const submitBtn = event.target.querySelector('button[type="submit"]');
 
-    const nombres = document.getElementById("userNombres").value.trim();
-    const apellidos = document.getElementById("userApellidos").value.trim();
-    const grado = document.getElementById("userGrado").value.trim();
-    const cargo = document.getElementById("userCargo").value.trim();
-    const unidad = document.getElementById("userUnidad").value.trim();
-    const correo = document.getElementById("userCorreo").value.trim();
-    const cedula = document.getElementById("userCedula").value.trim();
-    const password = document.getElementById("userPassword").value.trim();
-    const rol = document.getElementById("userRol").value;
-    const estado = document.getElementById("userEstado").value;
-    const observacion = document.getElementById("userObservacion").value.trim();
-
-    if (!nombres || !apellidos || !grado || !cargo || !unidad || !cedula || !rol || !estado) {
-        mostrarMensajeUsuarios("Complete todos los campos obligatorios.", "error");
-        return;
-    }
-
-    if (!validarCedula10Digitos(cedula)) {
-        mostrarMensajeUsuarios("La cédula debe contener exactamente 10 dígitos numéricos.", "error");
-        return;
-    }
-
-    const cedulaDuplicada = usuariosSistema.some((u) => {
-        return u.usuario === cedula && u.id_usuario !== idEditando;
-    });
-
-    if (cedulaDuplicada) {
-        mostrarMensajeUsuarios("Ya existe un usuario registrado con esa cédula.", "error");
-        return;
-    }
-
-    if (!idEditando && !password) {
-        mostrarMensajeUsuarios("Para crear un usuario debe ingresar una contraseña.", "error");
-        return;
-    }
-
-    if (password) {
-        const validacionPassword = validarPasswordSegura(password);
-
-        if (!validacionPassword.valido) {
-            mostrarMensajeUsuarios(validacionPassword.mensaje, "error");
-            return;
+    const restaurarBoton = () => {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Guardar usuario";
         }
+    };
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Guardando...";
     }
 
-    if (idEditando) {
-        const index = usuariosSistema.findIndex((u) => u.id_usuario === idEditando);
+    try {
+        const idEditando = document.getElementById("usuarioEditId").value;
 
-        if (index === -1) {
-            mostrarMensajeUsuarios("Usuario no encontrado para editar.", "error");
+        const nombres = document.getElementById("userNombres").value.trim();
+        const apellidos = document.getElementById("userApellidos").value.trim();
+        const grado = document.getElementById("userGrado").value.trim();
+        const cargo = document.getElementById("userCargo").value.trim();
+        const unidad = document.getElementById("userUnidad").value.trim();
+        const correo = document.getElementById("userCorreo").value.trim();
+        const cedula = document.getElementById("userCedula").value.trim();
+        const password = document.getElementById("userPassword").value.trim();
+        const rol = document.getElementById("userRol").value;
+        const estado = document.getElementById("userEstado").value;
+        const observacion = document.getElementById("userObservacion").value.trim();
+
+        if (!nombres || !apellidos || !grado || !cargo || !unidad || !cedula || !rol || !estado) {
+            mostrarMensajeUsuarios("Complete todos los campos obligatorios.", "error");
             return;
         }
 
-        const usuarioAnterior = usuariosSistema[index];
+        if (!validarCedula10Digitos(cedula)) {
+            mostrarMensajeUsuarios("La cédula debe contener exactamente 10 dígitos numéricos.", "error");
+            return;
+        }
 
-        usuariosSistema[index] = {
-            ...usuarioAnterior,
-            nombres,
-            apellidos,
-            grado,
-            cargo,
-            unidad,
-            correo,
-            usuario: cedula,
-            password: password || usuarioAnterior.password,
-            rol,
-            estado,
-            observacion,
-            debe_cambiar_password: "NO",
-            fecha_cambio_password: usuarioAnterior.fecha_cambio_password || "",
-            ultimo_reset_password: usuarioAnterior.ultimo_reset_password || "",
-            reset_password_por: usuarioAnterior.reset_password_por || "",
-            password_reseteada: password ? "SI" : (usuarioAnterior.password_reseteada || "NO")
-        };
+        await obtenerUsuariosDesdeGoogleSheets();
 
-        mostrarMensajeUsuarios("Usuario actualizado correctamente.", "success");
+        const cedulaDuplicada = usuariosSistema.some((u) => {
+            return u.usuario === cedula && u.id_usuario !== idEditando;
+        });
 
-        registrarAuditoria(
-            "EDITAR",
-            "USUARIOS",
-            idEditando,
-            `Actualizó datos del usuario ${nombres} ${apellidos}`
-        );
-    } else {
-        const nuevoUsuario = {
-            id_usuario: generarIdUsuario(),
-            nombres,
-            apellidos,
-            grado,
-            cargo,
-            unidad,
-            correo,
-            usuario: cedula,
-            password,
-            rol,
-            estado,
-            fecha_creacion: new Date().toISOString(),
-            ultimo_acceso: "",
-            observacion,
-            debe_cambiar_password: "NO",
-            fecha_cambio_password: "",
-            ultimo_reset_password: "",
-            reset_password_por: "",
-            password_reseteada: "NO"
-        };
+        if (cedulaDuplicada) {
+            mostrarMensajeUsuarios("Ya existe un usuario registrado con esa cédula.", "error");
+            return;
+        }
 
-        usuariosSistema.push(nuevoUsuario);
+        if (!idEditando && !password) {
+            mostrarMensajeUsuarios("Para crear un usuario debe ingresar una contraseña.", "error");
+            return;
+        }
 
-        mostrarMensajeUsuarios("Usuario creado correctamente.", "success");
+        if (password) {
+            const validacionPassword = validarPasswordSegura(password);
 
-        registrarAuditoria(
-            "CREAR",
-            "USUARIOS",
-            nuevoUsuario.id_usuario,
-            `Creó el usuario ${nombres} ${apellidos} con rol ${rol}`
-        );
+            if (!validacionPassword.valido) {
+                mostrarMensajeUsuarios(validacionPassword.mensaje, "error");
+                return;
+            }
+        }
+
+        if (idEditando) {
+            const index = usuariosSistema.findIndex((u) => u.id_usuario === idEditando);
+
+            if (index === -1) {
+                mostrarMensajeUsuarios("Usuario no encontrado para editar.", "error");
+                return;
+            }
+
+            const usuarioAnterior = usuariosSistema[index];
+
+            const usuarioActualizado = {
+                ...usuarioAnterior,
+                nombres,
+                apellidos,
+                grado,
+                cargo,
+                unidad,
+                correo,
+                usuario: cedula,
+                password: password || usuarioAnterior.password,
+                rol,
+                estado,
+                observacion,
+                debe_cambiar_password: "NO",
+                fecha_cambio_password: usuarioAnterior.fecha_cambio_password || "",
+                ultimo_reset_password: usuarioAnterior.ultimo_reset_password || "",
+                reset_password_por: usuarioAnterior.reset_password_por || "",
+                password_reseteada: password ? "SI" : (usuarioAnterior.password_reseteada || "NO")
+            };
+
+            await apiPost("SAVE_USER", {
+                usuario: usuarioActualizado
+            });
+
+            mostrarMensajeUsuarios("Usuario actualizado correctamente.", "success");
+
+            registrarAuditoria(
+                "EDITAR",
+                "USUARIOS",
+                idEditando,
+                `Actualizó datos del usuario ${nombres} ${apellidos}`
+            );
+        } else {
+            const nuevoUsuario = {
+                id_usuario: generarIdUsuario(),
+                nombres,
+                apellidos,
+                grado,
+                cargo,
+                unidad,
+                correo,
+                usuario: cedula,
+                password,
+                rol,
+                estado,
+                fecha_creacion: new Date().toISOString(),
+                ultimo_acceso: "",
+                observacion,
+                debe_cambiar_password: "NO",
+                fecha_cambio_password: "",
+                ultimo_reset_password: "",
+                reset_password_por: "",
+                password_reseteada: "NO"
+            };
+
+            await apiPost("SAVE_USER", {
+                usuario: nuevoUsuario
+            });
+
+            mostrarMensajeUsuarios("Usuario creado correctamente.", "success");
+
+            registrarAuditoria(
+                "CREAR",
+                "USUARIOS",
+                nuevoUsuario.id_usuario,
+                `Creó el usuario ${nombres} ${apellidos} con rol ${rol}`
+            );
+        }
+
+        await refrescarUsuariosDesdeGoogleSheets();
+
+        cerrarFormularioUsuario();
+
+    } catch (error) {
+        console.error("Error al guardar usuario:", error);
+        mostrarMensajeUsuarios(`No se pudo guardar el usuario: ${error.message}`, "error");
+    } finally {
+        restaurarBoton();
     }
-
-    guardarUsuariosSistema();
-    renderInicioPorRol();
-    renderUsuariosAdmin();
-    cerrarFormularioUsuario();
 }
 
-function cambiarEstadoUsuario(idUsuario) {
+async function cambiarEstadoUsuario(idUsuario) {
     const usuario = usuariosSistema.find((u) => u.id_usuario === idUsuario);
 
     if (!usuario) {
@@ -1391,10 +1453,22 @@ function cambiarEstadoUsuario(idUsuario) {
         return;
     }
 
+    const estadoAnterior = usuario.estado;
     usuario.estado = usuario.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO";
 
-    guardarUsuariosSistema();
-    renderUsuariosAdmin();
+    try {
+        await apiPost("SAVE_USER", {
+            usuario
+        });
+    } catch (error) {
+        console.error("Error al cambiar estado de usuario:", error);
+        usuario.estado = estadoAnterior;
+        mostrarMensajeUsuarios(`No se pudo cambiar el estado: ${error.message}`, "error");
+        return;
+    }
+
+    await refrescarUsuariosDesdeGoogleSheets();
+
     registrarAuditoria(
         usuario.estado === "ACTIVO" ? "ACTIVAR" : "INACTIVAR",
         "USUARIOS",
@@ -1405,8 +1479,7 @@ function cambiarEstadoUsuario(idUsuario) {
 
     mostrarMensajeUsuarios(`Usuario ${usuario.estado === "ACTIVO" ? "activado" : "inactivado"} correctamente.`, "success");
 }
-
-function eliminarUsuarioAdmin(idUsuario) {
+async function eliminarUsuarioAdmin(idUsuario) {
     const usuario = usuariosSistema.find((u) => u.id_usuario === idUsuario);
 
     if (!usuario) {
@@ -1423,10 +1496,17 @@ function eliminarUsuarioAdmin(idUsuario) {
 
     if (!confirmar) return;
 
-    usuariosSistema = usuariosSistema.filter((u) => u.id_usuario !== idUsuario);
+    try {
+        await apiPost("DELETE_USER", {
+            id_usuario: idUsuario
+        });
+    } catch (error) {
+        console.error("Error al eliminar usuario:", error);
+        mostrarMensajeUsuarios(`No se pudo eliminar el usuario: ${error.message}`, "error");
+        return;
+    }
 
-    guardarUsuariosSistema();
-    renderUsuariosAdmin();
+    await refrescarUsuariosDesdeGoogleSheets();
 
     mostrarMensajeUsuarios("Usuario eliminado correctamente en modo demo.", "success");
     renderInicioPorRol();
@@ -1447,8 +1527,13 @@ function cerrarFormularioUsuario() {
 }
 
 function generarIdUsuario() {
-    const numero = usuariosSistema.length + 1;
-    return `USR-${String(numero).padStart(3, "0")}`;
+    const mayor = usuariosSistema.reduce((max, usuario) => {
+        const match = String(usuario.id_usuario || "").match(/USR-(\d+)/);
+        const numero = match ? Number(match[1]) : 0;
+        return numero > max ? numero : max;
+    }, 0);
+
+    return `USR-${String(mayor + 1).padStart(3, "0")}`;
 }
 
 function mostrarMensajeUsuarios(mensaje, tipo, destino = "auto") {
@@ -1718,7 +1803,14 @@ function verDetalleOperacion(idOperacion) {
                 <strong>${operacion.registrado_por}</strong>
             </div>
         </div>
-
+        ${operacion.estado_operacion === "OBSERVADO" && operacion.observacion_admin ? `
+        <div class="admin-note correction-note">
+            <strong>Operación observada por el administrador:</strong><br>
+            ${operacion.observacion_admin}
+            ${operacion.observado_por ? `<br><br><strong>Observado por:</strong> ${operacion.observado_por}` : ""}
+            ${operacion.fecha_observacion ? `<br><strong>Fecha:</strong> ${formatearFechaHora(operacion.fecha_observacion)}` : ""}
+        </div>
+        ` : ""}
         <div class="section-title">
             <h3>Resultados asociados</h3>
         </div>
@@ -1752,6 +1844,7 @@ function cargarOperacionParaEditar(idOperacion) {
     operacionEditandoId = idOperacion;
 
     mostrarPagina("registrarPage", "Editar operación", "Modificación de operación registrada");
+    mostrarObservacionCorreccionOperacion(operacion);
 
     document.getElementById("fechaOperacion").value = operacion.fecha_operacion;
     document.getElementById("horaInicio").value = operacion.hora_inicio;
@@ -1863,17 +1956,29 @@ function mostrarMensajeMisOperaciones(mensaje, tipo) {
 
 function configurarAdministrarOperaciones() {
     const buscar = document.getElementById("buscarOperacionesAdmin");
+    const filtroFechaDesde = document.getElementById("filtroFechaDesdeOperacionesAdmin");
+    const filtroFechaHasta = document.getElementById("filtroFechaHastaOperacionesAdmin");
     const filtroEstado = document.getElementById("filtroEstadoOperacionesAdmin");
     const filtroTipo = document.getElementById("filtroTipoOperacionesAdmin");
     const filtroResultados = document.getElementById("filtroResultadosOperacionesAdmin");
+    const limpiarBtn = document.getElementById("limpiarFiltrosOperacionesAdminBtn");
     const tbody = document.getElementById("operacionesAdminTableBody");
 
     if (!tbody) return;
 
     if (buscar) buscar.addEventListener("input", renderOperacionesAdmin);
+    if (filtroFechaDesde) filtroFechaDesde.addEventListener("change", renderOperacionesAdmin);
+    if (filtroFechaHasta) filtroFechaHasta.addEventListener("change", renderOperacionesAdmin);
     if (filtroEstado) filtroEstado.addEventListener("change", renderOperacionesAdmin);
     if (filtroTipo) filtroTipo.addEventListener("change", renderOperacionesAdmin);
     if (filtroResultados) filtroResultados.addEventListener("change", renderOperacionesAdmin);
+
+    if (limpiarBtn) {
+        limpiarBtn.addEventListener("click", (event) => {
+            event.preventDefault();
+            limpiarFiltrosOperacionesAdmin();
+        });
+    }
 
     tbody.addEventListener("click", (event) => {
         const button = event.target.closest("button");
@@ -1904,6 +2009,29 @@ function configurarAdministrarOperaciones() {
     });
 }
 
+function limpiarFiltrosOperacionesAdmin() {
+    const buscar = document.getElementById("buscarOperacionesAdmin");
+    const fechaDesde = document.getElementById("filtroFechaDesdeOperacionesAdmin");
+    const fechaHasta = document.getElementById("filtroFechaHastaOperacionesAdmin");
+    const estado = document.getElementById("filtroEstadoOperacionesAdmin");
+    const tipo = document.getElementById("filtroTipoOperacionesAdmin");
+    const resultados = document.getElementById("filtroResultadosOperacionesAdmin");
+    const detallePanel = document.getElementById("detalleOperacionAdminPanel");
+
+    if (buscar) buscar.value = "";
+    if (fechaDesde) fechaDesde.value = "";
+    if (fechaHasta) fechaHasta.value = "";
+    if (estado) estado.value = "";
+    if (tipo) tipo.value = "";
+    if (resultados) resultados.value = "";
+
+    if (detallePanel) {
+        detallePanel.classList.add("hidden");
+    }
+
+    renderOperacionesAdmin();
+}
+
 function renderOperacionesAdmin() {
     const tbody = document.getElementById("operacionesAdminTableBody");
     if (!tbody) return;
@@ -1911,6 +2039,8 @@ function renderOperacionesAdmin() {
     recargarDatosDesdeStorage();
 
     const texto = (document.getElementById("buscarOperacionesAdmin")?.value || "").toLowerCase().trim();
+    const fechaDesde = document.getElementById("filtroFechaDesdeOperacionesAdmin")?.value || "";
+    const fechaHasta = document.getElementById("filtroFechaHastaOperacionesAdmin")?.value || "";
     const estado = document.getElementById("filtroEstadoOperacionesAdmin")?.value || "";
     const tipo = document.getElementById("filtroTipoOperacionesAdmin")?.value || "";
     const resultados = document.getElementById("filtroResultadosOperacionesAdmin")?.value || "";
@@ -1933,11 +2063,18 @@ function renderOperacionesAdmin() {
         `.toLowerCase();
 
         const coincideTexto = !texto || textoOperacion.includes(texto);
+        const coincideFechaDesde = !fechaDesde || op.fecha_operacion >= fechaDesde;
+        const coincideFechaHasta = !fechaHasta || op.fecha_operacion <= fechaHasta;
         const coincideEstado = !estado || op.estado_operacion === estado;
         const coincideTipo = !tipo || op.tipo_operacion === tipo;
         const coincideResultados = !resultados || op.hubo_resultados === resultados;
 
-        return coincideTexto && coincideEstado && coincideTipo && coincideResultados;
+        return coincideTexto &&
+            coincideFechaDesde &&
+            coincideFechaHasta &&
+            coincideEstado &&
+            coincideTipo &&
+            coincideResultados;
     });
 
     tbody.innerHTML = "";
@@ -2607,10 +2744,10 @@ function renderDashboard() {
     setText("dashFibraCable", `${formatDecimal(sumarSubcategorias(resultados, "Equipos de red", ["Fibra óptica", "Cable de red"], "metros"))} m`);
 
     // Equipamiento táctico
-    setText("dashEquipamientoTactico", formatNumero(sumarCategoria(resultados, "Equipamiento táctico")));
+    // setText("dashEquipamientoTactico", formatNumero(sumarCategoria(resultados, "Equipamiento táctico")));
     setText("dashChalecos", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Chalecos antibalas")));
-    setText("dashUniformesPoliciales", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Uniformes policiales")));
-    setText("dashUniformesMilitares", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Uniformes militares")));
+    // setText("dashUniformesPoliciales", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Uniformes policiales")));
+    setText("dashUniformesMilitares", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Uniformes militares/policiales")));
     setText("dashPrendasMilPol", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Otras prendas militares o policiales")));
     setText("dashEsposas", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Esposas")));
     setText("dashOtrosEquiposTacticos", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Otros equipos tácticos")));
@@ -3055,9 +3192,9 @@ function aplicarIconosDashboard() {
         dashAudifonos: "mdi:headphones",
 
         // Equipamiento táctico
-        dashEquipamientoTactico: "game-icons:kevlar-vest",
+
         dashChalecos: "game-icons:kevlar-vest",
-        dashUniformesPoliciales: "mdi:police-badge-outline",
+        // dashUniformesPoliciales: "mdi:police-badge-outline",
         dashUniformesMilitares: "game-icons:military-fort",
         dashPrendasMilPol: "game-icons:clothes",
         dashEsposas: "game-icons:handcuffs",
@@ -4854,7 +4991,7 @@ function mostrarMensajePassword(mensaje, tipo) {
     message.className = `form-message ${tipo}`;
 }
 
-function procesarCambioPasswordDesdeModal(event) {
+async function procesarCambioPasswordDesdeModal(event) {
     event.preventDefault();
 
     if (!usuarioActual) {
@@ -4907,9 +5044,20 @@ function procesarCambioPasswordDesdeModal(event) {
     usuario.password_reseteada = "NO";
     usuario.fecha_cambio_password = new Date().toISOString();
 
+    try {
+        await apiPost("SAVE_USER", {
+            usuario
+        });
+    } catch (error) {
+        console.error("Error al cambiar contraseña:", error);
+        mostrarMensajePassword(`No se pudo cambiar la contraseña: ${error.message}`, "error");
+        return;
+    }
+
     usuarioActual = { ...usuario };
 
-    guardarUsuariosSistema();
+    await refrescarUsuariosDesdeGoogleSheets();
+
     localStorage.setItem("gcm12_usuario_actual", JSON.stringify(usuarioActual));
 
     registrarAuditoria(
@@ -5018,7 +5166,7 @@ function mostrarMensajeResetPassword(mensaje, tipo) {
     message.className = `form-message ${tipo}`;
 }
 
-function procesarResetPasswordDesdeModal(event) {
+async function procesarResetPasswordDesdeModal(event) {
     event.preventDefault();
 
     if (!usuarioActual || usuarioActual.rol !== "ADMIN") {
@@ -5057,15 +5205,23 @@ function procesarResetPasswordDesdeModal(event) {
     }
 
     usuario.password = nuevaPassword;
-
-    // Cambio opcional: el usuario podrá cambiarla, pero no será obligatorio.
     usuario.debe_cambiar_password = "NO";
     usuario.password_reseteada = "SI";
     usuario.ultimo_reset_password = new Date().toISOString();
     usuario.reset_password_por = `${usuarioActual.grado} ${usuarioActual.nombres} ${usuarioActual.apellidos}`;
     usuario.fecha_cambio_password = "";
 
-    guardarUsuariosSistema();
+    try {
+        await apiPost("SAVE_USER", {
+            usuario
+        });
+    } catch (error) {
+        console.error("Error al resetear contraseña:", error);
+        mostrarMensajeResetPassword(`No se pudo resetear la contraseña: ${error.message}`, "error");
+        return;
+    }
+
+    await refrescarUsuariosDesdeGoogleSheets();
 
     registrarAuditoria(
         "RESET_PASSWORD",
@@ -5073,9 +5229,6 @@ function procesarResetPasswordDesdeModal(event) {
         usuario.id_usuario,
         `Se reseteó la contraseña del usuario ${usuario.usuario}`
     );
-
-    renderUsuariosAdmin();
-    renderAuditoria();
 
     mostrarMensajeResetPassword("Contraseña reseteada correctamente.", "success");
 
@@ -5158,7 +5311,6 @@ function inicializarMapaOperacion() {
     if (!mapaDiv) return;
 
     const coordenadasInput = document.getElementById("coordenadas");
-
     const puntoActual = obtenerCoordenadasDesdeTexto(coordenadasInput?.value || "");
 
     const centroInicial = puntoActual || {
@@ -5280,7 +5432,6 @@ function obtenerCoordenadasDesdeTexto(texto) {
     const lng = Number(partes[1]);
 
     if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
-
     if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
 
     return {
@@ -5296,4 +5447,118 @@ function mostrarMensajeMapa(mensaje, tipo) {
 
     message.textContent = mensaje;
     message.className = `form-message ${tipo}`;
+}
+
+function mostrarObservacionCorreccionOperacion(operacion) {
+    const box = document.getElementById("observacionCorreccionBox");
+
+    if (!box) return;
+
+    if (
+        operacion &&
+        operacion.estado_operacion === "OBSERVADO" &&
+        operacion.observacion_admin
+    ) {
+        box.innerHTML = `
+            <strong>Operación observada. Corrija el registro según la siguiente observación:</strong><br>
+            ${operacion.observacion_admin}
+            ${operacion.observado_por ? `<br><br><strong>Observado por:</strong> ${operacion.observado_por}` : ""}
+            ${operacion.fecha_observacion ? `<br><strong>Fecha:</strong> ${formatearFechaHora(operacion.fecha_observacion)}` : ""}
+        `;
+
+        box.classList.remove("hidden");
+        return;
+    }
+
+    box.innerHTML = "";
+    box.classList.add("hidden");
+}
+
+async function apiPost(action, payload = {}) {
+    if (!USAR_GOOGLE_SHEETS) {
+        throw new Error("Google Sheets está desactivado.");
+    }
+
+    if (!API_URL || API_URL.includes("PEGA_AQUI")) {
+        throw new Error("Configure la URL de Apps Script en API_URL.");
+    }
+
+    const response = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+            action,
+            payload
+        })
+    });
+
+    const data = await response.json();
+
+    if (!data.ok) {
+        throw new Error(data.error || "Error desconocido en Apps Script.");
+    }
+
+    return data.data;
+}
+
+async function cargarDatosDesdeGoogleSheets(renderizar = true) {
+    const data = await apiPost("GET_ALL_DATA");
+
+    usuariosSistema = data.usuarios || [];
+    operacionesSistema = data.operaciones || [];
+    resultadosSistema = data.resultados || [];
+    auditoriaSistema = data.auditoria || [];
+
+    localStorage.setItem(STORAGE_USUARIOS, JSON.stringify(usuariosSistema));
+    localStorage.setItem(STORAGE_OPERACIONES, JSON.stringify(operacionesSistema));
+    localStorage.setItem(STORAGE_RESULTADOS, JSON.stringify(resultadosSistema));
+    localStorage.setItem(STORAGE_AUDITORIA, JSON.stringify(auditoriaSistema));
+
+    if (!renderizar) return;
+
+    renderInicioPorRol();
+    renderUsuariosAdmin();
+    renderMisOperaciones();
+    renderOperacionesAdmin();
+    renderDashboard();
+    renderReportes();
+    renderAuditoria();
+}
+
+async function obtenerUsuariosDesdeGoogleSheets() {
+    const usuarios = await apiPost("GET_USERS");
+
+    usuariosSistema = usuarios || [];
+    localStorage.setItem(STORAGE_USUARIOS, JSON.stringify(usuariosSistema));
+
+    return usuariosSistema;
+}
+
+async function refrescarUsuariosDesdeGoogleSheets() {
+    await obtenerUsuariosDesdeGoogleSheets();
+
+    renderInicioPorRol();
+    renderUsuariosAdmin();
+
+    if (typeof renderAuditoria === "function") {
+        renderAuditoria();
+    }
+}
+
+function limpiarDatosOperativosEnMemoria() {
+    operacionesSistema = [];
+    resultadosSistema = [];
+    auditoriaSistema = [];
+
+    localStorage.setItem(STORAGE_OPERACIONES, JSON.stringify([]));
+    localStorage.setItem(STORAGE_RESULTADOS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_AUDITORIA, JSON.stringify([]));
+}
+
+async function cargarDatosInicialesEnSegundoPlano() {
+    try {
+        await cargarDatosDesdeGoogleSheets(true);
+    } catch (error) {
+        console.error("Error cargando datos iniciales:", error);
+        alert("Ingresó al sistema, pero no se pudieron cargar todos los datos desde Google Sheets. Revise la conexión.");
+    }
 }

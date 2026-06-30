@@ -121,7 +121,7 @@
                 <!-- REGISTRAR OPERACIÓN -->
                 <section id="registrarPage" class="page">
                     <form id="operacionForm" class="form-card">
-
+                        <div id="observacionCorreccionBox" class="admin-note correction-note hidden"></div>
                         <div class="section-title">
                             <h3>1. Datos generales</h3>
                         </div>
@@ -600,6 +600,16 @@
                             </div>
 
                             <div class="field">
+                                <label>Fecha desde</label>
+                                <input type="date" id="filtroFechaDesdeOperacionesAdmin" />
+                            </div>
+
+                            <div class="field">
+                                <label>Fecha hasta</label>
+                                <input type="date" id="filtroFechaHastaOperacionesAdmin" />
+                            </div>
+
+                            <div class="field">
                                 <label>Estado</label>
                                 <select id="filtroEstadoOperacionesAdmin">
                                     <option value="">Todos</option>
@@ -626,6 +636,14 @@
                                     <option value="SI">SI</option>
                                     <option value="NO">NO</option>
                                 </select>
+                            </div>
+
+                            <div class="field admin-filter-buttons">
+                                <label>&nbsp;</label>
+                                <button type="button" id="limpiarFiltrosOperacionesAdminBtn"
+                                    class="btn btn-outline-dark">
+                                    Limpiar filtros
+                                </button>
                             </div>
                         </div>
 
@@ -954,23 +972,23 @@
                                 </div>
 
                                 <div class="dash-card-grid">
-                                    <article class="dash-metric-card large">
+                                    <!-- <article class="dash-metric-card large">
                                         <span>Total equipamiento táctico</span>
                                         <strong id="dashEquipamientoTactico">0</strong>
-                                    </article>
+                                    </article> -->
 
                                     <article class="dash-metric-card">
                                         <span>Chalecos antibalas</span>
                                         <strong id="dashChalecos">0</strong>
                                     </article>
 
-                                    <article class="dash-metric-card">
+                                    <!-- <article class="dash-metric-card">
                                         <span>Uniformes policiales</span>
                                         <strong id="dashUniformesPoliciales">0</strong>
-                                    </article>
+                                    </article> -->
 
                                     <article class="dash-metric-card">
-                                        <span>Uniformes militares</span>
+                                        <span>Uniformes militares/policiales</span>
                                         <strong id="dashUniformesMilitares">0</strong>
                                     </article>
 
