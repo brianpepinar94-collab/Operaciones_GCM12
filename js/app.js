@@ -450,6 +450,8 @@ document.addEventListener("DOMContentLoaded", () => {
     renderDashboard();
     renderReportes();
     renderAuditoria();
+
+    restaurarSesionGuardada();
 });
 ubicacionBtn.addEventListener("click", () => {
     const coordenadasInput = document.getElementById("coordenadas");
@@ -607,8 +609,51 @@ function iniciarSistema() {
     welcomeText.textContent = `Rol asignado: ${usuarioActual.rol}.`;
 
     construirMenu(usuarioActual.rol);
-    renderInicioPorRol();
     iniciarActualizacionAutomaticaSheets();
+}
+
+async function restaurarSesionGuardada() {
+    const data = localStorage.getItem("gcm12_usuario_actual");
+
+    if (!data) return;
+
+    try {
+        usuarioActual = JSON.parse(data);
+
+        if (!usuarioActual || !usuarioActual.id_usuario || !usuarioActual.rol) {
+            localStorage.removeItem("gcm12_usuario_actual");
+            usuarioActual = null;
+            return;
+        }
+
+        const usuarios = await obtenerUsuariosDesdeGoogleSheets();
+
+        const usuarioVigente = usuarios.find((u) => {
+            return String(u.id_usuario) === String(usuarioActual.id_usuario);
+        });
+
+        if (!usuarioVigente) {
+            cerrarSesionForzada("El usuario ya no existe en el sistema.");
+            return;
+        }
+
+        if (usuarioVigente.estado !== "ACTIVO") {
+            cerrarSesionForzada("El usuario se encuentra inactivo. Contacte al administrador.");
+            return;
+        }
+
+        usuarioActual = { ...usuarioVigente };
+        localStorage.setItem("gcm12_usuario_actual", JSON.stringify(usuarioActual));
+
+        iniciarSistema();
+
+        cargarDatosInicialesEnSegundoPlano();
+
+    } catch (error) {
+        console.error("Error restaurando sesión:", error);
+        localStorage.removeItem("gcm12_usuario_actual");
+        usuarioActual = null;
+    }
 }
 
 // MENÚ POR ROL
@@ -628,8 +673,14 @@ function construirMenu(rol) {
         }
 
         button.addEventListener("click", () => {
+            if (!usuarioTieneAccesoPagina(item.id)) {
+                alert("No tiene permisos para acceder a esta sección.");
+                return;
+            }
+
             document.querySelectorAll(".menu button").forEach((b) => b.classList.remove("active"));
             button.classList.add("active");
+
             mostrarPagina(item.id, item.title, item.subtitle);
         });
 
@@ -638,6 +689,11 @@ function construirMenu(rol) {
 }
 
 function mostrarPagina(pageId, title, subtitle) {
+    if (usuarioActual && !usuarioTieneAccesoPagina(pageId)) {
+        alert("No tiene permisos para acceder a esta sección.");
+        redirigirAPaginaInicialRol();
+        return;
+    }
     document.querySelectorAll(".page").forEach((page) => {
         page.classList.remove("active");
     });
@@ -656,6 +712,7 @@ function mostrarPagina(pageId, title, subtitle) {
 
     cargarDatosDePagina(pageId);
 }
+
 function mostrarEstadoCargaPagina(texto = "") {
     const pageSubtitle = document.getElementById("pageSubtitle");
 
@@ -671,6 +728,51 @@ function mostrarEstadoCargaPagina(texto = "") {
         pageSubtitle.textContent = pageSubtitle.dataset.originalText;
         delete pageSubtitle.dataset.originalText;
     }
+}
+
+function usuarioTieneAccesoPagina(pageId) {
+    if (!usuarioActual || !usuarioActual.rol) return false;
+
+    const opciones = menuPorRol[usuarioActual.rol] || [];
+
+    return opciones.some((item) => item.id === pageId);
+}
+
+function obtenerPrimeraPaginaRol(rol) {
+    const opciones = menuPorRol[rol] || [];
+    return opciones.length > 0 ? opciones[0] : null;
+}
+
+function redirigirAPaginaInicialRol() {
+    if (!usuarioActual) return;
+
+    const paginaInicial = obtenerPrimeraPaginaRol(usuarioActual.rol);
+
+    if (!paginaInicial) {
+        cerrarSesionForzada("No existe una página inicial configurada para este rol.");
+        return;
+    }
+
+    mostrarPagina(
+        paginaInicial.id,
+        paginaInicial.title,
+        paginaInicial.subtitle
+    );
+}
+
+function cerrarSesionForzada(mensaje = "La sesión ya no es válida. Inicie sesión nuevamente.") {
+    detenerActualizacionAutomaticaSheets();
+
+    usuarioActual = null;
+    resultadosTemporales = [];
+
+    localStorage.removeItem("gcm12_usuario_actual");
+
+    appView.classList.add("hidden");
+    loginView.classList.remove("hidden");
+
+    loginForm.reset();
+    loginError.textContent = mensaje;
 }
 
 // SUBTIPOS POR TIPO DE OPERACIÓN
