@@ -2238,3 +2238,51 @@ button,
     max-height: 360px;
   }
 }
+
+.admin-action-card {
+    max-width: 560px;
+    width: min(92vw, 560px);
+}
+
+.admin-action-text {
+    margin: 0 0 14px;
+    color: #2d2140;
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+#adminActionTextarea {
+    width: 100%;
+    resize: vertical;
+    min-height: 120px;
+    border: 1px solid #D8D2E3;
+    border-radius: 12px;
+    padding: 12px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+}
+
+#adminActionTextarea:focus {
+    border-color: #F3C623;
+    box-shadow: 0 0 0 3px rgba(243, 198, 35, 0.22);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 12px;
+}
+
+.admin-action-card .btn-danger {
+    background: #B42318;
+    color: #ffffff;
+    border-color: #B42318;
+}
+
+.admin-action-card .btn-blue {
+    background: #164AA8;
+    color: #ffffff;
+    border-color: #164AA8;
+}

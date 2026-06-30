@@ -432,6 +432,8 @@ document.addEventListener("DOMContentLoaded", () => {
     configurarReportes();
     configurarAuditoria();
 
+    configurarModalAccionAdmin();
+
     configurarMapaOperacion();
 
     configurarMenuCuenta();
@@ -1854,7 +1856,61 @@ function verDetalleOperacion(idOperacion) {
     panel.classList.remove("hidden");
     panel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
+function normalizarFechaParaInput(valor) {
+    if (!valor) return "";
 
+    const texto = String(valor).trim();
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
+        return texto;
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}T/.test(texto)) {
+        return texto.slice(0, 10);
+    }
+
+    const fecha = new Date(texto);
+
+    if (!Number.isNaN(fecha.getTime())) {
+        const yyyy = fecha.getFullYear();
+        const mm = String(fecha.getMonth() + 1).padStart(2, "0");
+        const dd = String(fecha.getDate()).padStart(2, "0");
+
+        return `${yyyy}-${mm}-${dd}`;
+    }
+
+    return "";
+}
+
+function normalizarHoraParaInput(valor) {
+    if (!valor) return "";
+
+    const texto = String(valor).trim();
+
+    if (/^\d{2}:\d{2}$/.test(texto)) {
+        return texto;
+    }
+
+    if (/^\d{2}:\d{2}:\d{2}$/.test(texto)) {
+        return texto.slice(0, 5);
+    }
+
+    if (/T\d{2}:\d{2}/.test(texto)) {
+        const match = texto.match(/T(\d{2}:\d{2})/);
+        return match ? match[1] : "";
+    }
+
+    const fecha = new Date(texto);
+
+    if (!Number.isNaN(fecha.getTime())) {
+        const hh = String(fecha.getHours()).padStart(2, "0");
+        const mm = String(fecha.getMinutes()).padStart(2, "0");
+
+        return `${hh}:${mm}`;
+    }
+
+    return "";
+}
 function cargarOperacionParaEditar(idOperacion) {
     const operacion = operacionesSistema.find((op) => op.id_operacion === idOperacion);
 
@@ -1873,9 +1929,11 @@ function cargarOperacionParaEditar(idOperacion) {
     mostrarPagina("registrarPage", "Editar operación", "Modificación de operación registrada");
     mostrarObservacionCorreccionOperacion(operacion);
 
-    document.getElementById("fechaOperacion").value = operacion.fecha_operacion;
-    document.getElementById("horaInicio").value = operacion.hora_inicio;
-    document.getElementById("horaFin").value = operacion.hora_fin;
+    document.getElementById("fechaOperacion").value = normalizarFechaParaInput(operacion.fecha_operacion);
+    document.getElementById("horaInicio").value = normalizarHoraParaInput(operacion.hora_inicio);
+    document.getElementById("horaFin").value = normalizarHoraParaInput(operacion.hora_fin);
+
+
 
     tipoOperacion.value = operacion.tipo_operacion;
     tipoOperacion.dispatchEvent(new Event("change"));
@@ -2330,140 +2388,300 @@ function verDetalleOperacionAdmin(idOperacion) {
     panel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function cambiarEstadoOperacionAdmin(idOperacion, nuevoEstado) {
-    const index = operacionesSistema.findIndex((op) => op.id_operacion === idOperacion);
+let adminActionResolver = null;
 
-    if (index === -1) {
+function abrirModalAccionAdmin({
+    titulo,
+    texto,
+    requiereTexto = false,
+    etiquetaTexto = "Detalle",
+    placeholder = "Ingrese el detalle correspondiente...",
+    textoConfirmar = "Confirmar",
+    claseConfirmar = "btn-primary"
+}) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById("adminActionModal");
+        const title = document.getElementById("adminActionTitle");
+        const text = document.getElementById("adminActionText");
+        const group = document.getElementById("adminActionTextareaGroup");
+        const label = document.getElementById("adminActionTextareaLabel");
+        const textarea = document.getElementById("adminActionTextarea");
+        const message = document.getElementById("adminActionMessage");
+        const confirmBtn = document.getElementById("adminActionConfirmBtn");
+
+        if (!modal || !title || !text || !group || !textarea || !message || !confirmBtn) {
+            resolve(null);
+            return;
+        }
+
+        adminActionResolver = resolve;
+
+        title.textContent = titulo || "Confirmar acción";
+        text.textContent = texto || "";
+        label.textContent = etiquetaTexto;
+        textarea.placeholder = placeholder;
+        textarea.value = "";
+        message.textContent = "";
+        message.className = "form-message";
+
+        group.classList.toggle("hidden", !requiereTexto);
+
+        confirmBtn.textContent = textoConfirmar;
+        confirmBtn.className = `btn ${claseConfirmar}`;
+
+        modal.classList.remove("hidden");
+
+        setTimeout(() => {
+            if (requiereTexto) {
+                textarea.focus();
+            } else {
+                confirmBtn.focus();
+            }
+        }, 100);
+    });
+}
+
+function cerrarModalAccionAdmin(valor = null) {
+    const modal = document.getElementById("adminActionModal");
+    const message = document.getElementById("adminActionMessage");
+
+    if (message) {
+        message.textContent = "";
+        message.className = "form-message";
+    }
+
+    if (modal) {
+        modal.classList.add("hidden");
+    }
+
+    if (typeof adminActionResolver === "function") {
+        adminActionResolver(valor);
+    }
+
+    adminActionResolver = null;
+}
+
+function configurarModalAccionAdmin() {
+    const closeBtn = document.getElementById("adminActionCloseBtn");
+    const cancelBtn = document.getElementById("adminActionCancelBtn");
+    const confirmBtn = document.getElementById("adminActionConfirmBtn");
+
+    if (closeBtn) {
+        closeBtn.addEventListener("click", () => cerrarModalAccionAdmin(null));
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", () => cerrarModalAccionAdmin(null));
+    }
+
+    if (confirmBtn) {
+        confirmBtn.addEventListener("click", () => {
+            const group = document.getElementById("adminActionTextareaGroup");
+            const textarea = document.getElementById("adminActionTextarea");
+            const message = document.getElementById("adminActionMessage");
+
+            const requiereTexto = group && !group.classList.contains("hidden");
+
+            if (requiereTexto) {
+                const valor = textarea ? textarea.value.trim() : "";
+
+                if (!valor) {
+                    if (message) {
+                        message.textContent = "Debe ingresar la información solicitada.";
+                        message.className = "form-message error";
+                    }
+                    return;
+                }
+
+                cerrarModalAccionAdmin(valor);
+                return;
+            }
+
+            cerrarModalAccionAdmin(true);
+        });
+    }
+}
+
+async function cambiarEstadoOperacionAdmin(idOperacion, nuevoEstado) {
+    const operacion = operacionesSistema.find((op) => op.id_operacion === idOperacion);
+
+    if (!operacion) {
         mostrarMensajeOperacionesAdmin("Operación no encontrada.", "error");
         return;
     }
 
-    const confirmar = confirm(`¿Está seguro de cambiar el estado de la operación a ${nuevoEstado}?`);
+    const confirmar = await abrirModalAccionAdmin({
+        titulo: "Validar operación",
+        texto: `¿Está seguro de cambiar el estado de la operación ${idOperacion} a ${nuevoEstado}?`,
+        requiereTexto: false,
+        textoConfirmar: "Validar",
+        claseConfirmar: "btn-primary"
+    });
 
     if (!confirmar) return;
 
-    operacionesSistema[index] = {
-        ...operacionesSistema[index],
-        estado_operacion: nuevoEstado,
-        ultima_modificacion: new Date().toISOString(),
-        validado_por: usuarioActual ? `${usuarioActual.nombres} ${usuarioActual.apellidos}` : "",
-        fecha_validacion: nuevoEstado === "VALIDADO" ? new Date().toISOString() : operacionesSistema[index].fecha_validacion || ""
+    const fechaActual = new Date().toISOString();
+
+    const camposExtra = {
+        ultima_modificacion: fechaActual
     };
 
-    guardarOperacionesSistema();
+    if (nuevoEstado === "VALIDADO") {
+        camposExtra.validado_por = usuarioActual
+            ? `${usuarioActual.grado} ${usuarioActual.nombres} ${usuarioActual.apellidos}`
+            : "";
 
-    renderOperacionesAdmin();
-    registrarAuditoria(
-        nuevoEstado === "VALIDADO" ? "VALIDAR" : "EDITAR",
-        "OPERACIONES",
-        idOperacion,
-        `Cambió estado de operación a ${nuevoEstado}`
-    );
-    renderInicioPorRol();
-    renderMisOperaciones();
-    renderDashboard();
-    renderReportes();
-    renderAuditoria();
+        camposExtra.fecha_validacion = fechaActual;
+    }
 
+    try {
+        await apiPost("UPDATE_OPERATION_STATUS", {
+            id_operacion: idOperacion,
+            estado_operacion: nuevoEstado,
+            campos_extra: camposExtra
+        });
 
-    mostrarMensajeOperacionesAdmin(`Operación actualizada a estado ${nuevoEstado}.`, "success");
+        registrarAuditoria(
+            nuevoEstado === "VALIDADO" ? "VALIDAR" : "EDITAR",
+            "OPERACIONES",
+            idOperacion,
+            `Cambió estado de operación a ${nuevoEstado}`
+        );
+
+        await refrescarOperacionesDesdeGoogleSheets();
+
+        renderAuditoria();
+
+        mostrarMensajeOperacionesAdmin(`Operación actualizada a estado ${nuevoEstado}.`, "success");
+
+    } catch (error) {
+        console.error("Error al cambiar estado de operación:", error);
+        mostrarMensajeOperacionesAdmin(`No se pudo cambiar el estado: ${error.message}`, "error");
+    }
 }
 
-function observarOperacionAdmin(idOperacion) {
-    const index = operacionesSistema.findIndex((op) => op.id_operacion === idOperacion);
+async function observarOperacionAdmin(idOperacion) {
+    const operacion = operacionesSistema.find((op) => op.id_operacion === idOperacion);
 
-    if (index === -1) {
+    if (!operacion) {
         mostrarMensajeOperacionesAdmin("Operación no encontrada.", "error");
         return;
     }
 
-    if (operacionesSistema[index].estado_operacion === "ANULADO") {
+    if (operacion.estado_operacion === "ANULADO") {
         mostrarMensajeOperacionesAdmin("No puede observar una operación anulada.", "error");
         return;
     }
 
-    const observacion = prompt("Ingrese la observación para que el responsable corrija la operación:");
+    const observacion = await abrirModalAccionAdmin({
+        titulo: "Observar operación",
+        texto: `Ingrese la observación administrativa para la operación ${idOperacion}. El responsable deberá corregir el registro.`,
+        requiereTexto: true,
+        etiquetaTexto: "Observación administrativa",
+        placeholder: "Ejemplo: Corregir fecha, sector, resultados registrados o información incompleta.",
+        textoConfirmar: "Guardar observación",
+        claseConfirmar: "btn-blue"
+    });
 
-    if (!observacion || !observacion.trim()) {
-        mostrarMensajeOperacionesAdmin("Debe ingresar una observación.", "error");
-        return;
-    }
+    if (!observacion) return;
 
-    operacionesSistema[index] = {
-        ...operacionesSistema[index],
-        estado_operacion: "OBSERVADO",
-        observacion_admin: observacion.trim(),
-        observado_por: usuarioActual ? `${usuarioActual.nombres} ${usuarioActual.apellidos}` : "",
-        fecha_observacion: new Date().toISOString(),
-        ultima_modificacion: new Date().toISOString()
+    const fechaActual = new Date().toISOString();
+
+    const camposExtra = {
+        observacion_admin: observacion,
+        observado_por: usuarioActual
+            ? `${usuarioActual.grado} ${usuarioActual.nombres} ${usuarioActual.apellidos}`
+            : "",
+        fecha_observacion: fechaActual,
+        ultima_modificacion: fechaActual
     };
 
-    guardarOperacionesSistema();
+    try {
+        await apiPost("UPDATE_OPERATION_STATUS", {
+            id_operacion: idOperacion,
+            estado_operacion: "OBSERVADO",
+            campos_extra: camposExtra
+        });
 
-    renderOperacionesAdmin();
-    registrarAuditoria(
-        "OBSERVAR",
-        "OPERACIONES",
-        idOperacion,
-        `Observó operación: ${observacion.trim()}`
-    );
-    renderInicioPorRol();
-    renderMisOperaciones();
-    renderDashboard();
-    renderReportes();
-    renderAuditoria();
-    mostrarMensajeOperacionesAdmin("Operación marcada como OBSERVADO.", "success");
+        registrarAuditoria(
+            "OBSERVAR",
+            "OPERACIONES",
+            idOperacion,
+            `Observó operación: ${observacion}`
+        );
+
+        await refrescarOperacionesDesdeGoogleSheets();
+
+        renderAuditoria();
+
+        mostrarMensajeOperacionesAdmin("Operación marcada como OBSERVADO.", "success");
+
+    } catch (error) {
+        console.error("Error al observar operación:", error);
+        mostrarMensajeOperacionesAdmin(`No se pudo observar la operación: ${error.message}`, "error");
+    }
 }
 
-function anularOperacionAdmin(idOperacion) {
-    const index = operacionesSistema.findIndex((op) => op.id_operacion === idOperacion);
+async function anularOperacionAdmin(idOperacion) {
+    const operacion = operacionesSistema.find((op) => op.id_operacion === idOperacion);
 
-    if (index === -1) {
+    if (!operacion) {
         mostrarMensajeOperacionesAdmin("Operación no encontrada.", "error");
         return;
     }
 
-    if (operacionesSistema[index].estado_operacion === "ANULADO") {
+    if (operacion.estado_operacion === "ANULADO") {
         mostrarMensajeOperacionesAdmin("La operación ya se encuentra anulada.", "error");
         return;
     }
 
-    const motivo = prompt("Ingrese el motivo de anulación de la operación:");
+    const motivo = await abrirModalAccionAdmin({
+        titulo: "Anular operación",
+        texto: `Ingrese el motivo de anulación de la operación ${idOperacion}. Esta acción no elimina el registro, solo cambia su estado a ANULADO.`,
+        requiereTexto: true,
+        etiquetaTexto: "Motivo de anulación",
+        placeholder: "Ejemplo: Registro duplicado, error de digitación o información no correspondiente.",
+        textoConfirmar: "Anular operación",
+        claseConfirmar: "btn-danger"
+    });
 
-    if (!motivo || !motivo.trim()) {
-        mostrarMensajeOperacionesAdmin("Debe ingresar un motivo de anulación.", "error");
-        return;
-    }
+    if (!motivo) return;
 
-    const confirmar = confirm("¿Confirma la anulación de esta operación? Esta acción no eliminará el registro, solo cambiará su estado.");
+    const fechaActual = new Date().toISOString();
 
-    if (!confirmar) return;
-
-    operacionesSistema[index] = {
-        ...operacionesSistema[index],
-        estado_operacion: "ANULADO",
-        motivo_anulacion: motivo.trim(),
-        anulado_por: usuarioActual ? `${usuarioActual.nombres} ${usuarioActual.apellidos}` : "",
-        fecha_anulacion: new Date().toISOString(),
-        ultima_modificacion: new Date().toISOString()
+    const camposExtra = {
+        motivo_anulacion: motivo,
+        anulado_por: usuarioActual
+            ? `${usuarioActual.grado} ${usuarioActual.nombres} ${usuarioActual.apellidos}`
+            : "",
+        fecha_anulacion: fechaActual,
+        ultima_modificacion: fechaActual
     };
 
-    guardarOperacionesSistema();
+    try {
+        await apiPost("UPDATE_OPERATION_STATUS", {
+            id_operacion: idOperacion,
+            estado_operacion: "ANULADO",
+            campos_extra: camposExtra
+        });
 
-    renderOperacionesAdmin();
-    registrarAuditoria(
-        "ANULAR",
-        "OPERACIONES",
-        idOperacion,
-        `Anuló operación. Motivo: ${motivo.trim()}`
-    );
-    renderInicioPorRol();
-    renderMisOperaciones();
-    renderDashboard();
-    renderReportes();
-    renderAuditoria();
+        registrarAuditoria(
+            "ANULAR",
+            "OPERACIONES",
+            idOperacion,
+            `Anuló operación. Motivo: ${motivo}`
+        );
 
-    mostrarMensajeOperacionesAdmin("Operación anulada correctamente.", "success");
+        await refrescarOperacionesDesdeGoogleSheets();
+
+        renderAuditoria();
+
+        mostrarMensajeOperacionesAdmin("Operación anulada correctamente.", "success");
+
+    } catch (error) {
+        console.error("Error al anular operación:", error);
+        mostrarMensajeOperacionesAdmin(`No se pudo anular la operación: ${error.message}`, "error");
+    }
 }
 
 function mostrarMensajeOperacionesAdmin(mensaje, tipo) {

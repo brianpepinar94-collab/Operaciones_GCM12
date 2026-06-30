@@ -1597,6 +1597,35 @@
             </div>
         </div>
     </div>
+    <div id="adminActionModal" class="modal-overlay hidden">
+        <div class="modal-card admin-action-card">
+            <div class="modal-header">
+                <h3 id="adminActionTitle">Confirmar acción</h3>
+                <button type="button" class="modal-close" id="adminActionCloseBtn">×</button>
+            </div>
+
+            <div class="modal-body">
+                <p id="adminActionText" class="admin-action-text"></p>
+
+                <div id="adminActionTextareaGroup" class="form-group hidden">
+                    <label id="adminActionTextareaLabel" for="adminActionTextarea">Detalle</label>
+                    <textarea id="adminActionTextarea" rows="5"
+                        placeholder="Ingrese el detalle correspondiente..."></textarea>
+                </div>
+
+                <p id="adminActionMessage" class="form-message"></p>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline-dark" id="adminActionCancelBtn">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" id="adminActionConfirmBtn">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script src="https://code.iconify.design/iconify-icon/3.0.2/iconify-icon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
