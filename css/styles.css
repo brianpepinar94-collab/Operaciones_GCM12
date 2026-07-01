@@ -2286,3 +2286,57 @@ button,
     color: #ffffff;
     border-color: #164AA8;
 }
+
+/* ============================= */
+/* LOADER GLOBAL */
+/* ============================= */
+
+.global-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 5, 5, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+.global-loader-card {
+  width: min(90vw, 360px);
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 28px 24px;
+  text-align: center;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+  border-top: 6px solid var(--gold);
+}
+
+.global-spinner {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  border: 5px solid rgba(54, 20, 105, 0.16);
+  border-top-color: var(--primary);
+  animation: globalSpin 0.85s linear infinite;
+}
+
+.global-loader-card strong {
+  display: block;
+  color: var(--primary-dark);
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+
+.global-loader-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+@keyframes globalSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

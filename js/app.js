@@ -29,6 +29,45 @@ let auditoriaSistema = cargarAuditoriaSistema();
 let operacionEditandoId = null;
 let reporteDetallado = false;
 
+let contadorLoaderGlobal = 0;
+
+function mostrarLoaderGlobal(texto = "Procesando información...") {
+    const loader = document.getElementById("globalLoader");
+    const loaderText = document.getElementById("globalLoaderText");
+
+    if (!loader) return;
+
+    contadorLoaderGlobal++;
+
+    if (loaderText) {
+        loaderText.textContent = texto;
+    }
+
+    loader.classList.remove("hidden");
+}
+
+function ocultarLoaderGlobal() {
+    const loader = document.getElementById("globalLoader");
+
+    if (!loader) return;
+
+    contadorLoaderGlobal = Math.max(0, contadorLoaderGlobal - 1);
+
+    if (contadorLoaderGlobal === 0) {
+        loader.classList.add("hidden");
+    }
+}
+
+function resetearLoaderGlobal() {
+    const loader = document.getElementById("globalLoader");
+
+    contadorLoaderGlobal = 0;
+
+    if (loader) {
+        loader.classList.add("hidden");
+    }
+}
+
 function cargarOperacionesSistema() {
     const data = localStorage.getItem(STORAGE_OPERACIONES);
 
@@ -554,6 +593,7 @@ loginForm.addEventListener("submit", async (event) => {
 
 logoutBtn.addEventListener("click", () => {
     detenerActualizacionAutomaticaSheets();
+    resetearLoaderGlobal();
 
     usuarioActual = null;
     sessionToken = "";
@@ -750,6 +790,7 @@ function redirigirAPaginaInicialRol() {
 
 function cerrarSesionForzada(mensaje = "La sesión ya no es válida. Inicie sesión nuevamente.") {
     detenerActualizacionAutomaticaSheets();
+    resetearLoaderGlobal();
 
     usuarioActual = null;
     sessionToken = "";
@@ -5946,7 +5987,7 @@ function mostrarObservacionCorreccionOperacion(operacion) {
     box.classList.add("hidden");
 }
 
-async function apiPost(action, payload = {}) {
+async function apiPost(action, payload = {}, opciones = {}) {
     if (!USAR_GOOGLE_SHEETS) {
         throw new Error("Google Sheets está desactivado.");
     }
@@ -5955,31 +5996,74 @@ async function apiPost(action, payload = {}) {
         throw new Error("Configure la URL de Apps Script en API_URL.");
     }
 
-    const response = await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-            action,
-            payload,
-            token: sessionToken
-        })
-    });
+    const accionesConLoader = [
+        "LOGIN",
+        "SAVE_USER",
+        "DELETE_USER",
+        "SAVE_OPERATION",
+        "UPDATE_OPERATION_STATUS",
+        "UPDATE_OWN_PASSWORD"
+    ];
 
-    const data = await response.json();
+    const usarLoader = opciones.usarLoader !== undefined
+        ? opciones.usarLoader
+        : accionesConLoader.includes(action);
 
-    if (!data.ok) {
-        const mensaje = data.error || "Error desconocido en Apps Script.";
+    const textoLoader = opciones.textoLoader || obtenerTextoLoaderPorAccion(action);
 
-        if (
-            action !== "LOGIN" &&
-            /sesión|session|expiró|expirada|inválida|válida/i.test(mensaje)
-        ) {
-            cerrarSesionForzada(mensaje);
-        }
-
-        throw new Error(mensaje);
+    if (usarLoader) {
+        mostrarLoaderGlobal(textoLoader);
     }
 
-    return data.data;
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({
+                action,
+                payload,
+                token: sessionToken
+            })
+        });
+
+        const data = await response.json();
+
+        if (!data.ok) {
+            const mensaje = data.error || "Error desconocido en Apps Script.";
+
+            if (
+                action !== "LOGIN" &&
+                /sesión|session|expiró|expirada|inválida|válida/i.test(mensaje)
+            ) {
+                cerrarSesionForzada(mensaje);
+            }
+
+            throw new Error(mensaje);
+        }
+
+        return data.data;
+
+    } finally {
+        if (usarLoader) {
+            ocultarLoaderGlobal();
+        }
+    }
+}
+
+function obtenerTextoLoaderPorAccion(action) {
+    const textos = {
+        LOGIN: "Validando credenciales...",
+        SAVE_USER: "Guardando usuario...",
+        DELETE_USER: "Eliminando usuario...",
+        SAVE_OPERATION: "Guardando operación...",
+        UPDATE_OPERATION_STATUS: "Actualizando estado de operación...",
+        UPDATE_OWN_PASSWORD: "Cambiando contraseña...",
+        GET_ALL_DATA: "Cargando información...",
+        GET_USERS: "Cargando usuarios...",
+        GET_OPERATIONS_DATA: "Cargando operaciones...",
+        GET_AUDIT: "Cargando auditoría..."
+    };
+
+    return textos[action] || "Procesando información...";
 }
 
 async function cargarDatosDesdeGoogleSheets(renderizar = true) {
