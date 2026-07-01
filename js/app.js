@@ -1452,7 +1452,7 @@ function renderUsuariosAdmin() {
                     ${crearBotonAccion({
                         action: "reset-password",
                         id: u.id_usuario,
-                        icono: "mdi:key-refresh",
+                        icono: "mdi:key-variant",
                         tipo: "warning",
                         titulo: "Resetear clave"
                     })}
