@@ -1719,6 +1719,7 @@ async function cambiarEstadoUsuario(idUsuario) {
 
     mostrarMensajeUsuarios(`Usuario ${usuario.estado === "ACTIVO" ? "activado" : "inactivado"} correctamente.`, "success");
 }
+
 async function eliminarUsuarioAdmin(idUsuario) {
     const usuario = usuariosSistema.find((u) => u.id_usuario === idUsuario);
 
@@ -1732,7 +1733,13 @@ async function eliminarUsuarioAdmin(idUsuario) {
         return;
     }
 
-    const confirmar = confirm(`¿Está seguro de eliminar al usuario ${usuario.nombres} ${usuario.apellidos}?`);
+    const confirmar = await abrirModalAccionAdmin({
+        titulo: "Eliminar usuario",
+        texto: `¿Está seguro de eliminar al usuario ${usuario.nombres} ${usuario.apellidos}? Esta acción eliminará el registro del sistema.`,
+        requiereTexto: false,
+        textoConfirmar: "Eliminar usuario",
+        claseConfirmar: "btn-danger"
+    });
 
     if (!confirmar) return;
 
@@ -1740,22 +1747,24 @@ async function eliminarUsuarioAdmin(idUsuario) {
         await apiPost("DELETE_USER", {
             id_usuario: idUsuario
         });
+
+        await refrescarUsuariosDesdeGoogleSheets();
+
+        mostrarMensajeUsuarios("Usuario eliminado correctamente.", "success");
+
+        registrarAuditoria(
+            "ELIMINAR",
+            "USUARIOS",
+            idUsuario,
+            `Eliminó al usuario ${usuario.nombres} ${usuario.apellidos}`
+        );
+
+        renderInicioPorRol();
+
     } catch (error) {
         console.error("Error al eliminar usuario:", error);
         mostrarMensajeUsuarios(`No se pudo eliminar el usuario: ${error.message}`, "error");
-        return;
     }
-
-    await refrescarUsuariosDesdeGoogleSheets();
-
-    mostrarMensajeUsuarios("Usuario eliminado correctamente.", "success");
-    renderInicioPorRol();
-    registrarAuditoria(
-        "ELIMINAR",
-        "USUARIOS",
-        idUsuario,
-        `Eliminó al usuario ${usuario.nombres} ${usuario.apellidos}`
-    );
 }
 
 function cerrarFormularioUsuario() {
@@ -1912,22 +1921,23 @@ function renderMisOperaciones() {
             <td>${op.canton}</td>
             <td>${op.hubo_resultados}</td>
             <td><span class="op-status ${estadoClass}">${op.estado_operacion}</span></td>
-            <td>
-                <div class="action-buttons">
-                    <button type="button" class="btn btn-outline-dark btn-small" data-action="ver" data-id="${op.id_operacion}">
-                        Ver
-                    </button>
+            <td class="acciones-cell">
+                <div class="action-buttons action-buttons-icons">
+                    ${crearBotonAccion({
+                        action: "ver",
+                        id: op.id_operacion,
+                        icono: "mdi:eye-outline",
+                        tipo: "neutral",
+                        titulo: "Ver detalle"
+                    })}
 
-                    ${puedeEditar ? `
-                    <button 
-                        type="button" 
-                        class="btn btn-warning btn-small" 
-                        data-action="editar" 
-                        data-id="${op.id_operacion}"
-                    >
-                        Editar
-                    </button>
-                ` : ""}
+                    ${puedeEditar ? crearBotonAccion({
+                        action: "editar",
+                        id: op.id_operacion,
+                        icono: "mdi:pencil-outline",
+                        tipo: "warning",
+                        titulo: "Editar operación"
+                    }) : ""}
                 </div>
             </td>
         `;
@@ -1980,7 +1990,7 @@ function verDetalleOperacion(idOperacion) {
 
             <div class="detail-item">
                 <span>Horario</span>
-                <strong>${operacion.hora_inicio} - ${operacion.hora_fin}</strong>
+                <strong>${formatearHoraOperacion(operacion.hora_inicio)} - ${formatearHoraOperacion(operacion.hora_fin)}</strong>
             </div>
 
             <div class="detail-item">
@@ -2122,6 +2132,12 @@ function normalizarHoraParaInput(valor) {
 
     return "";
 }
+
+function formatearHoraOperacion(valor) {
+    const hora = normalizarHoraParaInput(valor);
+    return hora || "";
+}
+
 function cargarOperacionParaEditar(idOperacion) {
     const operacion = operacionesSistema.find((op) => op.id_operacion === idOperacion);
 
@@ -2541,7 +2557,7 @@ function verDetalleOperacionAdmin(idOperacion) {
 
             <div class="detail-item">
                 <span>Hora inicio / fin</span>
-                <strong>${operacion.hora_inicio} - ${operacion.hora_fin}</strong>
+                <strong>${formatearHoraOperacion(operacion.hora_inicio)} - ${formatearHoraOperacion(operacion.hora_fin)}</strong>
             </div>
 
             <div class="detail-item">
@@ -6208,7 +6224,9 @@ async function obtenerOperacionesDesdeGoogleSheets() {
 function normalizarOperacionDesdeSheets(operacion) {
     return {
         ...operacion,
-        fecha_operacion: obtenerFechaISO(operacion.fecha_operacion)
+        fecha_operacion: obtenerFechaISO(operacion.fecha_operacion),
+        hora_inicio: formatearHoraOperacion(operacion.hora_inicio),
+        hora_fin: formatearHoraOperacion(operacion.hora_fin)
     };
 }
 
