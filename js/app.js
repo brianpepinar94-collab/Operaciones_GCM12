@@ -581,7 +581,7 @@ loginForm.addEventListener("submit", async (event) => {
         });
 
     } catch (error) {
-        console.error("Error login Google Sheets:", error);
+        console.error("Error login :", error);
         loginError.textContent = `No se pudo iniciar sesión: ${error.message}`;
     } finally {
         if (loginBtn) {
@@ -998,7 +998,7 @@ operacionForm.addEventListener("submit", async (event) => {
         console.error("Error al guardar operación:", error);
 
         mostrarMensaje(
-            "No se pudo confirmar el guardado. Revise Google Sheets antes de intentar nuevamente.",
+            "No se pudo confirmar el guardado. Revise antes de intentar nuevamente.",
             "error"
         );
     } finally {
@@ -1172,7 +1172,7 @@ async function actualizarOperacionExistente() {
 
     limpiarFormularioOperacion();
 
-    mostrarMensaje("Operación actualizada correctamente en Google Sheets.", "success");
+    mostrarMensaje("Operación actualizada correctamente.", "success");
 }
 
 function limpiarFormularioOperacion() {
@@ -1442,36 +1442,36 @@ function renderUsuariosAdmin() {
             <td class="acciones-cell">
                 <div class="action-buttons action-buttons-icons">
                     ${crearBotonAccion({
-                        action: "editar",
-                        id: u.id_usuario,
-                        icono: "mdi:pencil-outline",
-                        tipo: "neutral",
-                        titulo: "Editar usuario"
-                    })}
+            action: "editar",
+            id: u.id_usuario,
+            icono: "mdi:pencil-outline",
+            tipo: "neutral",
+            titulo: "Editar usuario"
+        })}
 
                     ${crearBotonAccion({
-                        action: "reset-password",
-                        id: u.id_usuario,
-                        icono: "mdi:key-variant",
-                        tipo: "warning",
-                        titulo: "Resetear clave"
-                    })}
+            action: "reset-password",
+            id: u.id_usuario,
+            icono: "mdi:key-variant",
+            tipo: "warning",
+            titulo: "Resetear clave"
+        })}
 
                     ${crearBotonAccion({
-                        action: "estado",
-                        id: u.id_usuario,
-                        icono: u.estado === "ACTIVO" ? "mdi:account-cancel-outline" : "mdi:account-check-outline",
-                        tipo: u.estado === "ACTIVO" ? "warning" : "success",
-                        titulo: u.estado === "ACTIVO" ? "Inactivar usuario" : "Activar usuario"
-                    })}
+            action: "estado",
+            id: u.id_usuario,
+            icono: u.estado === "ACTIVO" ? "mdi:account-cancel-outline" : "mdi:account-check-outline",
+            tipo: u.estado === "ACTIVO" ? "warning" : "success",
+            titulo: u.estado === "ACTIVO" ? "Inactivar usuario" : "Activar usuario"
+        })}
 
                     ${crearBotonAccion({
-                        action: "eliminar",
-                        id: u.id_usuario,
-                        icono: "mdi:trash-can-outline",
-                        tipo: "danger",
-                        titulo: "Eliminar usuario"
-                    })}
+            action: "eliminar",
+            id: u.id_usuario,
+            icono: "mdi:trash-can-outline",
+            tipo: "danger",
+            titulo: "Eliminar usuario"
+        })}
                 </div>
             </td>
         `;
@@ -2222,13 +2222,48 @@ function normalizarEstadoClass(estado) {
         .replace(/[\u0300-\u036f]/g, "");
 }
 
+function obtenerFechaISO(valor) {
+    if (!valor) return "";
+
+    const texto = String(valor).trim();
+
+    // Caso correcto: 2026-06-12
+    if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
+        return texto;
+    }
+
+    // Caso que llega desde Google Sheets: 2026-06-12T05:00:00.000Z
+    if (/^\d{4}-\d{2}-\d{2}T/.test(texto)) {
+        return texto.slice(0, 10);
+    }
+
+    // Caso eventual: 12/06/2026
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(texto)) {
+        const [dd, mm, yyyy] = texto.split("/");
+        return `${yyyy}-${mm}-${dd}`;
+    }
+
+    const fecha = new Date(texto);
+
+    if (!Number.isNaN(fecha.getTime())) {
+        const yyyy = fecha.getUTCFullYear();
+        const mm = String(fecha.getUTCMonth() + 1).padStart(2, "0");
+        const dd = String(fecha.getUTCDate()).padStart(2, "0");
+
+        return `${yyyy}-${mm}-${dd}`;
+    }
+
+    return "";
+}
+
 function formatearFecha(fecha) {
-    if (!fecha) return "";
+    const fechaISO = obtenerFechaISO(fecha);
 
-    const partes = fecha.split("-");
-    if (partes.length !== 3) return fecha;
+    if (!fechaISO) return "";
 
-    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    const [yyyy, mm, dd] = fechaISO.split("-");
+
+    return `${dd}/${mm}/${yyyy}`;
 }
 
 function mostrarMensajeMisOperaciones(mensaje, tipo) {
@@ -2359,8 +2394,10 @@ function renderOperacionesAdmin() {
         `.toLowerCase();
 
         const coincideTexto = !texto || textoOperacion.includes(texto);
-        const coincideFechaDesde = !fechaDesde || op.fecha_operacion >= fechaDesde;
-        const coincideFechaHasta = !fechaHasta || op.fecha_operacion <= fechaHasta;
+        const fechaOperacion = obtenerFechaISO(op.fecha_operacion);
+
+        const coincideFechaDesde = !fechaDesde || fechaOperacion >= fechaDesde;
+        const coincideFechaHasta = !fechaHasta || fechaOperacion <= fechaHasta;
         const coincideEstado = !estado || op.estado_operacion === estado;
         const coincideTipo = !tipo || op.tipo_operacion === tipo;
         const coincideResultados = !resultados || op.hubo_resultados === resultados;
@@ -2405,47 +2442,47 @@ function renderOperacionesAdmin() {
             <td class="acciones-cell">
                 <div class="admin-actions admin-actions-icons">
                     ${crearBotonAccion({
-                        action: "ver-admin",
-                        id: op.id_operacion,
-                        icono: "mdi:eye-outline",
-                        tipo: "neutral",
-                        titulo: "Ver detalle"
-                    })}
+            action: "ver-admin",
+            id: op.id_operacion,
+            icono: "mdi:eye-outline",
+            tipo: "neutral",
+            titulo: "Ver detalle"
+        })}
 
                     ${crearBotonAccion({
-                        action: "editar-admin",
-                        id: op.id_operacion,
-                        icono: "mdi:pencil-outline",
-                        tipo: "warning",
-                        titulo: "Editar operación"
-                    })}
+            action: "editar-admin",
+            id: op.id_operacion,
+            icono: "mdi:pencil-outline",
+            tipo: "warning",
+            titulo: "Editar operación"
+        })}
 
                     ${crearBotonAccion({
-                        action: "validar",
-                        id: op.id_operacion,
-                        icono: "mdi:check-circle-outline",
-                        tipo: "success",
-                        titulo: "Validar operación",
-                        disabled: !puedeValidar
-                    })}
+            action: "validar",
+            id: op.id_operacion,
+            icono: "mdi:check-circle-outline",
+            tipo: "success",
+            titulo: "Validar operación",
+            disabled: !puedeValidar
+        })}
 
                     ${crearBotonAccion({
-                        action: "observar",
-                        id: op.id_operacion,
-                        icono: "mdi:comment-alert-outline",
-                        tipo: "blue",
-                        titulo: "Observar operación",
-                        disabled: !puedeObservar
-                    })}
+            action: "observar",
+            id: op.id_operacion,
+            icono: "mdi:comment-alert-outline",
+            tipo: "blue",
+            titulo: "Observar operación",
+            disabled: !puedeObservar
+        })}
 
                     ${crearBotonAccion({
-                        action: "anular",
-                        id: op.id_operacion,
-                        icono: "mdi:close-octagon-outline",
-                        tipo: "danger",
-                        titulo: "Anular operación",
-                        disabled: !puedeAnular
-                    })}
+            action: "anular",
+            id: op.id_operacion,
+            icono: "mdi:close-octagon-outline",
+            tipo: "danger",
+            titulo: "Anular operación",
+            disabled: !puedeAnular
+        })}
                 </div>
             </td>
         `;
@@ -3253,8 +3290,10 @@ function obtenerDatosDashboardFiltrados() {
     const subcategoria = document.getElementById("dashSubcategoria")?.value || "";
 
     let operaciones = operacionesSistema.filter((op) => {
-        const okFechaDesde = !fechaDesde || op.fecha_operacion >= fechaDesde;
-        const okFechaHasta = !fechaHasta || op.fecha_operacion <= fechaHasta;
+        const fechaOperacion = obtenerFechaISO(op.fecha_operacion);
+
+        const okFechaDesde = !fechaDesde || fechaOperacion >= fechaDesde;
+        const okFechaHasta = !fechaHasta || fechaOperacion <= fechaHasta;
         const okEstado = op.estado_operacion === estado;
         const okTipo = !tipo || op.tipo_operacion === tipo;
         const okSubtipo = !subtipo || op.sub_tipo_operacion === subtipo;
@@ -4031,8 +4070,10 @@ function obtenerFilasReporteFiltradas() {
     let operaciones = [...operacionesSistema];
 
     operaciones = operaciones.filter((op) => {
-        const okFechaDesde = !fechaDesde || op.fecha_operacion >= fechaDesde;
-        const okFechaHasta = !fechaHasta || op.fecha_operacion <= fechaHasta;
+        const fechaOperacion = obtenerFechaISO(op.fecha_operacion);
+
+        const okFechaDesde = !fechaDesde || fechaOperacion >= fechaDesde;
+        const okFechaHasta = !fechaHasta || fechaOperacion <= fechaHasta;
         const okEstado = !estado || op.estado_operacion === estado;
         const okHuboResultados = !huboResultados || op.hubo_resultados === huboResultados;
         const okTipo = !tipo || op.tipo_operacion === tipo;
@@ -4594,7 +4635,7 @@ function registrarAuditoria(accion, modulo, idRegistro = "", detalle = "", usuar
         apiPost("SAVE_AUDIT", {
             auditoria: registro
         }).catch((error) => {
-            console.warn("No se pudo guardar auditoría en Google Sheets:", error);
+            console.warn("No se pudo guardar auditoría ", error);
         });
     }
 }
@@ -5001,7 +5042,7 @@ async function cargarDatosDePagina(pageId) {
     if (!usuarioActual) return;
 
     try {
-        mostrarEstadoCargaPagina("Actualizando información desde Google Sheets...");
+        mostrarEstadoCargaPagina("Actualizando información...");
 
         if (pageId === "usuariosPage") {
             await obtenerUsuariosDesdeGoogleSheets();
@@ -6121,7 +6162,7 @@ async function cargarDatosDesdeGoogleSheets(renderizar = true) {
     const data = await apiPost("GET_ALL_DATA");
 
     usuariosSistema = data.usuarios || [];
-    operacionesSistema = data.operaciones || [];
+    operacionesSistema = (data.operaciones || []).map(normalizarOperacionDesdeSheets);
     resultadosSistema = data.resultados || [];
     auditoriaSistema = data.auditoria || [];
 
@@ -6152,7 +6193,7 @@ async function refrescarUsuariosDesdeGoogleSheets() {
 async function obtenerOperacionesDesdeGoogleSheets() {
     const data = await apiPost("GET_OPERATIONS_DATA");
 
-    operacionesSistema = data.operaciones || [];
+    operacionesSistema = (data.operaciones || []).map(normalizarOperacionDesdeSheets);
     resultadosSistema = data.resultados || [];
 
     localStorage.setItem(STORAGE_OPERACIONES, JSON.stringify(operacionesSistema));
@@ -6161,6 +6202,13 @@ async function obtenerOperacionesDesdeGoogleSheets() {
     return {
         operaciones: operacionesSistema,
         resultados: resultadosSistema
+    };
+}
+
+function normalizarOperacionDesdeSheets(operacion) {
+    return {
+        ...operacion,
+        fecha_operacion: obtenerFechaISO(operacion.fecha_operacion)
     };
 }
 
@@ -6201,7 +6249,7 @@ async function cargarDatosInicialesEnSegundoPlano() {
         renderPaginaActiva();
     } catch (error) {
         console.error("Error cargando datos iniciales:", error);
-        alert("Ingresó al sistema, pero no se pudieron cargar todos los datos desde Google Sheets. Revise la conexión.");
+        alert("Ingresó al sistema, pero no se pudieron cargar todos los datos. Revise la conexión.");
     }
 }
 
