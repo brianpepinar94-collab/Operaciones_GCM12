@@ -1364,7 +1364,33 @@ function configurarGestionUsuarios() {
         if (accion === "eliminar") {
             eliminarUsuarioAdmin(idUsuario);
         }
+        if (accion === "reset-password") {
+            resetearPasswordUsuario(idUsuario);
+        }
     });
+}
+
+function crearBotonAccion({
+    action,
+    id,
+    icono,
+    tipo = "neutral",
+    titulo,
+    disabled = false
+}) {
+    return `
+        <button 
+            type="button"
+            class="icon-action ${tipo}"
+            data-action="${action}"
+            data-id="${id}"
+            title="${titulo}"
+            aria-label="${titulo}"
+            ${disabled ? "disabled" : ""}
+        >
+            <iconify-icon icon="${icono}"></iconify-icon>
+        </button>
+    `;
 }
 
 function renderUsuariosAdmin() {
@@ -1412,20 +1438,40 @@ function renderUsuariosAdmin() {
             <td>${u.usuario}</td>
             <td><span class="role-badge">${u.rol}</span></td>
             <td><span class="status-badge ${estadoClass}">${u.estado}</span></td>
-            <td>
-                <div class="action-buttons">
-                    <button type="button" class="btn btn-outline-dark btn-small" data-action="editar" data-id="${u.id_usuario}">
-                        Editar
-                    </button>
-                    <button type="button" class="btn btn-warning btn-small" onclick="resetearPasswordUsuario('${u.id_usuario}')">
-                        Resetear clave
-                    </button>
-                    <button type="button" class="btn btn-warning btn-small" data-action="estado" data-id="${u.id_usuario}">
-                        ${u.estado === "ACTIVO" ? "Inactivar" : "Activar"}
-                    </button>
-                    <button type="button" class="btn btn-danger btn-small" data-action="eliminar" data-id="${u.id_usuario}">
-                        Eliminar
-                    </button>
+            
+            <td class="acciones-cell">
+                <div class="action-buttons action-buttons-icons">
+                    ${crearBotonAccion({
+                        action: "editar",
+                        id: u.id_usuario,
+                        icono: "mdi:pencil-outline",
+                        tipo: "neutral",
+                        titulo: "Editar usuario"
+                    })}
+
+                    ${crearBotonAccion({
+                        action: "reset-password",
+                        id: u.id_usuario,
+                        icono: "mdi:key-refresh",
+                        tipo: "warning",
+                        titulo: "Resetear clave"
+                    })}
+
+                    ${crearBotonAccion({
+                        action: "estado",
+                        id: u.id_usuario,
+                        icono: u.estado === "ACTIVO" ? "mdi:account-cancel-outline" : "mdi:account-check-outline",
+                        tipo: u.estado === "ACTIVO" ? "warning" : "success",
+                        titulo: u.estado === "ACTIVO" ? "Inactivar usuario" : "Activar usuario"
+                    })}
+
+                    ${crearBotonAccion({
+                        action: "eliminar",
+                        id: u.id_usuario,
+                        icono: "mdi:trash-can-outline",
+                        tipo: "danger",
+                        titulo: "Eliminar usuario"
+                    })}
                 </div>
             </td>
         `;
@@ -2356,45 +2402,50 @@ function renderOperacionesAdmin() {
             <td>${op.grado_responsable} ${op.responsable}</td>
             <td>${op.hubo_resultados}</td>
             <td><span class="op-status ${estadoClass}">${op.estado_operacion}</span></td>
-            <td>
-                <div class="admin-actions">
-                    <button type="button" class="btn btn-outline-dark btn-small" data-action="ver-admin" data-id="${op.id_operacion}">
-                        Ver
-                    </button>
+            <td class="acciones-cell">
+                <div class="admin-actions admin-actions-icons">
+                    ${crearBotonAccion({
+                        action: "ver-admin",
+                        id: op.id_operacion,
+                        icono: "mdi:eye-outline",
+                        tipo: "neutral",
+                        titulo: "Ver detalle"
+                    })}
 
-                    <button type="button" class="btn btn-warning btn-small" data-action="editar-admin" data-id="${op.id_operacion}">
-                        Editar
-                    </button>
+                    ${crearBotonAccion({
+                        action: "editar-admin",
+                        id: op.id_operacion,
+                        icono: "mdi:pencil-outline",
+                        tipo: "warning",
+                        titulo: "Editar operación"
+                    })}
 
-                    <button 
-                        type="button" 
-                        class="btn btn-success btn-small" 
-                        data-action="validar" 
-                        data-id="${op.id_operacion}"
-                        ${puedeValidar ? "" : "disabled"}
-                    >
-                        Validar
-                    </button>
+                    ${crearBotonAccion({
+                        action: "validar",
+                        id: op.id_operacion,
+                        icono: "mdi:check-circle-outline",
+                        tipo: "success",
+                        titulo: "Validar operación",
+                        disabled: !puedeValidar
+                    })}
 
-                    <button 
-                        type="button" 
-                        class="btn btn-blue btn-small" 
-                        data-action="observar" 
-                        data-id="${op.id_operacion}"
-                        ${puedeObservar ? "" : "disabled"}
-                    >
-                        Observar
-                    </button>
+                    ${crearBotonAccion({
+                        action: "observar",
+                        id: op.id_operacion,
+                        icono: "mdi:comment-alert-outline",
+                        tipo: "blue",
+                        titulo: "Observar operación",
+                        disabled: !puedeObservar
+                    })}
 
-                    <button 
-                        type="button" 
-                        class="btn btn-danger btn-small" 
-                        data-action="anular" 
-                        data-id="${op.id_operacion}"
-                        ${puedeAnular ? "" : "disabled"}
-                    >
-                        Anular
-                    </button>
+                    ${crearBotonAccion({
+                        action: "anular",
+                        id: op.id_operacion,
+                        icono: "mdi:close-octagon-outline",
+                        tipo: "danger",
+                        titulo: "Anular operación",
+                        disabled: !puedeAnular
+                    })}
                 </div>
             </td>
         `;
