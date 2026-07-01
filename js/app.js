@@ -5490,26 +5490,12 @@ async function procesarCambioPasswordDesdeModal(event) {
         return;
     }
 
-    recargarDatosDesdeStorage();
-
-    const usuario = usuariosSistema.find((u) => u.id_usuario === usuarioActual.id_usuario);
-
-    if (!usuario) {
-        mostrarMensajePassword("Usuario no encontrado.", "error");
-        return;
-    }
-
     const passwordActual = document.getElementById("passwordActual").value.trim();
     const nuevaPassword = document.getElementById("passwordNueva").value.trim();
     const confirmarPassword = document.getElementById("passwordConfirmar").value.trim();
 
     if (!passwordActual || !nuevaPassword || !confirmarPassword) {
         mostrarMensajePassword("Complete todos los campos.", "error");
-        return;
-    }
-
-    if (usuario.password !== passwordActual) {
-        mostrarMensajePassword("La contraseña actual no es correcta.", "error");
         return;
     }
 
@@ -5530,39 +5516,34 @@ async function procesarCambioPasswordDesdeModal(event) {
         return;
     }
 
-    usuario.password = nuevaPassword;
-    usuario.debe_cambiar_password = "NO";
-    usuario.password_reseteada = "NO";
-    usuario.fecha_cambio_password = new Date().toISOString();
-
     try {
-        await apiPost("SAVE_USER", {
-            usuario
+        const usuarioActualizado = await apiPost("UPDATE_OWN_PASSWORD", {
+            password_actual: passwordActual,
+            nueva_password: nuevaPassword
         });
+
+        usuarioActual = { ...usuarioActualizado };
+        localStorage.setItem("gcm12_usuario_actual", JSON.stringify(usuarioActual));
+
+        await obtenerUsuariosDesdeGoogleSheets();
+
+        registrarAuditoria(
+            "CAMBIAR_PASSWORD",
+            "USUARIOS",
+            usuarioActual.id_usuario,
+            `El usuario ${usuarioActual.usuario} cambió su contraseña`
+        );
+
+        mostrarMensajePassword("Contraseña actualizada correctamente.", "success");
+
+        setTimeout(() => {
+            cerrarModalPassword();
+        }, 1200);
+
     } catch (error) {
         console.error("Error al cambiar contraseña:", error);
         mostrarMensajePassword(`No se pudo cambiar la contraseña: ${error.message}`, "error");
-        return;
     }
-
-    usuarioActual = { ...usuario };
-
-    await refrescarUsuariosDesdeGoogleSheets();
-
-    localStorage.setItem("gcm12_usuario_actual", JSON.stringify(usuarioActual));
-
-    registrarAuditoria(
-        "CAMBIAR_PASSWORD",
-        "USUARIOS",
-        usuario.id_usuario,
-        `El usuario ${usuario.usuario} cambió su contraseña`
-    );
-
-    mostrarMensajePassword("Contraseña actualizada correctamente.", "success");
-
-    setTimeout(() => {
-        cerrarModalPassword();
-    }, 1200);
 }
 
 function configurarModalResetPassword() {
