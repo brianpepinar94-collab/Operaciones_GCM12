@@ -1,51 +1,11 @@
 // ======================================================
-// PROTOTIPO VISUAL SIS-OPERACIONES GCM 12
-// Esta versión todavía no conecta con Google Sheets.
-// Luego reemplazaremos los usuarios y catálogos por Apps Script.
+// SIS-OPERACIONES GCM 12
+// Frontend conectado a Google Sheets mediante Apps Script.
 // ======================================================
 
-// Usuarios temporales solo para probar el diseño.
-const usuariosDemo = [
-    {
-        id_usuario: "USR-001",
-        nombres: "Administrador",
-        apellidos: "Sistema",
-        grado: "N/A",
-        cargo: "Administrador del sistema",
-        unidad: "GCM 12",
-        correo: "admin@gcm12.local",
-        usuario: "0100000001",
-        password: "Admin123",
-        rol: "ADMIN",
-        estado: "ACTIVO"
-    },
-    {
-        id_usuario: "USR-002",
-        nombres: "Comandante",
-        apellidos: "ECO",
-        grado: "TNTE",
-        cargo: "Comandante de ECO",
-        unidad: "GCM 12",
-        correo: "operaciones@gcm12.local",
-        usuario: "123456",
-        password: "Oper123",
-        rol: "COMANDANTE_ECO",
-        estado: "ACTIVO"
-    },
-    {
-        id_usuario: "USR-003",
-        nombres: "Comandante",
-        apellidos: "Unidad",
-        grado: "TCRN",
-        cargo: "Comandante de unidad",
-        unidad: "GCM 12",
-        correo: "comandante@gcm12.local",
-        usuario: "0100000003",
-        password: "Cmd123",
-        rol: "COMANDANTE_UNIDAD",
-        estado: "ACTIVO"
-    }
-];
+// Sin usuarios locales de producción.
+// Los usuarios reales se cargan desde Google Sheets.
+const usuariosDemo = [];
 
 const STORAGE_USUARIOS = "gcm12_usuarios";
 
@@ -137,8 +97,8 @@ function cargarUsuariosSistema() {
         }
     }
 
-    localStorage.setItem(STORAGE_USUARIOS, JSON.stringify(usuariosDemo));
-    return [...usuariosDemo];
+    localStorage.setItem(STORAGE_USUARIOS, JSON.stringify([]));
+    return [];
 }
 
 function guardarUsuariosSistema() {
@@ -158,7 +118,7 @@ function leerJsonStorage(clave, valorPorDefecto) {
 }
 
 function recargarDatosDesdeStorage() {
-    usuariosSistema = leerJsonStorage(STORAGE_USUARIOS, usuariosDemo);
+    usuariosSistema = leerJsonStorage(STORAGE_USUARIOS, []);
     operacionesSistema = leerJsonStorage(STORAGE_OPERACIONES, []);
     resultadosSistema = leerJsonStorage(STORAGE_RESULTADOS, []);
     auditoriaSistema = leerJsonStorage(STORAGE_AUDITORIA, []);
@@ -6053,8 +6013,6 @@ async function cargarDatosDesdeGoogleSheets(renderizar = true) {
     localStorage.setItem(STORAGE_OPERACIONES, JSON.stringify(operacionesSistema));
     localStorage.setItem(STORAGE_RESULTADOS, JSON.stringify(resultadosSistema));
     localStorage.setItem(STORAGE_AUDITORIA, JSON.stringify(auditoriaSistema));
-
-    if (!renderizar) return;
 
     if (!renderizar) return;
 
