@@ -20,7 +20,7 @@ let sessionToken = localStorage.getItem(STORAGE_SESSION_TOKEN) || "";
 const STORAGE_OPERACION_PENDIENTE_ID = "gcm12_operacion_pendiente_id";
 let guardandoOperacion = false;
 
-const TIEMPO_INACTIVIDAD_MS = 1 * 60 * 1000; // 30 minutos
+const TIEMPO_INACTIVIDAD_MS = 5 * 60 * 1000; // 30 minutos
 let temporizadorInactividad = null;
 let ultimaActividadUsuario = Date.now();
 
@@ -851,7 +851,7 @@ function verificarCierrePorInactividad() {
     const tiempoSinActividad = Date.now() - ultimaActividadUsuario;
 
     if (tiempoSinActividad >= TIEMPO_INACTIVIDAD_MS) {
-        cerrarSesionForzada("Sesión cerrada automáticamente por 30 minutos de inactividad.");
+        cerrarSesionForzada("Sesión cerrada automáticamente por inactividad.");
         return;
     }
 
