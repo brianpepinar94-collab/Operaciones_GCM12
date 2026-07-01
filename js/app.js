@@ -20,6 +20,19 @@ let sessionToken = localStorage.getItem(STORAGE_SESSION_TOKEN) || "";
 const STORAGE_OPERACION_PENDIENTE_ID = "gcm12_operacion_pendiente_id";
 let guardandoOperacion = false;
 
+const TIEMPO_INACTIVIDAD_MS = 1 * 60 * 1000; // 30 minutos
+let temporizadorInactividad = null;
+let ultimaActividadUsuario = Date.now();
+
+const EVENTOS_ACTIVIDAD_USUARIO = [
+    "click",
+    "keydown",
+    "touchstart",
+    "input",
+    "change",
+    "scroll"
+];
+
 const API_URL = "https://script.google.com/macros/s/AKfycbx9X5R_bV3iShqXY7zFcfmEJRCMcrrOPfBbQiXQte1NAf9Z9_HUnIAopSLsRuKaL_gM/exec";
 const USAR_GOOGLE_SHEETS = true;
 
@@ -593,6 +606,7 @@ loginForm.addEventListener("submit", async (event) => {
 
 logoutBtn.addEventListener("click", () => {
     detenerActualizacionAutomaticaSheets();
+    detenerControlInactividad();
     resetearLoaderGlobal();
 
     usuarioActual = null;
@@ -627,6 +641,7 @@ function iniciarSistema() {
 
     construirMenu(usuarioActual.rol);
     iniciarActualizacionAutomaticaSheets();
+    iniciarControlInactividad();
 }
 
 async function restaurarSesionGuardada() {
@@ -788,8 +803,68 @@ function redirigirAPaginaInicialRol() {
     );
 }
 
+function iniciarControlInactividad() {
+    detenerControlInactividad();
+
+    ultimaActividadUsuario = Date.now();
+
+    EVENTOS_ACTIVIDAD_USUARIO.forEach((evento) => {
+        document.addEventListener(evento, registrarActividadUsuario, true);
+    });
+
+    programarCierrePorInactividad();
+}
+
+function detenerControlInactividad() {
+    if (temporizadorInactividad) {
+        clearTimeout(temporizadorInactividad);
+        temporizadorInactividad = null;
+    }
+
+    EVENTOS_ACTIVIDAD_USUARIO.forEach((evento) => {
+        document.removeEventListener(evento, registrarActividadUsuario, true);
+    });
+}
+
+function registrarActividadUsuario() {
+    if (!usuarioActual) return;
+
+    ultimaActividadUsuario = Date.now();
+    programarCierrePorInactividad();
+}
+
+function programarCierrePorInactividad() {
+    if (!usuarioActual) return;
+
+    if (temporizadorInactividad) {
+        clearTimeout(temporizadorInactividad);
+    }
+
+    temporizadorInactividad = setTimeout(() => {
+        verificarCierrePorInactividad();
+    }, TIEMPO_INACTIVIDAD_MS);
+}
+
+function verificarCierrePorInactividad() {
+    if (!usuarioActual) return;
+
+    const tiempoSinActividad = Date.now() - ultimaActividadUsuario;
+
+    if (tiempoSinActividad >= TIEMPO_INACTIVIDAD_MS) {
+        cerrarSesionForzada("Sesión cerrada automáticamente por 30 minutos de inactividad.");
+        return;
+    }
+
+    const tiempoRestante = TIEMPO_INACTIVIDAD_MS - tiempoSinActividad;
+
+    temporizadorInactividad = setTimeout(() => {
+        verificarCierrePorInactividad();
+    }, tiempoRestante);
+}
+
 function cerrarSesionForzada(mensaje = "La sesión ya no es válida. Inicie sesión nuevamente.") {
     detenerActualizacionAutomaticaSheets();
+    detenerControlInactividad();
     resetearLoaderGlobal();
 
     usuarioActual = null;
@@ -1924,20 +1999,20 @@ function renderMisOperaciones() {
             <td class="acciones-cell">
                 <div class="action-buttons action-buttons-icons">
                     ${crearBotonAccion({
-                        action: "ver",
-                        id: op.id_operacion,
-                        icono: "mdi:eye-outline",
-                        tipo: "neutral",
-                        titulo: "Ver detalle"
-                    })}
+            action: "ver",
+            id: op.id_operacion,
+            icono: "mdi:eye-outline",
+            tipo: "neutral",
+            titulo: "Ver detalle"
+        })}
 
                     ${puedeEditar ? crearBotonAccion({
-                        action: "editar",
-                        id: op.id_operacion,
-                        icono: "mdi:pencil-outline",
-                        tipo: "warning",
-                        titulo: "Editar operación"
-                    }) : ""}
+            action: "editar",
+            id: op.id_operacion,
+            icono: "mdi:pencil-outline",
+            tipo: "warning",
+            titulo: "Editar operación"
+        }) : ""}
                 </div>
             </td>
         `;
@@ -6333,6 +6408,10 @@ function detenerActualizacionAutomaticaSheets() {
 }
 document.addEventListener("visibilitychange", () => {
     if (!document.hidden && usuarioActual) {
-        actualizarDatosPaginaActivaDesdeSheets();
+        verificarCierrePorInactividad();
+
+        if (usuarioActual) {
+            actualizarDatosPaginaActivaDesdeSheets();
+        }
     }
 });
