@@ -334,7 +334,7 @@ const menuPorRol = {
         { id: "auditoriaPage", title: "Auditoría", subtitle: "Historial de acciones del sistema", label: "Auditoría" }
     ],
     COMANDANTE_ECO: [
-        { id: "inicioPage", title: "Inicio", subtitle: "Panel del comandante de operaciones", label: "Inicio" },
+        { id: "inicioPage", title: "Inicio", subtitle: "Panel del comandante de eco", label: "Inicio" },
         { id: "registrarPage", title: "Registrar operación", subtitle: "Registro de operaciones y resultados", label: "Registrar operación" },
         { id: "misOperacionesPage", title: "Mis operaciones", subtitle: "Operaciones registradas por el usuario", label: "Mis operaciones" }
     ],
