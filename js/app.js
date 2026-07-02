@@ -20,7 +20,7 @@ let sessionToken = localStorage.getItem(STORAGE_SESSION_TOKEN) || "";
 const STORAGE_OPERACION_PENDIENTE_ID = "gcm12_operacion_pendiente_id";
 let guardandoOperacion = false;
 
-const TIEMPO_INACTIVIDAD_MS = 10 * 60 * 1000; // 30 minutos
+const TIEMPO_INACTIVIDAD_MS = 10 * 60 * 1000; // 10 minutos
 let temporizadorInactividad = null;
 let ultimaActividadUsuario = Date.now();
 
@@ -44,7 +44,7 @@ let reporteDetallado = false;
 
 let contadorLoaderGlobal = 0;
 
-const PAGE_SIZE_OPERACIONES = 25;
+const PAGE_SIZE_OPERACIONES = 40;
 
 let paginacionOperacionesAdmin = {
     page: 1,
@@ -52,6 +52,17 @@ let paginacionOperacionesAdmin = {
     total: 0,
     totalPages: 1
 };
+
+const PAGE_SIZE_AUDITORIA = 25;
+
+let paginacionAuditoria = {
+    page: 1,
+    pageSize: PAGE_SIZE_AUDITORIA,
+    total: 0,
+    totalPages: 1
+};
+
+let temporizadorBusquedaAuditoria = null;
 
 let paginacionMisOperaciones = {
     page: 1,
@@ -4853,7 +4864,11 @@ function registrarAuditoria(accion, modulo, idRegistro = "", detalle = "", usuar
     guardarAuditoriaSistema();
 
     if (obtenerPaginaActivaId() === "auditoriaPage") {
-        renderAuditoria();
+        cargarPaginaAuditoria(1, {
+            usarLoader: false
+        }).catch(() => {
+            renderAuditoria();
+        });
     }
 
     if (USAR_GOOGLE_SHEETS) {
@@ -4879,22 +4894,28 @@ function configurarAuditoria() {
     const auditoriaPage = document.getElementById("auditoriaPage");
     if (!auditoriaPage) return;
 
-    const filtros = [
-        "auditoriaBuscar",
-        "auditoriaAccion",
-        "auditoriaModulo",
-        "auditoriaRol",
-        "auditoriaFechaDesde",
-        "auditoriaFechaHasta"
-    ];
+    const buscar = document.getElementById("auditoriaBuscar");
+    const accion = document.getElementById("auditoriaAccion");
+    const modulo = document.getElementById("auditoriaModulo");
+    const rol = document.getElementById("auditoriaRol");
+    const fechaDesde = document.getElementById("auditoriaFechaDesde");
+    const fechaHasta = document.getElementById("auditoriaFechaHasta");
 
-    filtros.forEach((id) => {
-        const element = document.getElementById(id);
-        if (!element) return;
+    if (buscar) {
+        buscar.addEventListener("input", () => {
+            clearTimeout(temporizadorBusquedaAuditoria);
 
-        const evento = element.tagName === "INPUT" ? "input" : "change";
-        element.addEventListener(evento, renderAuditoria);
-    });
+            temporizadorBusquedaAuditoria = setTimeout(() => {
+                cargarPaginaAuditoria(1);
+            }, 350);
+        });
+    }
+
+    if (accion) accion.addEventListener("change", () => cargarPaginaAuditoria(1));
+    if (modulo) modulo.addEventListener("change", () => cargarPaginaAuditoria(1));
+    if (rol) rol.addEventListener("change", () => cargarPaginaAuditoria(1));
+    if (fechaDesde) fechaDesde.addEventListener("change", () => cargarPaginaAuditoria(1));
+    if (fechaHasta) fechaHasta.addEventListener("change", () => cargarPaginaAuditoria(1));
 
     const limpiarBtn = document.getElementById("limpiarFiltrosAuditoriaBtn");
 
@@ -4911,7 +4932,7 @@ function limpiarFiltrosAuditoria() {
     document.getElementById("auditoriaFechaDesde").value = "";
     document.getElementById("auditoriaFechaHasta").value = "";
 
-    renderAuditoria();
+    cargarPaginaAuditoria(1);
 }
 
 function obtenerAuditoriaFiltrada() {
@@ -4954,7 +4975,7 @@ function renderAuditoria() {
     const tbody = document.getElementById("auditoriaTableBody");
     if (!tbody) return;
 
-    const datos = obtenerAuditoriaFiltrada();
+    const datos = [...auditoriaSistema];
 
     tbody.innerHTML = "";
 
@@ -5321,8 +5342,7 @@ async function cargarDatosDePagina(pageId) {
         }
 
         if (pageId === "auditoriaPage") {
-            await obtenerAuditoriaDesdeGoogleSheets();
-            renderAuditoria();
+            await cargarPaginaAuditoria(1);
             return;
         }
 
@@ -6602,6 +6622,63 @@ function normalizarOperacionDesdeSheets(operacion) {
     };
 }
 
+function obtenerFiltrosAuditoria() {
+    return {
+        texto: (document.getElementById("auditoriaBuscar")?.value || "").trim(),
+        accion: document.getElementById("auditoriaAccion")?.value || "",
+        modulo: document.getElementById("auditoriaModulo")?.value || "",
+        rol: document.getElementById("auditoriaRol")?.value || "",
+        fecha_desde: document.getElementById("auditoriaFechaDesde")?.value || "",
+        fecha_hasta: document.getElementById("auditoriaFechaHasta")?.value || ""
+    };
+}
+
+async function cargarPaginaAuditoria(page = 1, opciones = {}) {
+    const usarLoader = opciones.usarLoader !== undefined ? opciones.usarLoader : true;
+
+    const data = await apiPost("GET_AUDIT_PAGE", {
+        page,
+        pageSize: paginacionAuditoria.pageSize,
+        filtros: obtenerFiltrosAuditoria()
+    }, {
+        usarLoader,
+        textoLoader: "Cargando auditoría..."
+    });
+
+    auditoriaSistema = data.auditoria || [];
+
+    paginacionAuditoria = {
+        page: data.page || 1,
+        pageSize: data.pageSize || PAGE_SIZE_AUDITORIA,
+        total: data.total || 0,
+        totalPages: data.totalPages || 1
+    };
+
+    localStorage.setItem(STORAGE_AUDITORIA, JSON.stringify(auditoriaSistema));
+
+    renderAuditoria();
+    renderPaginacionAuditoria();
+}
+
+function renderPaginacionAuditoria() {
+    const contenedor = document.getElementById("auditoriaPaginacion");
+    if (!contenedor) return;
+
+    renderPaginacionGenerica(
+        contenedor,
+        paginacionAuditoria,
+        "cambiarPaginaAuditoria"
+    );
+}
+
+function cambiarPaginaAuditoria(direccion) {
+    const nuevaPagina = paginacionAuditoria.page + direccion;
+
+    if (nuevaPagina < 1 || nuevaPagina > paginacionAuditoria.totalPages) return;
+
+    cargarPaginaAuditoria(nuevaPagina);
+}
+
 async function obtenerAuditoriaDesdeGoogleSheets() {
     const auditoria = await apiPost("GET_AUDIT");
 
@@ -6688,14 +6765,17 @@ async function actualizarDatosPaginaActivaDesdeSheets() {
         }
 
         if (pageId === "auditoriaPage") {
-            await obtenerAuditoriaDesdeGoogleSheets();
-            renderPaginaActiva();
+            await cargarPaginaAuditoria(paginacionAuditoria.page, {
+                usarLoader: false
+            });
             return;
         }
     } catch (error) {
         console.warn("No se pudo actualizar datos de la página activa:", error);
     }
 }
+
+
 let intervaloActualizacionSheets = null;
 
 function iniciarActualizacionAutomaticaSheets() {
