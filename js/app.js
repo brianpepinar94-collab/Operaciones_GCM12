@@ -44,7 +44,7 @@ let reporteDetallado = false;
 
 let contadorLoaderGlobal = 0;
 
-const PAGE_SIZE_OPERACIONES = 5;
+const PAGE_SIZE_OPERACIONES = 25;
 
 let paginacionOperacionesAdmin = {
     page: 1,
