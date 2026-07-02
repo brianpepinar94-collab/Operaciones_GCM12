@@ -41,6 +41,7 @@ let resultadosSistema = cargarResultadosSistema();
 let auditoriaSistema = cargarAuditoriaSistema();
 let operacionEditandoId = null;
 let reporteDetallado = false;
+let homeDataActual = null;
 
 let contadorLoaderGlobal = 0;
 
@@ -5146,8 +5147,6 @@ function obtenerClaseAuditoria(accion) {
 function renderInicioPorRol() {
     if (!usuarioActual) return;
 
-    recargarDatosDesdeStorage();
-
     const statsGrid = document.getElementById("inicioStatsGrid");
     const actions = document.getElementById("inicioActions");
     const recentPanel = document.getElementById("inicioRecentPanel");
@@ -5163,18 +5162,23 @@ function renderInicioPorRol() {
     recentBody.innerHTML = "";
     recentPanel.classList.add("hidden");
 
+    if (!homeDataActual || !homeDataActual.stats) {
+        recentBody.innerHTML = "";
+        return;
+    }
+
     if (usuarioActual.rol === "ADMIN") {
-        renderInicioAdmin(statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody);
+        renderInicioAdminServidor(homeDataActual, statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody);
         return;
     }
 
     if (usuarioActual.rol === "COMANDANTE_ECO") {
-        renderInicioComandanteOperaciones(statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody);
+        renderInicioEcoServidor(homeDataActual, statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody);
         return;
     }
 
     if (usuarioActual.rol === "COMANDANTE_UNIDAD") {
-        renderInicioComandanteUnidad(statsGrid, actions);
+        renderInicioUnidadServidor(homeDataActual, statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody);
     }
 }
 
@@ -5197,6 +5201,122 @@ function crearBotonInicio(texto, pageId, title, subtitle, clase = "btn-primary")
             ${texto}
         </button>
     `;
+}
+
+function renderInicioAdminServidor(data, statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody) {
+    const stats = data.stats || {};
+
+    statsGrid.innerHTML = `
+        ${crearStatInicio("Pendientes de validar", stats.operaciones_registradas || 0, "gold")}
+        ${crearStatInicio("Operaciones observadas", stats.operaciones_observadas || 0, "red")}
+        ${crearStatInicio("Operaciones validadas", stats.operaciones_validadas || 0, "green")}
+        ${crearStatInicio("Operaciones anuladas", stats.operaciones_anuladas || 0, "gray")}
+        ${crearStatInicio("Usuarios registrados", stats.total_usuarios || 0, "purple")}
+        ${crearStatInicio("Usuarios activos", stats.usuarios_activos || 0, "green")}
+    `;
+
+    actions.innerHTML = `
+        ${crearBotonInicio("Gestionar usuarios", "usuariosPage", "Usuarios", "Gestión de usuarios y roles")}
+        ${crearBotonInicio("Administrar operaciones", "operacionesPage", "Operaciones", "Administración general de operaciones", "btn-secondary")}
+        ${crearBotonInicio("Ver reportes", "reportesPage", "Reportes", "Consulta y exportación de información", "btn-outline-dark")}
+        ${crearBotonInicio("Auditoría", "auditoriaPage", "Auditoría", "Historial de acciones del sistema", "btn-outline-dark")}
+    `;
+
+    renderTablaInicioOperaciones(
+        data.recientes || [],
+        recentPanel,
+        recentTitle,
+        recentHead,
+        recentBody,
+        "Últimas operaciones registradas"
+    );
+}
+
+function renderInicioEcoServidor(data, statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody) {
+    const stats = data.stats || {};
+
+    statsGrid.innerHTML = `
+        ${crearStatInicio("Mis operaciones", stats.operaciones_total || 0, "purple")}
+        ${crearStatInicio("Registradas", stats.operaciones_registradas || 0, "gold")}
+        ${crearStatInicio("Observadas", stats.operaciones_observadas || 0, "red")}
+        ${crearStatInicio("Validadas", stats.operaciones_validadas || 0, "green")}
+        ${crearStatInicio("Anuladas", stats.operaciones_anuladas || 0, "gray")}
+        ${crearStatInicio("Con resultados", stats.operaciones_con_resultados || 0, "green")}
+    `;
+
+    actions.innerHTML = `
+        ${crearBotonInicio("Registrar operación", "registrarPage", "Registrar operación", "Registro de operaciones y resultados")}
+        ${crearBotonInicio("Ver mis operaciones", "misOperacionesPage", "Mis operaciones", "Operaciones registradas por el usuario", "btn-secondary")}
+    `;
+
+    renderTablaInicioOperaciones(
+        data.recientes || [],
+        recentPanel,
+        recentTitle,
+        recentHead,
+        recentBody,
+        "Mis últimas operaciones"
+    );
+}
+
+function renderInicioUnidadServidor(data, statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody) {
+    const stats = data.stats || {};
+
+    statsGrid.innerHTML = `
+        ${crearStatInicio("Operaciones validadas", stats.operaciones_validadas || 0, "purple")}
+        ${crearStatInicio("Con resultados", stats.operaciones_con_resultados || 0, "gold")}
+        ${crearStatInicio("Sin resultados", stats.operaciones_sin_resultados || 0, "gray")}
+    `;
+
+    actions.innerHTML = `
+        ${crearBotonInicio("Ir al dashboard", "dashboardPage", "Dashboard", "Estadísticas generales de operaciones")}
+        ${crearBotonInicio("Ver reportes", "reportesPage", "Reportes", "Consulta y exportación de información", "btn-secondary")}
+    `;
+
+    renderTablaInicioOperaciones(
+        data.recientes || [],
+        recentPanel,
+        recentTitle,
+        recentHead,
+        recentBody,
+        "Últimas operaciones validadas"
+    );
+}
+
+function renderTablaInicioOperaciones(operaciones, recentPanel, recentTitle, recentHead, recentBody, titulo) {
+    recentPanel.classList.remove("hidden");
+    recentTitle.textContent = titulo;
+
+    recentHead.innerHTML = `
+        <tr>
+            <th>Fecha</th>
+            <th>ID</th>
+            <th>Tipo</th>
+            <th>Cantón</th>
+            <th>Responsable</th>
+            <th>Estado</th>
+        </tr>
+    `;
+
+    if (!operaciones || operaciones.length === 0) {
+        recentBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="home-empty">Sin operaciones registradas.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    recentBody.innerHTML = operaciones.map((op) => `
+        <tr>
+            <td>${formatearFecha(op.fecha_operacion)}</td>
+            <td>${op.id_operacion}</td>
+            <td>${op.tipo_operacion}</td>
+            <td>${op.canton}</td>
+            <td>${op.grado_responsable} ${op.responsable}</td>
+            <td><span class="op-status ${normalizarEstadoClass(op.estado_operacion)}">${op.estado_operacion}</span></td>
+        </tr>
+    `).join("");
 }
 
 function renderInicioAdmin(statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody) {
@@ -5402,6 +5522,11 @@ async function cargarDatosDePagina(pageId) {
     try {
         mostrarEstadoCargaPagina("Actualizando información...");
 
+        if (pageId === "inicioPage") {
+            await cargarHomeData();
+            return;
+        }
+
         if (pageId === "usuariosPage") {
             await obtenerUsuariosDesdeGoogleSheets();
             renderUsuariosAdmin();
@@ -5428,21 +5553,10 @@ async function cargarDatosDePagina(pageId) {
             return;
         }
 
-        if (
-            pageId === "inicioPage" ||
-            pageId === "dashboardPage"
-        ) {
+        if (pageId === "dashboardPage") {
             await obtenerOperacionesDesdeGoogleSheets();
-
-            if (pageId === "inicioPage") {
-                renderInicioPorRol();
-                return;
-            }
-
-            if (pageId === "dashboardPage") {
-                renderDashboard();
-                return;
-            }
+            renderDashboard();
+            return;
         }
 
     } catch (error) {
@@ -6530,6 +6644,21 @@ async function cargarDatosDesdeGoogleSheets(renderizar = true) {
     renderPaginaActiva();
 }
 
+async function cargarHomeData(opciones = {}) {
+    const usarLoader = opciones.usarLoader !== undefined ? opciones.usarLoader : true;
+
+    const data = await apiPost("GET_HOME_DATA", {}, {
+        usarLoader,
+        textoLoader: "Cargando inicio..."
+    });
+
+    homeDataActual = data || null;
+
+    renderInicioPorRol();
+
+    return homeDataActual;
+}
+
 async function obtenerUsuariosDesdeGoogleSheets() {
     const usuarios = await apiPost("GET_USERS");
 
@@ -6811,11 +6940,11 @@ function limpiarDatosOperativosEnMemoria() {
 
 async function cargarDatosInicialesEnSegundoPlano() {
     try {
-        await cargarDatosDesdeGoogleSheets(false);
-        renderPaginaActiva();
+        const pageId = obtenerPaginaActivaId();
+        await cargarDatosDePagina(pageId);
     } catch (error) {
         console.error("Error cargando datos iniciales:", error);
-        alert("Ingresó al sistema, pero no se pudieron cargar todos los datos. Revise la conexión.");
+        alert("Ingresó al sistema, pero no se pudieron cargar los datos iniciales. Revise la conexión.");
     }
 }
 
@@ -6823,11 +6952,7 @@ function paginaActivaUsaOperaciones() {
     const pageId = obtenerPaginaActivaId();
 
     return [
-        "inicioPage",
-        "misOperacionesPage",
-        "operacionesPage",
-        "dashboardPage",
-        "reportesPage"
+        "dashboardPage"
     ].includes(pageId);
 }
 
@@ -6837,6 +6962,13 @@ async function actualizarDatosPaginaActivaDesdeSheets() {
     const pageId = obtenerPaginaActivaId();
 
     try {
+        if (pageId === "inicioPage") {
+            await cargarHomeData({
+                usarLoader: false
+            });
+            return;
+        }
+
         if (pageId === "usuariosPage") {
             await obtenerUsuariosDesdeGoogleSheets();
             renderPaginaActiva();
@@ -6871,12 +7003,9 @@ async function actualizarDatosPaginaActivaDesdeSheets() {
             return;
         }
 
-        if (
-            pageId === "inicioPage" ||
-            pageId === "dashboardPage"
-        ) {
+        if (pageId === "dashboardPage") {
             await obtenerOperacionesDesdeGoogleSheets();
-            renderPaginaActiva();
+            renderDashboard();
             return;
         }
 
@@ -6884,7 +7013,6 @@ async function actualizarDatosPaginaActivaDesdeSheets() {
         console.warn("No se pudo actualizar datos de la página activa:", error);
     }
 }
-
 
 let intervaloActualizacionSheets = null;
 
