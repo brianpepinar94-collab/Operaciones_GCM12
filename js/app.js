@@ -44,7 +44,7 @@ let reporteDetallado = false;
 
 let contadorLoaderGlobal = 0;
 
-const PAGE_SIZE_OPERACIONES = 50;
+const PAGE_SIZE_OPERACIONES = 5;
 
 let paginacionOperacionesAdmin = {
     page: 1,
@@ -6459,14 +6459,16 @@ function obtenerFiltrosMisOperaciones() {
     };
 }
 
-async function cargarPaginaOperacionesAdmin(page = 1) {
+async function cargarPaginaOperacionesAdmin(page = 1, opciones = {}) {
+    const usarLoader = opciones.usarLoader !== undefined ? opciones.usarLoader : true;
+
     const data = await apiPost("GET_OPERATIONS_PAGE", {
         page,
         pageSize: paginacionOperacionesAdmin.pageSize,
         solo_mias: false,
         filtros: obtenerFiltrosOperacionesAdmin()
     }, {
-        usarLoader: true,
+        usarLoader,
         textoLoader: "Cargando operaciones..."
     });
 
@@ -6488,15 +6490,16 @@ async function cargarPaginaOperacionesAdmin(page = 1) {
 }
 
 
+async function cargarPaginaMisOperaciones(page = 1, opciones = {}) {
+    const usarLoader = opciones.usarLoader !== undefined ? opciones.usarLoader : true;
 
-async function cargarPaginaMisOperaciones(page = 1) {
     const data = await apiPost("GET_OPERATIONS_PAGE", {
         page,
         pageSize: paginacionMisOperaciones.pageSize,
         solo_mias: true,
         filtros: obtenerFiltrosMisOperaciones()
     }, {
-        usarLoader: true,
+        usarLoader,
         textoLoader: "Cargando mis operaciones..."
     });
 
@@ -6665,12 +6668,16 @@ async function actualizarDatosPaginaActivaDesdeSheets() {
         }
 
         if (pageId === "misOperacionesPage") {
-            await cargarPaginaMisOperaciones(paginacionMisOperaciones.page);
+            await cargarPaginaMisOperaciones(paginacionMisOperaciones.page, {
+                usarLoader: false
+            });
             return;
         }
 
         if (pageId === "operacionesPage") {
-            await cargarPaginaOperacionesAdmin(paginacionOperacionesAdmin.page);
+            await cargarPaginaOperacionesAdmin(paginacionOperacionesAdmin.page, {
+                usarLoader: false
+            });
             return;
         }
 
@@ -6701,7 +6708,7 @@ function iniciarActualizacionAutomaticaSheets() {
         if (!usuarioActual) return;
 
         actualizarDatosPaginaActivaDesdeSheets();
-    }, 30000);
+    }, 60000);
 }
 
 function detenerActualizacionAutomaticaSheets() {
