@@ -20,7 +20,7 @@ let sessionToken = localStorage.getItem(STORAGE_SESSION_TOKEN) || "";
 const STORAGE_OPERACION_PENDIENTE_ID = "gcm12_operacion_pendiente_id";
 let guardandoOperacion = false;
 
-const TIEMPO_INACTIVIDAD_MS = 5 * 60 * 1000; // 30 minutos
+const TIEMPO_INACTIVIDAD_MS = 10 * 60 * 1000; // 30 minutos
 let temporizadorInactividad = null;
 let ultimaActividadUsuario = Date.now();
 
@@ -3312,45 +3312,54 @@ function renderDashboard() {
     setText("dashExplosivosKg", `${formatDecimal(sumarCategoria(resultados, "Explosivos", "kilogramos"))} kg`);
     setText("dashGranadas", formatNumero(sumarCategoria(resultados, "Granadas")));
 
-    // Sustancias y procesamiento
+    // Sustancias catalogadas sujetas a fiscalización
     setText("dashSCSFTotalKg", `${formatDecimal(calcularSCSFEnKg(resultados))} kg`);
-    setText("dashBalanzas", formatNumero(sumarSubcategoria(resultados, "Otros objetos", "Balanzas")));
-    setText("dashPipas", formatNumero(sumarSubcategoria(resultados, "Otros objetos", "Pipas")));
-    setText("dashDocumentacion", formatNumero(sumarSubcategoria(resultados, "Otros objetos", "Documentación")));
+    setText("dashClorhidratoCocaina", `${formatDecimal(calcularSubcategoriaSCSFEnKg(resultados, "Clorhidrato de cocaína"))} kg`);
+    setText("dashMarihuana", `${formatDecimal(calcularSubcategoriaSCSFEnKg(resultados, "Marihuana"))} kg`);
+    setText("dashHeroina", `${formatDecimal(calcularSubcategoriaSCSFEnKg(resultados, "Heroína"))} kg`);
+    setText("dashOtrasSustancias", `${formatDecimal(calcularSubcategoriaSCSFEnKg(resultados, "Otras sustancias"))} kg`);
 
-    // Comunicaciones y tecnología
+    // Comunicaciones, vigilancia y tecnología
     setText("dashTelefonos", formatNumero(sumarCategoria(resultados, "Teléfonos celulares")));
     setText("dashChips", formatNumero(sumarSubcategoria(resultados, "Accesorios celulares", "Chips")));
-    setText("dashAccesoriosCelulares", formatNumero(sumarCategoria(resultados, "Accesorios celulares")));
-    setText("dashCargadores", formatNumero(sumarSubcategoria(resultados, "Accesorios celulares", "Cargadores")));
-    setText("dashCablesUsb", formatNumero(sumarSubcategoria(resultados, "Accesorios celulares", "Cables USB")));
-    setText("dashAudifonos", formatNumero(sumarSubcategoria(resultados, "Accesorios celulares", "Audífonos")));
     setText("dashRadios", formatNumero(sumarSubcategorias(resultados, "Equipos de comunicación", ["Radios portátiles", "Radios móviles vehiculares"])));
     setText("dashCamaras", formatNumero(sumarSubcategoria(resultados, "Equipos de videovigilancia", "Cámaras")));
     setText("dashDrones", formatNumero(sumarSubcategoria(resultados, "Equipos de videovigilancia", "Drones")));
     setText("dashDvr", formatNumero(sumarSubcategoria(resultados, "Equipos de videovigilancia", "DVR")));
     setText("dashModemRouter", formatNumero(sumarSubcategorias(resultados, "Equipos de red", ["Módem", "Router"])));
     setText("dashFibraCable", `${formatDecimal(sumarSubcategorias(resultados, "Equipos de red", ["Fibra óptica", "Cable de red"], "metros"))} m`);
+    setText("dashAccesoriosCelulares", formatNumero(sumarSubcategoria(resultados, "Accesorios celulares", "Otros accesorios celulares")));
+    setText("dashCargadores", formatNumero(sumarSubcategoria(resultados, "Accesorios celulares", "Cargadores")));
+    setText("dashCablesUsb", formatNumero(sumarSubcategoria(resultados, "Accesorios celulares", "Cables USB")));
+    setText("dashAudifonos", formatNumero(sumarSubcategoria(resultados, "Accesorios celulares", "Audífonos")));
+    setText("dashAntenaSatelital", formatNumero(sumarSubcategoria(resultados, "Equipos de red", "Antena satelital")));
+    setText("dashOtrosEquiposRed", formatNumero(sumarSubcategoria(resultados, "Equipos de red", "Otros equipos de red")));
 
     // Equipamiento táctico
-    // setText("dashEquipamientoTactico", formatNumero(sumarCategoria(resultados, "Equipamiento táctico")));
     setText("dashChalecos", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Chalecos antibalas")));
-    // setText("dashUniformesPoliciales", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Uniformes policiales")));
     setText("dashUniformesMilitares", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Uniformes militares/policiales")));
     setText("dashPrendasMilPol", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Otras prendas militares o policiales")));
     setText("dashEsposas", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Esposas")));
     setText("dashOtrosEquiposTacticos", formatNumero(sumarSubcategoria(resultados, "Equipamiento táctico", "Otros equipos tácticos")));
 
-    // Movilidad, combustible y logística
+    // Movilidad, combustibles
     setText("dashMotocicletas", formatNumero(sumarSubcategoria(resultados, "Vehículos y maquinaria", "Motocicleta")));
     setText("dashVehiculos", formatNumero(sumarSubcategoria(resultados, "Vehículos y maquinaria", "Vehículo")));
-    setText("dashCamiones", formatNumero(sumarSubcategoria(resultados, "Vehículos y maquinaria", "Camión")));
     setText("dashTanqueros", formatNumero(sumarSubcategoria(resultados, "Vehículos y maquinaria", "Tanquero")));
+    setText("dashCamiones", formatNumero(sumarSubcategoria(resultados, "Vehículos y maquinaria", "Camión")));
     setText("dashMaquinaria", formatNumero(sumarSubcategoria(resultados, "Vehículos y maquinaria", "Maquinaria pesada")));
     setText("dashCombustibleGal", `${formatDecimal(sumarCategoria(resultados, "Combustible", "galones"))} gal`);
     setText("dashCombustibleLitros", `${formatDecimal(sumarCategoria(resultados, "Combustible", "litros"))} L`);
+
+    // Alcohol, tabacos y otros objetos
     setText("dashBebidas", `${formatDecimal(sumarCategoria(resultados, "Bebidas alcohólicas", "litros"))} L`);
-    setText("dashTabacos", formatNumero(sumarCategoria(resultados, "Tabacos")));
+    setText("dashCigarrillos", formatNumero(sumarCategoria(resultados, "Tabacos")));
+    setText("dashBalanzas", formatNumero(sumarSubcategoria(resultados, "Otros objetos", "Balanzas")));
+    setText("dashPipas", formatNumero(sumarSubcategoria(resultados, "Otros objetos", "Pipas")));
+    setText("dashHerramientasElectricas", formatNumero(sumarSubcategoria(resultados, "Otros objetos", "Herramientas eléctricas")));
+    setText("dashHerramientasManuales", formatNumero(sumarSubcategoria(resultados, "Otros objetos", "Herramientas manuales")));
+    setText("dashOtrosObjetos", formatNumero(sumarSubcategoria(resultados, "Otros objetos", "Otros objetos")));
+    setText("dashDocumentacion", formatNumero(sumarSubcategoria(resultados, "Otros objetos", "Documentación")));
 
     // Humanos y financieros
     setText("dashAprehendidos", formatNumero(sumarCategoria(resultados, "Personas aprehendidas")));
@@ -3453,6 +3462,28 @@ function calcularSCSFEnKg(resultados) {
             }
 
             if (r.unidad_medida === "kilogramos") {
+                return total + cantidad;
+            }
+
+            return total;
+        }, 0);
+}
+
+function calcularSubcategoriaSCSFEnKg(resultados, subcategoriaBuscada) {
+    return resultados
+        .filter((r) => {
+            return r.categoria === "Sustancias catalogadas sujetas a fiscalización" &&
+                r.subcategoria === subcategoriaBuscada;
+        })
+        .reduce((total, r) => {
+            const cantidad = Number(r.cantidad) || 0;
+            const unidad = String(r.unidad_medida || "").toLowerCase();
+
+            if (unidad.includes("gramo")) {
+                return total + (cantidad / 1000);
+            }
+
+            if (unidad.includes("kilogramo")) {
                 return total + cantidad;
             }
 
@@ -3762,9 +3793,11 @@ function aplicarIconosDashboard() {
 
         // Sustancias y procesamiento
         dashSCSFTotalKg: "game-icons:powder-bag",
-        dashBalanzas: "mdi:scale-balance",
-        dashPipas: "game-icons:smoking-pipe",
-        dashDocumentacion: "mdi:file-document-outline",
+        dashClorhidratoCocaina: "game-icons:powder",
+        dashMarihuana: "mdi:cannabis",
+        dashHeroina: "game-icons:medicine-pills",
+        dashOtrasSustancias: "mdi:flask-outline",
+
 
         // Comunicaciones y tecnología
         dashTelefonos: "mdi:cellphone",
@@ -3775,6 +3808,8 @@ function aplicarIconosDashboard() {
         dashDvr: "mdi:harddisk",
         dashModemRouter: "mdi:router-wireless",
         dashFibraCable: "mdi:ethernet-cable",
+        dashAntenaSatelital: "mdi:satellite-uplink",
+        dashOtrosEquiposRed: "mdi:lan",
 
         // Accesorios celulares
         dashAccesoriosCelulares: "mdi:cellphone-cog",
@@ -3799,6 +3834,16 @@ function aplicarIconosDashboard() {
         dashMaquinaria: "mdi:excavator",
         dashCombustibleGal: "mdi:gas-station",
         dashCombustibleLitros: "mdi:gas-station",
+
+        // Alcohol, tabacos y otros objetos
+        dashCigarrillos: "mdi:cigar",
+        dashHerramientasElectricas: "mdi:power-plug-outline",
+        dashHerramientasManuales: "mdi:hammer-screwdriver",
+        dashOtrosObjetos: "mdi:package-variant-closed",
+        
+        dashBalanzas: "mdi:scale-balance",
+        dashPipas: "game-icons:smoking-pipe",
+        dashDocumentacion: "mdi:file-document-outline",
         dashBebidas: "mdi:bottle-wine-outline",
         dashTabacos: "mdi:cigar",
 
