@@ -461,6 +461,8 @@ document.addEventListener("DOMContentLoaded", () => {
     migrarCamposPasswordUsuarios();
     aplicarIconosDashboard();
 
+    configurarAcordeonResultadosDashboard();
+
     renderUsuariosAdmin();
     renderMisOperaciones();
     renderOperacionesAdmin();
@@ -3062,6 +3064,77 @@ function formatearFechaHora(fechaIso) {
 // ======================================================
 // DASHBOARD COMANDANTE DE UNIDAD
 // ======================================================
+function configurarAcordeonResultadosDashboard() {
+    const contenedor = document.getElementById("dashTabResultados");
+
+    if (!contenedor) return;
+
+    const paneles = Array.from(contenedor.querySelectorAll(".dash-neon-panel"));
+
+    paneles.forEach((panel) => {
+        if (panel.dataset.accordionReady === "SI") return;
+
+        const titulo = panel.querySelector(".dash-panel-title");
+
+        if (!titulo) return;
+
+        panel.classList.add("dash-collapsible", "dash-collapsed");
+
+        const boton = document.createElement("button");
+        boton.type = "button";
+        boton.className = "dash-collapse-btn";
+        boton.innerHTML = `
+            <span>Ver detalle</span>
+            <iconify-icon icon="mdi:chevron-down"></iconify-icon>
+        `;
+
+        titulo.appendChild(boton);
+
+        titulo.setAttribute("role", "button");
+        titulo.setAttribute("tabindex", "0");
+
+        titulo.addEventListener("click", () => {
+            alternarPanelDashboard(panel, paneles);
+        });
+
+        titulo.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                alternarPanelDashboard(panel, paneles);
+            }
+        });
+
+        panel.dataset.accordionReady = "SI";
+        actualizarBotonPanelDashboard(panel);
+    });
+}
+
+function alternarPanelDashboard(panelActivo, paneles) {
+    const estabaCerrado = panelActivo.classList.contains("dash-collapsed");
+
+    paneles.forEach((panel) => {
+        panel.classList.add("dash-collapsed");
+        actualizarBotonPanelDashboard(panel);
+    });
+
+    if (estabaCerrado) {
+        panelActivo.classList.remove("dash-collapsed");
+    }
+
+    actualizarBotonPanelDashboard(panelActivo);
+}
+
+function actualizarBotonPanelDashboard(panel) {
+    const boton = panel.querySelector(".dash-collapse-btn");
+
+    if (!boton) return;
+
+    const cerrado = panel.classList.contains("dash-collapsed");
+
+    boton.innerHTML = cerrado
+        ? `<span>Ver detalle</span><iconify-icon icon="mdi:chevron-down"></iconify-icon>`
+        : `<span>Ocultar</span><iconify-icon icon="mdi:chevron-up"></iconify-icon>`;
+}
 
 function configurarDashboard() {
     const dashboardPage = document.getElementById("dashboardPage");

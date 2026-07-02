@@ -2465,3 +2465,79 @@ button,
     gap: 7px;
   }
 }
+
+/* ============================= */
+/* ACORDEÓN DASHBOARD RESULTADOS */
+/* ============================= */
+
+.dash-collapsible {
+  transition: 0.22s ease;
+}
+
+.dash-collapsible .dash-panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.dash-collapsible .dash-panel-title h4 {
+  margin: 0;
+}
+
+.dash-collapse-btn {
+  width: auto;
+  min-height: 36px;
+  border: 1px solid rgba(104, 207, 224, 0.35);
+  background: rgba(255, 255, 255, 0.07);
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.dash-collapse-btn iconify-icon {
+  font-size: 18px;
+}
+
+.dash-collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.dash-collapsed .dash-card-grid {
+  display: none;
+}
+
+.dash-collapsed {
+  padding-bottom: 14px;
+}
+
+.dash-collapsible:not(.dash-collapsed) .dash-panel-title {
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+}
+
+.dash-collapsible:not(.dash-collapsed) {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+@media (max-width: 768px) {
+  .dash-collapsible .dash-panel-title {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .dash-collapse-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
