@@ -62,6 +62,24 @@ let paginacionAuditoria = {
     totalPages: 1
 };
 
+const PAGE_SIZE_REPORTES = 50;
+
+let paginacionReportes = {
+    page: 1,
+    pageSize: PAGE_SIZE_REPORTES,
+    total: 0,
+    totalPages: 1
+};
+
+let filasReporteActuales = [];
+let resumenReporteActual = {
+    total_filas: 0,
+    total_operaciones: 0,
+    operaciones_con_resultados: 0
+};
+
+let temporizadorBusquedaReportes = null;
+
 let temporizadorBusquedaAuditoria = null;
 
 let paginacionMisOperaciones = {
@@ -4037,6 +4055,83 @@ function renderDetalleCategoriaSubcategoria(resultados, tbodyId) {
 // ======================================================
 // REPORTES
 // ======================================================
+function obtenerFiltrosReportes() {
+    return {
+        fecha_desde: document.getElementById("repFechaDesde")?.value || "",
+        fecha_hasta: document.getElementById("repFechaHasta")?.value || "",
+        estado: document.getElementById("repEstado")?.value || "",
+        hubo_resultados: document.getElementById("repHuboResultados")?.value || "",
+        tipo_operacion: document.getElementById("repTipo")?.value || "",
+        sub_tipo_operacion: document.getElementById("repSubtipo")?.value || "",
+        canton: document.getElementById("repCanton")?.value || "",
+        parroquia: document.getElementById("repParroquia")?.value || "",
+        categoria: document.getElementById("repCategoria")?.value || "",
+        subcategoria: document.getElementById("repSubcategoria")?.value || "",
+        responsable: (document.getElementById("repResponsable")?.value || "").trim()
+    };
+}
+
+async function cargarPaginaReportes(page = 1, opciones = {}) {
+    const usarLoader = opciones.usarLoader !== undefined ? opciones.usarLoader : true;
+
+    const data = await apiPost("GET_REPORT_PAGE", {
+        page,
+        pageSize: paginacionReportes.pageSize,
+        detallado: reporteDetallado,
+        filtros: obtenerFiltrosReportes()
+    }, {
+        usarLoader,
+        textoLoader: "Cargando reportes..."
+    });
+
+    filasReporteActuales = data.filas || [];
+    resumenReporteActual = data.resumen || {
+        total_filas: 0,
+        total_operaciones: 0,
+        operaciones_con_resultados: 0
+    };
+
+    paginacionReportes = {
+        page: data.page || 1,
+        pageSize: data.pageSize || PAGE_SIZE_REPORTES,
+        total: data.total || 0,
+        totalPages: data.totalPages || 1
+    };
+
+    renderReportes();
+    renderPaginacionReportes();
+}
+
+function renderPaginacionReportes() {
+    const contenedor = document.getElementById("reportesPaginacion");
+    if (!contenedor) return;
+
+    renderPaginacionGenerica(
+        contenedor,
+        paginacionReportes,
+        "cambiarPaginaReportes"
+    );
+}
+
+function cambiarPaginaReportes(direccion) {
+    const nuevaPagina = paginacionReportes.page + direccion;
+
+    if (nuevaPagina < 1 || nuevaPagina > paginacionReportes.totalPages) return;
+
+    cargarPaginaReportes(nuevaPagina);
+}
+
+async function obtenerFilasReporteExportacionDesdeServidor() {
+    const data = await apiPost("GET_REPORT_EXPORT", {
+        detallado: reporteDetallado,
+        filtros: obtenerFiltrosReportes()
+    }, {
+        usarLoader: true,
+        textoLoader: "Preparando exportación..."
+    });
+
+    return data.filas || [];
+}
 
 function configurarReportes() {
     const reportesPage = document.getElementById("reportesPage");
@@ -4063,7 +4158,14 @@ function configurarReportes() {
         if (!element) return;
 
         const evento = element.tagName === "INPUT" ? "input" : "change";
-        element.addEventListener(evento, renderReportes);
+
+        element.addEventListener(evento, () => {
+            clearTimeout(temporizadorBusquedaReportes);
+
+            temporizadorBusquedaReportes = setTimeout(() => {
+                cargarPaginaReportes(1);
+            }, evento === "input" ? 350 : 0);
+        });
     });
 
     const repTipo = document.getElementById("repTipo");
@@ -4073,21 +4175,21 @@ function configurarReportes() {
     if (repTipo) {
         repTipo.addEventListener("change", () => {
             cargarSubtiposReportes();
-            renderReportes();
+            cargarPaginaReportes(1);
         });
     }
 
     if (repCanton) {
         repCanton.addEventListener("change", () => {
             cargarParroquiasReportes();
-            renderReportes();
+            cargarPaginaReportes(1);
         });
     }
 
     if (repCategoria) {
         repCategoria.addEventListener("change", () => {
             cargarSubcategoriasReportes();
-            renderReportes();
+            cargarPaginaReportes(1);
         });
     }
 
@@ -4109,6 +4211,7 @@ function configurarReportes() {
     if (exportPdfBtn) {
         exportPdfBtn.addEventListener("click", exportarReportePDF);
     }
+
     const modoDetalladoBtn = document.getElementById("repModoDetalladoBtn");
 
     if (modoDetalladoBtn) {
@@ -4118,7 +4221,7 @@ function configurarReportes() {
             modoDetalladoBtn.textContent = reporteDetallado ? "Detallado: SI" : "Detallado: NO";
             modoDetalladoBtn.classList.toggle("active", reporteDetallado);
 
-            renderReportes();
+            cargarPaginaReportes(1);
         });
     }
 }
@@ -4252,7 +4355,7 @@ function limpiarFiltrosReportes() {
     if (parroquia) parroquia.value = "";
     if (subcategoria) subcategoria.value = "";
 
-    renderReportes();
+    cargarPaginaReportes(1);
 }
 
 function obtenerColumnasReporte() {
@@ -4405,7 +4508,7 @@ function renderReportes() {
     if (!tbody || !thead) return;
 
     const columnas = obtenerColumnasReporte();
-    const filas = obtenerFilasReporteFiltradas();
+    const filas = filasReporteActuales || [];
 
     if (table) {
         table.classList.toggle("detallado", reporteDetallado);
@@ -4426,7 +4529,7 @@ function renderReportes() {
             </tr>
         `;
 
-        actualizarResumenReportes([]);
+        actualizarResumenReportes(resumenReporteActual);
         return;
     }
 
@@ -4446,28 +4549,37 @@ function renderReportes() {
         tbody.appendChild(tr);
     });
 
-    actualizarResumenReportes(filas);
+    actualizarResumenReportes(resumenReporteActual);
 }
 
-function actualizarResumenReportes(filas) {
-    const idsOperaciones = new Set(filas.map((f) => f.id_operacion).filter(Boolean));
+function actualizarResumenReportes(data) {
+    if (Array.isArray(data)) {
+        const idsOperaciones = new Set(data.map((f) => f.id_operacion).filter(Boolean));
 
-    let operacionesConResultados = new Set();
+        let operacionesConResultados = new Set();
 
-    filas.forEach((fila) => {
-        const op = operacionesSistema.find((o) => o.id_operacion === fila.id_operacion);
-        if (op && op.hubo_resultados === "SI") {
-            operacionesConResultados.add(op.id_operacion);
-        }
-    });
+        data.forEach((fila) => {
+            const op = operacionesSistema.find((o) => o.id_operacion === fila.id_operacion);
+            if (op && op.hubo_resultados === "SI") {
+                operacionesConResultados.add(op.id_operacion);
+            }
+        });
 
-    setText("repTotalFilas", formatNumero(filas.length));
-    setText("repTotalOperaciones", formatNumero(idsOperaciones.size));
-    setText("repOperacionesResultados", formatNumero(operacionesConResultados.size));
+        setText("repTotalFilas", formatNumero(data.length));
+        setText("repTotalOperaciones", formatNumero(idsOperaciones.size));
+        setText("repOperacionesResultados", formatNumero(operacionesConResultados.size));
+        return;
+    }
+
+    const resumen = data || {};
+
+    setText("repTotalFilas", formatNumero(resumen.total_filas || 0));
+    setText("repTotalOperaciones", formatNumero(resumen.total_operaciones || 0));
+    setText("repOperacionesResultados", formatNumero(resumen.operaciones_con_resultados || 0));
 }
 
-function exportarReporteCSV() {
-    const filas = obtenerFilasReporteFiltradas();
+async function exportarReporteCSV() {
+    const filas = await obtenerFilasReporteExportacionDesdeServidor();
 
     if (filas.length === 0) {
         mostrarMensajeReportes("No existen datos para exportar.", "error");
@@ -4504,8 +4616,8 @@ function exportarReporteCSV() {
     mostrarMensajeReportes("Reporte CSV exportado correctamente.", "success");
 }
 
-function exportarReportePDF() {
-    const filas = obtenerFilasReporteFiltradas();
+async function exportarReportePDF() {
+    const filas = await obtenerFilasReporteExportacionDesdeServidor();
 
     if (filas.length === 0) {
         mostrarMensajeReportes("No existen datos para exportar.", "error");
@@ -5306,12 +5418,19 @@ async function cargarDatosDePagina(pageId) {
             return;
         }
 
+        if (pageId === "reportesPage") {
+            await cargarPaginaReportes(1);
+            return;
+        }
+
+        if (pageId === "auditoriaPage") {
+            await cargarPaginaAuditoria(1);
+            return;
+        }
+
         if (
             pageId === "inicioPage" ||
-            pageId === "misOperacionesPage" ||
-            pageId === "operacionesPage" ||
-            pageId === "dashboardPage" ||
-            pageId === "reportesPage"
+            pageId === "dashboardPage"
         ) {
             await obtenerOperacionesDesdeGoogleSheets();
 
@@ -5320,30 +5439,10 @@ async function cargarDatosDePagina(pageId) {
                 return;
             }
 
-            if (pageId === "misOperacionesPage") {
-                renderMisOperaciones();
-                return;
-            }
-
-            if (pageId === "operacionesPage") {
-                renderOperacionesAdmin();
-                return;
-            }
-
             if (pageId === "dashboardPage") {
                 renderDashboard();
                 return;
             }
-
-            if (pageId === "reportesPage") {
-                renderReportes();
-                return;
-            }
-        }
-
-        if (pageId === "auditoriaPage") {
-            await cargarPaginaAuditoria(1);
-            return;
         }
 
     } catch (error) {
@@ -6758,9 +6857,10 @@ async function actualizarDatosPaginaActivaDesdeSheets() {
             return;
         }
 
-        if (paginaActivaUsaOperaciones()) {
-            await obtenerOperacionesDesdeGoogleSheets();
-            renderPaginaActiva();
+        if (pageId === "reportesPage") {
+            await cargarPaginaReportes(paginacionReportes.page, {
+                usarLoader: false
+            });
             return;
         }
 
@@ -6770,6 +6870,16 @@ async function actualizarDatosPaginaActivaDesdeSheets() {
             });
             return;
         }
+
+        if (
+            pageId === "inicioPage" ||
+            pageId === "dashboardPage"
+        ) {
+            await obtenerOperacionesDesdeGoogleSheets();
+            renderPaginaActiva();
+            return;
+        }
+
     } catch (error) {
         console.warn("No se pudo actualizar datos de la página activa:", error);
     }
