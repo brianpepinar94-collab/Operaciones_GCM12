@@ -44,6 +44,22 @@ let reporteDetallado = false;
 
 let contadorLoaderGlobal = 0;
 
+const PAGE_SIZE_OPERACIONES = 50;
+
+let paginacionOperacionesAdmin = {
+    page: 1,
+    pageSize: PAGE_SIZE_OPERACIONES,
+    total: 0,
+    totalPages: 1
+};
+
+let paginacionMisOperaciones = {
+    page: 1,
+    pageSize: PAGE_SIZE_OPERACIONES,
+    total: 0,
+    totalPages: 1
+};
+
 function mostrarLoaderGlobal(texto = "Procesando información...") {
     const loader = document.getElementById("globalLoader");
     const loaderText = document.getElementById("globalLoaderText");
@@ -1917,9 +1933,9 @@ function configurarMisOperaciones() {
 
     if (!tbody) return;
 
-    if (buscar) buscar.addEventListener("input", renderMisOperaciones);
-    if (filtroEstado) filtroEstado.addEventListener("change", renderMisOperaciones);
-    if (filtroResultados) filtroResultados.addEventListener("change", renderMisOperaciones);
+    if (buscar) buscar.addEventListener("input", () => cargarPaginaMisOperaciones(1));
+    if (filtroEstado) filtroEstado.addEventListener("change", () => cargarPaginaMisOperaciones(1));
+    if (filtroResultados) filtroResultados.addEventListener("change", () => cargarPaginaMisOperaciones(1));
 
     tbody.addEventListener("click", (event) => {
         const button = event.target.closest("button");
@@ -2390,12 +2406,12 @@ function configurarAdministrarOperaciones() {
 
     if (!tbody) return;
 
-    if (buscar) buscar.addEventListener("input", renderOperacionesAdmin);
-    if (filtroFechaDesde) filtroFechaDesde.addEventListener("change", renderOperacionesAdmin);
-    if (filtroFechaHasta) filtroFechaHasta.addEventListener("change", renderOperacionesAdmin);
-    if (filtroEstado) filtroEstado.addEventListener("change", renderOperacionesAdmin);
-    if (filtroTipo) filtroTipo.addEventListener("change", renderOperacionesAdmin);
-    if (filtroResultados) filtroResultados.addEventListener("change", renderOperacionesAdmin);
+    if (buscar) buscar.addEventListener("input", () => cargarPaginaOperacionesAdmin(1));
+    if (filtroFechaDesde) filtroFechaDesde.addEventListener("change", () => cargarPaginaOperacionesAdmin(1));
+    if (filtroFechaHasta) filtroFechaHasta.addEventListener("change", () => cargarPaginaOperacionesAdmin(1));
+    if (filtroEstado) filtroEstado.addEventListener("change", () => cargarPaginaOperacionesAdmin(1));
+    if (filtroTipo) filtroTipo.addEventListener("change", () => cargarPaginaOperacionesAdmin(1));
+    if (filtroResultados) filtroResultados.addEventListener("change", () => cargarPaginaOperacionesAdmin(1));
 
     if (limpiarBtn) {
         limpiarBtn.addEventListener("click", (event) => {
@@ -2453,7 +2469,7 @@ function limpiarFiltrosOperacionesAdmin() {
         detallePanel.classList.add("hidden");
     }
 
-    renderOperacionesAdmin();
+    cargarPaginaOperacionesAdmin(1);
 }
 
 function renderOperacionesAdmin() {
@@ -3913,7 +3929,7 @@ function aplicarIconosDashboard() {
         dashHerramientasElectricas: "mdi:power-plug-outline",
         dashHerramientasManuales: "mdi:hammer-screwdriver",
         dashOtrosObjetos: "mdi:package-variant-closed",
-        
+
         dashBalanzas: "mdi:scale-balance",
         dashPipas: "game-icons:smoking-pipe",
         dashDocumentacion: "mdi:file-document-outline",
@@ -5259,6 +5275,16 @@ async function cargarDatosDePagina(pageId) {
             return;
         }
 
+        if (pageId === "misOperacionesPage") {
+            await cargarPaginaMisOperaciones(1);
+            return;
+        }
+
+        if (pageId === "operacionesPage") {
+            await cargarPaginaOperacionesAdmin(1);
+            return;
+        }
+
         if (
             pageId === "inicioPage" ||
             pageId === "misOperacionesPage" ||
@@ -6414,6 +6440,156 @@ async function obtenerOperacionesDesdeGoogleSheets() {
     };
 }
 
+function obtenerFiltrosOperacionesAdmin() {
+    return {
+        texto: (document.getElementById("buscarOperacionesAdmin")?.value || "").trim(),
+        fecha_desde: document.getElementById("filtroFechaDesdeOperacionesAdmin")?.value || "",
+        fecha_hasta: document.getElementById("filtroFechaHastaOperacionesAdmin")?.value || "",
+        estado: document.getElementById("filtroEstadoOperacionesAdmin")?.value || "",
+        tipo_operacion: document.getElementById("filtroTipoOperacionesAdmin")?.value || "",
+        hubo_resultados: document.getElementById("filtroResultadosOperacionesAdmin")?.value || ""
+    };
+}
+
+function obtenerFiltrosMisOperaciones() {
+    return {
+        texto: (document.getElementById("buscarMisOperaciones")?.value || "").trim(),
+        estado: document.getElementById("filtroEstadoMisOperaciones")?.value || "",
+        hubo_resultados: document.getElementById("filtroResultadosMisOperaciones")?.value || ""
+    };
+}
+
+async function cargarPaginaOperacionesAdmin(page = 1) {
+    const data = await apiPost("GET_OPERATIONS_PAGE", {
+        page,
+        pageSize: paginacionOperacionesAdmin.pageSize,
+        solo_mias: false,
+        filtros: obtenerFiltrosOperacionesAdmin()
+    }, {
+        usarLoader: true,
+        textoLoader: "Cargando operaciones..."
+    });
+
+    operacionesSistema = (data.operaciones || []).map(normalizarOperacionDesdeSheets);
+    resultadosSistema = data.resultados || [];
+
+    paginacionOperacionesAdmin = {
+        page: data.page || 1,
+        pageSize: data.pageSize || PAGE_SIZE_OPERACIONES,
+        total: data.total || 0,
+        totalPages: data.totalPages || 1
+    };
+
+    localStorage.setItem(STORAGE_OPERACIONES, JSON.stringify(operacionesSistema));
+    localStorage.setItem(STORAGE_RESULTADOS, JSON.stringify(resultadosSistema));
+
+    renderOperacionesAdmin();
+    renderPaginacionOperacionesAdmin();
+}
+
+
+
+async function cargarPaginaMisOperaciones(page = 1) {
+    const data = await apiPost("GET_OPERATIONS_PAGE", {
+        page,
+        pageSize: paginacionMisOperaciones.pageSize,
+        solo_mias: true,
+        filtros: obtenerFiltrosMisOperaciones()
+    }, {
+        usarLoader: true,
+        textoLoader: "Cargando mis operaciones..."
+    });
+
+    operacionesSistema = (data.operaciones || []).map(normalizarOperacionDesdeSheets);
+    resultadosSistema = data.resultados || [];
+
+    paginacionMisOperaciones = {
+        page: data.page || 1,
+        pageSize: data.pageSize || PAGE_SIZE_OPERACIONES,
+        total: data.total || 0,
+        totalPages: data.totalPages || 1
+    };
+
+    localStorage.setItem(STORAGE_OPERACIONES, JSON.stringify(operacionesSistema));
+    localStorage.setItem(STORAGE_RESULTADOS, JSON.stringify(resultadosSistema));
+
+    renderMisOperaciones();
+    renderPaginacionMisOperaciones();
+}
+
+function renderPaginacionOperacionesAdmin() {
+    const contenedor = document.getElementById("operacionesAdminPaginacion");
+    if (!contenedor) return;
+
+    renderPaginacionGenerica(
+        contenedor,
+        paginacionOperacionesAdmin,
+        "cambiarPaginaOperacionesAdmin"
+    );
+}
+
+function renderPaginacionMisOperaciones() {
+    const contenedor = document.getElementById("misOperacionesPaginacion");
+    if (!contenedor) return;
+
+    renderPaginacionGenerica(
+        contenedor,
+        paginacionMisOperaciones,
+        "cambiarPaginaMisOperaciones"
+    );
+}
+
+function renderPaginacionGenerica(contenedor, paginacion, nombreFuncionCambio) {
+    const inicio = paginacion.total === 0
+        ? 0
+        : ((paginacion.page - 1) * paginacion.pageSize) + 1;
+
+    const fin = Math.min(paginacion.page * paginacion.pageSize, paginacion.total);
+
+    contenedor.innerHTML = `
+        <div class="pagination-info">
+            Mostrando ${inicio} - ${fin} de ${paginacion.total} registros
+            | Página ${paginacion.page} de ${paginacion.totalPages}
+        </div>
+
+        <div class="pagination-actions">
+            <button 
+                type="button" 
+                class="btn btn-outline-dark"
+                onclick="${nombreFuncionCambio}(-1)"
+                ${paginacion.page <= 1 ? "disabled" : ""}
+            >
+                Anterior
+            </button>
+
+            <button 
+                type="button" 
+                class="btn btn-outline-dark"
+                onclick="${nombreFuncionCambio}(1)"
+                ${paginacion.page >= paginacion.totalPages ? "disabled" : ""}
+            >
+                Siguiente
+            </button>
+        </div>
+    `;
+}
+
+function cambiarPaginaOperacionesAdmin(direccion) {
+    const nuevaPagina = paginacionOperacionesAdmin.page + direccion;
+
+    if (nuevaPagina < 1 || nuevaPagina > paginacionOperacionesAdmin.totalPages) return;
+
+    cargarPaginaOperacionesAdmin(nuevaPagina);
+}
+
+function cambiarPaginaMisOperaciones(direccion) {
+    const nuevaPagina = paginacionMisOperaciones.page + direccion;
+
+    if (nuevaPagina < 1 || nuevaPagina > paginacionMisOperaciones.totalPages) return;
+
+    cargarPaginaMisOperaciones(nuevaPagina);
+}
+
 function normalizarOperacionDesdeSheets(operacion) {
     return {
         ...operacion,
@@ -6485,6 +6661,16 @@ async function actualizarDatosPaginaActivaDesdeSheets() {
         if (pageId === "usuariosPage") {
             await obtenerUsuariosDesdeGoogleSheets();
             renderPaginaActiva();
+            return;
+        }
+
+        if (pageId === "misOperacionesPage") {
+            await cargarPaginaMisOperaciones(paginacionMisOperaciones.page);
+            return;
+        }
+
+        if (pageId === "operacionesPage") {
+            await cargarPaginaOperacionesAdmin(paginacionOperacionesAdmin.page);
             return;
         }
 
