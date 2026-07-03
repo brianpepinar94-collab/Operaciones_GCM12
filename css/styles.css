@@ -147,6 +147,8 @@ body {
   font-size: 13px;
 }
 
+
+
 /* BOTONES */
 
 .btn {
@@ -2832,5 +2834,221 @@ button,
     min-height: 32px;
     padding: 5px 8px;
     font-size: 11px;
+  }
+}
+
+/* ============================= */
+/* LOGIN CON ESCUDO DE FONDO */
+/* ============================= */
+
+.login-view {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at center, rgba(79, 37, 130, 0.55), transparent 38%),
+    linear-gradient(135deg, #050505 0%, #160D25 48%, #050505 100%);
+}
+
+.login-view::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("../assets/logo-gcm12.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(58vw, 720px);
+  opacity: 0.08;
+  filter: grayscale(10%) drop-shadow(0 0 24px rgba(249, 207, 22, 0.18));
+  pointer-events: none;
+  z-index: -2;
+}
+
+.login-view::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at center, transparent 0%, rgba(5, 5, 5, 0.08) 34%, rgba(5, 5, 5, 0.55) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.login-card {
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(2px);
+}
+
+/* Ajuste para pantallas pequeñas */
+@media (max-width: 768px) {
+  .login-view::before {
+    background-size: 520px;
+    opacity: 0.06;
+  }
+}
+
+@media (max-width: 420px) {
+  .login-view::before {
+    background-size: 430px;
+    opacity: 0.055;
+  }
+}
+
+/* ============================= */
+/* LOGIN INSTITUCIONAL MEJORADO */
+/* ============================= */
+
+.login-view {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at center, rgba(54, 20, 105, 0.72), transparent 42%),
+    linear-gradient(135deg, #030207 0%, #160D25 45%, #050505 100%);
+}
+
+/* Escudo grande de fondo general */
+.login-view::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("../assets/logo-gcm12.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(62vw, 760px);
+  opacity: 0.055;
+  filter: grayscale(8%) drop-shadow(0 0 22px rgba(249, 207, 22, 0.16));
+  pointer-events: none;
+  z-index: -2;
+}
+
+/* Viñeta oscura para dar profundidad */
+.login-view::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at center, transparent 0%, rgba(5, 5, 5, 0.18) 38%, rgba(5, 5, 5, 0.76) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Tarjeta principal */
+.login-card {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  max-width: 430px;
+  padding: 34px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(28, 20, 39, 0.96), rgba(16, 12, 23, 0.96));
+  border-top: 5px solid var(--gold);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(8px);
+}
+
+/* Escudo tenue dentro de la tarjeta */
+.login-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("../assets/logo-gcm12.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 410px;
+  opacity: 0.055;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.login-logo {
+  width: 118px;
+  height: 118px;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.32));
+}
+
+.login-card h1 {
+  color: var(--white);
+  font-size: 25px;
+  letter-spacing: 0.8px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.login-subtitle {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.login-form label {
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 800;
+}
+
+.login-form input {
+  background: rgba(255, 255, 255, 0.96);
+  color: #1F1F29;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  min-height: 50px;
+}
+
+.login-form input::placeholder {
+  color: #77717f;
+}
+
+.login-form input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(249, 207, 22, 0.18);
+}
+
+.login-form .btn-primary {
+  background: var(--primary);
+  border: 1px solid rgba(249, 207, 22, 0.25);
+  min-height: 52px;
+  box-shadow: 0 8px 18px rgba(54, 20, 105, 0.28);
+}
+
+.login-form .btn-primary:hover {
+  background: var(--primary-soft);
+}
+
+.login-footer {
+  color: rgba(255, 255, 255, 0.58);
+  line-height: 1.35;
+}
+
+/* Responsive */
+@media (max-width: 560px) {
+  .login-view {
+    padding: 18px;
+  }
+
+  .login-card {
+    padding: 28px 22px;
+    border-radius: 22px;
+  }
+
+  .login-card::before {
+    background-size: 360px;
+    opacity: 0.045;
+  }
+
+  .login-logo {
+    width: 104px;
+    height: 104px;
+  }
+
+  .login-card h1 {
+    font-size: 21px;
+  }
+
+  .login-subtitle {
+    font-size: 13px;
   }
 }
