@@ -2940,7 +2940,9 @@ async function cambiarEstadoOperacionAdmin(idOperacion, nuevoEstado) {
             `Cambió estado de operación a ${nuevoEstado}`
         );
 
-        await refrescarOperacionesDesdeGoogleSheets();
+        await cargarPaginaOperacionesAdmin(paginacionOperacionesAdmin.page, {
+            usarLoader: false
+        });
 
         renderAuditoria();
 
@@ -3002,7 +3004,9 @@ async function observarOperacionAdmin(idOperacion) {
             `Observó operación: ${observacion}`
         );
 
-        await refrescarOperacionesDesdeGoogleSheets();
+        await cargarPaginaOperacionesAdmin(paginacionOperacionesAdmin.page, {
+            usarLoader: false
+        });
 
         renderAuditoria();
 
@@ -3064,7 +3068,9 @@ async function anularOperacionAdmin(idOperacion) {
             `Anuló operación. Motivo: ${motivo}`
         );
 
-        await refrescarOperacionesDesdeGoogleSheets();
+        await cargarPaginaOperacionesAdmin(paginacionOperacionesAdmin.page, {
+            usarLoader: false
+        });
 
         renderAuditoria();
 
@@ -3182,6 +3188,37 @@ function actualizarBotonPanelDashboard(panel) {
         : `<span>Ocultar</span><iconify-icon icon="mdi:chevron-up"></iconify-icon>`;
 }
 
+function obtenerFiltrosDashboardServidor() {
+    return {
+        fecha_desde: document.getElementById("dashFechaDesde")?.value || "",
+        fecha_hasta: document.getElementById("dashFechaHasta")?.value || "",
+        tipo_operacion: document.getElementById("dashTipo")?.value || "",
+        sub_tipo_operacion: document.getElementById("dashSubtipo")?.value || "",
+        canton: document.getElementById("dashCanton")?.value || "",
+        parroquia: document.getElementById("dashParroquia")?.value || "",
+        categoria: document.getElementById("dashCategoria")?.value || "",
+        subcategoria: document.getElementById("dashSubcategoria")?.value || ""
+    };
+}
+
+async function cargarDashboardData(opciones = {}) {
+    const usarLoader = opciones.usarLoader !== undefined ? opciones.usarLoader : true;
+
+    const data = await apiPost("GET_DASHBOARD_DATA", {
+        filtros: obtenerFiltrosDashboardServidor()
+    }, {
+        usarLoader,
+        textoLoader: "Cargando dashboard..."
+    });
+
+    operacionesSistema = data.operaciones || [];
+    resultadosSistema = data.resultados || [];
+
+    renderDashboard();
+
+    return data;
+}
+
 function configurarDashboard() {
     const dashboardPage = document.getElementById("dashboardPage");
     if (!dashboardPage) return;
@@ -3191,18 +3228,22 @@ function configurarDashboard() {
     const filtros = [
         "dashFechaDesde",
         "dashFechaHasta",
-        "dashEstado",
-        "dashTipo",
         "dashSubtipo",
-        "dashCanton",
         "dashParroquia",
-        "dashCategoria",
         "dashSubcategoria"
     ];
 
     filtros.forEach((id) => {
         const element = document.getElementById(id);
-        if (element) element.addEventListener("change", renderDashboard);
+        if (element) {
+            element.addEventListener("change", () => {
+                if (usuarioActual) {
+                    cargarDashboardData();
+                } else {
+                    renderDashboard();
+                }
+            });
+        }
     });
 
     const dashTipo = document.getElementById("dashTipo");
@@ -3212,21 +3253,36 @@ function configurarDashboard() {
     if (dashTipo) {
         dashTipo.addEventListener("change", () => {
             cargarSubtiposDashboard();
-            renderDashboard();
+
+            if (usuarioActual) {
+                cargarDashboardData();
+            } else {
+                renderDashboard();
+            }
         });
     }
 
     if (dashCanton) {
         dashCanton.addEventListener("change", () => {
             cargarParroquiasDashboard();
-            renderDashboard();
+
+            if (usuarioActual) {
+                cargarDashboardData();
+            } else {
+                renderDashboard();
+            }
         });
     }
 
     if (dashCategoria) {
         dashCategoria.addEventListener("change", () => {
             cargarSubcategoriasDashboard();
-            renderDashboard();
+
+            if (usuarioActual) {
+                cargarDashboardData();
+            } else {
+                renderDashboard();
+            }
         });
     }
 
@@ -3383,13 +3439,18 @@ function limpiarFiltrosDashboard() {
     if (parroquia) parroquia.value = "";
     if (subcategoria) subcategoria.value = "";
 
-    renderDashboard();
+    if (usuarioActual) {
+        cargarDashboardData();
+    } else {
+        renderDashboard();
+    }
+
 }
 
 function renderDashboard() {
     const dashboardPage = document.getElementById("dashboardPage");
     if (!dashboardPage) return;
-    recargarDatosDesdeStorage();
+
 
     const datos = obtenerDatosDashboardFiltrados();
     const operaciones = datos.operaciones;
@@ -4145,11 +4206,8 @@ function configurarReportes() {
         "repFechaHasta",
         "repEstado",
         "repHuboResultados",
-        "repTipo",
         "repSubtipo",
-        "repCanton",
         "repParroquia",
-        "repCategoria",
         "repSubcategoria",
         "repResponsable"
     ];
@@ -4326,7 +4384,7 @@ function limpiarFiltrosReportes() {
     const parroquia = document.getElementById("repParroquia");
     const categoria = document.getElementById("repCategoria");
     const subcategoria = document.getElementById("repSubcategoria");
-    const buscar = document.getElementById("repBuscar");
+    const buscar = document.getElementById("repResponsable");
 
     if (fechaDesde) fechaDesde.value = "";
     if (fechaHasta) fechaHasta.value = "";
@@ -5554,8 +5612,7 @@ async function cargarDatosDePagina(pageId) {
         }
 
         if (pageId === "dashboardPage") {
-            await obtenerOperacionesDesdeGoogleSheets();
-            renderDashboard();
+            await cargarDashboardData();
             return;
         }
 
@@ -6949,11 +7006,7 @@ async function cargarDatosInicialesEnSegundoPlano() {
 }
 
 function paginaActivaUsaOperaciones() {
-    const pageId = obtenerPaginaActivaId();
-
-    return [
-        "dashboardPage"
-    ].includes(pageId);
+    return false;
 }
 
 async function actualizarDatosPaginaActivaDesdeSheets() {
@@ -7004,8 +7057,9 @@ async function actualizarDatosPaginaActivaDesdeSheets() {
         }
 
         if (pageId === "dashboardPage") {
-            await obtenerOperacionesDesdeGoogleSheets();
-            renderDashboard();
+            await cargarDashboardData({
+                usarLoader: false
+            });
             return;
         }
 
