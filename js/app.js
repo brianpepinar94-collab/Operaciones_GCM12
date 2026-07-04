@@ -622,7 +622,28 @@ loginForm.addEventListener("submit", async (event) => {
     }
 });
 
-logoutBtn.addEventListener("click", () => {
+async function revocarSesionServidor(token) {
+    if (!token || !API_URL) return;
+
+    const response = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+            action: "LOGOUT",
+            payload: {},
+            token
+        })
+    });
+
+    const data = await response.json();
+
+    if (!data.ok) {
+        throw new Error(
+            data.error || "No se pudo revocar la sesión en el servidor."
+        );
+    }
+}
+
+function limpiarSesionLocal(mensaje = "") {
     detenerActualizacionAutomaticaSheets();
     detenerControlInactividad();
     resetearLoaderGlobal();
@@ -635,10 +656,28 @@ logoutBtn.addEventListener("click", () => {
     localStorage.removeItem(STORAGE_SESSION_TOKEN);
 
     loginForm.reset();
-    loginError.textContent = "";
+    loginError.textContent = mensaje;
 
     appView.classList.add("hidden");
     loginView.classList.remove("hidden");
+}
+
+logoutBtn.addEventListener("click", async () => {
+    const tokenARevocar = sessionToken;
+
+    logoutBtn.disabled = true;
+
+    try {
+        await revocarSesionServidor(tokenARevocar);
+    } catch (error) {
+        console.warn(
+            "La sesión local se cerrará aunque no se haya podido confirmar la revocación:",
+            error
+        );
+    } finally {
+        limpiarSesionLocal("");
+        logoutBtn.disabled = false;
+    }
 });
 
 // INICIAR SISTEMA
@@ -880,23 +919,21 @@ function verificarCierrePorInactividad() {
     }, tiempoRestante);
 }
 
-function cerrarSesionForzada(mensaje = "La sesión ya no es válida. Inicie sesión nuevamente.") {
-    detenerActualizacionAutomaticaSheets();
-    detenerControlInactividad();
-    resetearLoaderGlobal();
+function cerrarSesionForzada(
+    mensaje = "La sesión ya no es válida. Inicie sesión nuevamente."
+) {
+    const tokenARevocar = sessionToken;
 
-    usuarioActual = null;
-    sessionToken = "";
-    resultadosTemporales = [];
+    limpiarSesionLocal(mensaje);
 
-    localStorage.removeItem("gcm12_usuario_actual");
-    localStorage.removeItem(STORAGE_SESSION_TOKEN);
-
-    appView.classList.add("hidden");
-    loginView.classList.remove("hidden");
-
-    loginForm.reset();
-    loginError.textContent = mensaje;
+    if (tokenARevocar) {
+        revocarSesionServidor(tokenARevocar).catch((error) => {
+            console.warn(
+                "No fue posible revocar una sesión que ya estaba vencida o inválida:",
+                error
+            );
+        });
+    }
 }
 
 // SUBTIPOS POR TIPO DE OPERACIÓN
