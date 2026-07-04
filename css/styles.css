@@ -147,6 +147,8 @@ body {
   font-size: 13px;
 }
 
+
+
 /* BOTONES */
 
 .btn {
@@ -2592,5 +2594,620 @@ button,
 
   .pagination-actions button {
     flex: 1;
+  }
+}
+
+/* ============================= */
+/* TOPBAR SIEMPRE EN UNA SOLA FILA */
+/* ============================= */
+
+.topbar {
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.topbar > div:first-child {
+  min-width: 0;
+}
+
+.topbar h2,
+.topbar p {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-box {
+  width: auto !important;
+  margin-left: auto;
+  flex-shrink: 0;
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.user-info {
+  min-width: 0;
+}
+
+.user-info strong,
+.user-info span {
+  white-space: nowrap;
+}
+
+.account-menu-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 12px 14px;
+  }
+
+  .topbar h2 {
+    font-size: 18px;
+  }
+
+  .topbar p {
+    font-size: 12px;
+  }
+
+  .user-box {
+    width: auto !important;
+    max-width: 55%;
+    display: flex !important;
+    padding: 8px 10px;
+    border-radius: 14px;
+  }
+
+  .user-info strong {
+    font-size: 13px;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .user-info span {
+    font-size: 11px;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .account-menu-btn {
+    min-height: 38px;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 520px) {
+  .topbar {
+    gap: 8px !important;
+  }
+
+  .topbar h2 {
+    font-size: 16px;
+  }
+
+  .topbar p {
+    display: none;
+  }
+
+  .user-box {
+    max-width: 62%;
+    padding: 7px 8px;
+  }
+
+  .user-info strong {
+    max-width: 145px;
+    font-size: 12px;
+  }
+
+  .user-info span {
+    max-width: 145px;
+    font-size: 10px;
+  }
+
+  .account-menu-btn {
+    min-height: 34px;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+}
+
+/* ============================= */
+/* CUENTA FIJA EN CABECERA MÓVIL */
+/* ============================= */
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .sidebar-header {
+    position: relative;
+    min-height: 64px;
+    padding-right: 190px;
+  }
+
+  .sidebar-header > div {
+    min-width: 0;
+  }
+
+  .sidebar-header h2,
+  .sidebar-header span {
+    white-space: nowrap;
+  }
+
+  .topbar {
+    display: block !important;
+    padding: 18px 14px 14px;
+  }
+
+  .topbar .user-box {
+    position: fixed !important;
+    top: 18px;
+    right: 14px;
+    z-index: 250;
+    width: auto !important;
+    max-width: 210px;
+    min-height: 44px;
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 9px;
+    border-radius: 15px;
+    background: var(--primary);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.20);
+  }
+
+  .topbar .user-info {
+    min-width: 0;
+  }
+
+  .topbar .user-info strong {
+    max-width: 105px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    line-height: 1.1;
+  }
+
+  .topbar .user-info span {
+    max-width: 105px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10px;
+    line-height: 1.1;
+  }
+
+  .account-menu-btn {
+    flex-shrink: 0;
+    min-height: 34px;
+    padding: 6px 9px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .account-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 300;
+  }
+}
+
+@media (max-width: 420px) {
+  .sidebar-header {
+    padding-right: 178px;
+  }
+
+  .topbar .user-box {
+    top: 14px;
+    right: 10px;
+    max-width: 195px;
+    padding: 6px 8px;
+  }
+
+  .topbar .user-info strong {
+    max-width: 92px;
+    font-size: 11px;
+  }
+
+  .topbar .user-info span {
+    max-width: 92px;
+    font-size: 9px;
+  }
+
+  .account-menu-btn {
+    min-height: 32px;
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+}
+
+/* ============================= */
+/* LOGIN CON ESCUDO DE FONDO */
+/* ============================= */
+
+.login-view {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at center, rgba(79, 37, 130, 0.55), transparent 38%),
+    linear-gradient(135deg, #050505 0%, #160D25 48%, #050505 100%);
+}
+
+.login-view::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("../assets/logo-gcm12.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(58vw, 720px);
+  opacity: 0.08;
+  filter: grayscale(10%) drop-shadow(0 0 24px rgba(249, 207, 22, 0.18));
+  pointer-events: none;
+  z-index: -2;
+}
+
+.login-view::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at center, transparent 0%, rgba(5, 5, 5, 0.08) 34%, rgba(5, 5, 5, 0.55) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.login-card {
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(2px);
+}
+
+/* Ajuste para pantallas pequeñas */
+@media (max-width: 768px) {
+  .login-view::before {
+    background-size: 520px;
+    opacity: 0.06;
+  }
+}
+
+@media (max-width: 420px) {
+  .login-view::before {
+    background-size: 430px;
+    opacity: 0.055;
+  }
+}
+
+/* ============================= */
+/* LOGIN INSTITUCIONAL MEJORADO */
+/* ============================= */
+
+.login-view {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at center, rgba(54, 20, 105, 0.72), transparent 42%),
+    linear-gradient(135deg, #030207 0%, #160D25 45%, #050505 100%);
+}
+
+/* Escudo grande de fondo general */
+.login-view::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("../assets/logo-gcm12.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(62vw, 760px);
+  opacity: 0.055;
+  filter: grayscale(8%) drop-shadow(0 0 22px rgba(249, 207, 22, 0.16));
+  pointer-events: none;
+  z-index: -2;
+}
+
+/* Viñeta oscura para dar profundidad */
+.login-view::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at center, transparent 0%, rgba(5, 5, 5, 0.18) 38%, rgba(5, 5, 5, 0.76) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Tarjeta principal */
+.login-card {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  max-width: 430px;
+  padding: 34px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(28, 20, 39, 0.96), rgba(16, 12, 23, 0.96));
+  border-top: 5px solid var(--gold);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(8px);
+}
+
+/* Escudo tenue dentro de la tarjeta */
+.login-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("../assets/logo-gcm12.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 410px;
+  opacity: 0.055;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.login-logo {
+  width: 118px;
+  height: 118px;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.32));
+}
+
+.login-card h1 {
+  color: var(--white);
+  font-size: 25px;
+  letter-spacing: 0.8px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.login-subtitle {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.login-form label {
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 800;
+}
+
+.login-form input {
+  background: rgba(255, 255, 255, 0.96);
+  color: #1F1F29;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  min-height: 50px;
+}
+
+.login-form input::placeholder {
+  color: #77717f;
+}
+
+.login-form input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(249, 207, 22, 0.18);
+}
+
+.login-form .btn-primary {
+  background: var(--primary);
+  border: 1px solid rgba(249, 207, 22, 0.25);
+  min-height: 52px;
+  box-shadow: 0 8px 18px rgba(54, 20, 105, 0.28);
+}
+
+.login-form .btn-primary:hover {
+  background: var(--primary-soft);
+}
+
+.login-footer {
+  color: rgba(255, 255, 255, 0.58);
+  line-height: 1.35;
+}
+
+/* Responsive */
+@media (max-width: 560px) {
+  .login-view {
+    padding: 18px;
+  }
+
+  .login-card {
+    padding: 28px 22px;
+    border-radius: 22px;
+  }
+
+  .login-card::before {
+    background-size: 360px;
+    opacity: 0.045;
+  }
+
+  .login-logo {
+    width: 104px;
+    height: 104px;
+  }
+
+  .login-card h1 {
+    font-size: 21px;
+  }
+
+  .login-subtitle {
+    font-size: 13px;
+  }
+}
+
+/* ============================= */
+/* MODAL MAPA RESPONSIVE */
+/* Cabecera y botones fijos */
+/* ============================= */
+
+#mapaModal {
+  padding: 16px;
+  overflow: hidden;
+}
+
+#mapaModal .modal-map-card {
+  width: min(96vw, 980px);
+  height: 92vh;
+  height: 92dvh;
+  max-height: 860px;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 0;
+  overflow: hidden;
+  border-radius: 22px;
+}
+
+/* Cabecera fija */
+
+#mapaModal .modal-map-header {
+  position: relative;
+  flex: 0 0 auto;
+
+  padding: 22px 70px 14px 24px;
+  border-bottom: 1px solid var(--gray-soft);
+  background: var(--white);
+}
+
+#mapaModal .modal-map-header .section-title {
+  margin: 0;
+  padding: 0;
+  border-bottom: none;
+}
+
+#mapaModal .modal-map-header h3 {
+  margin: 0;
+}
+
+/* Cuerpo desplazable */
+
+#mapaModal .modal-map-body {
+  flex: 1 1 auto;
+  min-height: 0;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+
+  padding: 18px 24px;
+}
+
+/* Tamaño controlado del mapa */
+
+#mapaModal .mapa-operacion {
+  width: 100%;
+  height: clamp(280px, 46vh, 440px);
+  margin: 14px 0;
+  flex-shrink: 0;
+}
+
+/* Botones siempre visibles */
+
+#mapaModal .modal-map-footer {
+  flex: 0 0 auto;
+
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+
+  margin: 0;
+  padding: 14px 24px 20px;
+
+  background: var(--white);
+  border-top: 1px solid var(--gray-soft);
+  box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.06);
+}
+
+#mapaModal .modal-map-footer .btn {
+  width: auto;
+  min-width: 180px;
+}
+
+/* ============================= */
+/* MODAL MAPA EN CELULAR */
+/* ============================= */
+
+@media (max-width: 768px) {
+  #mapaModal {
+    padding: 8px;
+  }
+
+  #mapaModal .modal-map-card {
+    width: 100%;
+
+    height: calc(100vh - 16px);
+    height: calc(100dvh - 16px);
+
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+
+    border-radius: 18px;
+  }
+
+  #mapaModal .modal-map-header {
+    padding: 18px 62px 14px 16px;
+  }
+
+  #mapaModal .modal-map-header h3 {
+    font-size: 18px;
+  }
+
+  #mapaModal .modal-map-body {
+    padding: 14px 16px;
+  }
+
+  #mapaModal .mapa-operacion {
+    height: clamp(250px, 43dvh, 350px);
+    border-radius: 14px;
+  }
+
+  #mapaModal .modal-map-footer {
+    flex-direction: column;
+    gap: 10px;
+
+    padding:
+      12px
+      16px
+      calc(12px + env(safe-area-inset-bottom));
+  }
+
+  #mapaModal .modal-map-footer .btn {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  #mapaModal .modal-map-header {
+    padding-top: 16px;
+    padding-bottom: 12px;
+  }
+
+  #mapaModal .modal-map-body {
+    padding: 12px 14px;
+  }
+
+  #mapaModal .mapa-operacion {
+    height: 300px;
   }
 }
