@@ -3651,20 +3651,27 @@ function calcularSCSFEnKg(resultados) {
 
 function calcularSubcategoriaSCSFEnKg(resultados, subcategoriaBuscada) {
     return resultados
-        .filter((r) => {
-            return r.categoria === "Sustancias catalogadas sujetas a fiscalización" &&
-                r.subcategoria === subcategoriaBuscada;
+        .filter((resultado) => {
+            return (
+                String(resultado.categoria || "").trim() ===
+                    "Sustancias catalogadas sujetas a fiscalización" &&
+                String(resultado.subcategoria || "").trim() ===
+                    subcategoriaBuscada
+            );
         })
-        .reduce((total, r) => {
-            const cantidad = Number(r.cantidad) || 0;
-            const unidad = String(r.unidad_medida || "").toLowerCase();
+        .reduce((total, resultado) => {
+            const cantidad = Number(resultado.cantidad) || 0;
 
-            if (unidad.includes("gramo")) {
-                return total + (cantidad / 1000);
+            const unidad = String(resultado.unidad_medida || "")
+                .trim()
+                .toLowerCase();
+
+            if (unidad === "kilogramos") {
+                return total + cantidad;
             }
 
-            if (unidad.includes("kilogramo")) {
-                return total + cantidad;
+            if (unidad === "gramos") {
+                return total + (cantidad / 1000);
             }
 
             return total;
