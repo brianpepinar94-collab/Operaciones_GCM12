@@ -5124,13 +5124,66 @@ async function exportarReportePDF() {
 }
 
 
+function protegerValorCsv(valor) {
+    if (valor === null || valor === undefined) {
+        return "";
+    }
+
+    /*
+     * Los valores numéricos reales se conservan
+     * como números, incluso cuando son negativos.
+     */
+    if (
+        typeof valor === "number" ||
+        typeof valor === "boolean"
+    ) {
+        return String(valor);
+    }
+
+    const textoOriginal = String(valor);
+
+    /*
+     * Se eliminan únicamente para la detección
+     * los espacios y controles iniciales.
+     */
+    const textoParaRevision = textoOriginal.replace(
+        /^[\u0000-\u0020]+/,
+        ""
+    );
+
+    /*
+     * Excel y otras hojas de cálculo pueden ejecutar
+     * como fórmula un texto que comience con:
+     * =  +  -  @
+     *
+     * El apóstrofo obliga a tratarlo como texto.
+     */
+    if (/^[=+\-@]/.test(textoParaRevision)) {
+        return "'" + textoOriginal;
+    }
+
+    return textoOriginal;
+}
+
 function convertirACsv(filas) {
-    return filas.map((fila) => {
-        return fila.map((valor) => {
-            const texto = String(valor ?? "").replace(/"/g, '""');
-            return `"${texto}"`;
-        }).join(";");
-    }).join("\n");
+    return filas
+        .map((fila) => {
+            return fila
+                .map((valor) => {
+                    const textoSeguro =
+                        protegerValorCsv(valor);
+
+                    const textoEscapado =
+                        textoSeguro.replace(
+                            /"/g,
+                            '""'
+                        );
+
+                    return `"${textoEscapado}"`;
+                })
+                .join(";");
+        })
+        .join("\n");
 }
 
 function descargarArchivo(contenido, nombreArchivo, tipoMime) {
