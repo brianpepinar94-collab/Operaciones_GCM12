@@ -202,6 +202,53 @@ function cargarUsuariosSistema() {
 function guardarUsuariosSistema() {
     localStorage.setItem(STORAGE_USUARIOS, JSON.stringify(usuariosSistema));
 }
+
+function eliminarPasswordsLocales() {
+    usuariosSistema = usuariosSistema.map((usuario) => {
+        const usuarioLimpio = { ...usuario };
+
+        delete usuarioLimpio.password;
+        delete usuarioLimpio.password_hash;
+
+        return usuarioLimpio;
+    });
+
+    guardarUsuariosSistema();
+
+    const usuarioGuardado = localStorage.getItem(
+        "gcm12_usuario_actual"
+    );
+
+    if (usuarioGuardado) {
+        try {
+            const usuario = JSON.parse(usuarioGuardado);
+
+            delete usuario.password;
+            delete usuario.password_hash;
+
+            localStorage.setItem(
+                "gcm12_usuario_actual",
+                JSON.stringify(usuario)
+            );
+
+            if (
+                usuarioActual &&
+                String(usuarioActual.id_usuario) ===
+                String(usuario.id_usuario)
+            ) {
+                delete usuarioActual.password;
+                delete usuarioActual.password_hash;
+            }
+        } catch (error) {
+            console.warn(
+                "No se pudo limpiar el usuario almacenado:",
+                error
+            );
+        }
+    }
+}
+
+
 function leerJsonStorage(clave, valorPorDefecto) {
     const data = localStorage.getItem(clave);
 
@@ -505,6 +552,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     migrarRolesAntiguos();
     migrarCamposPasswordUsuarios();
+    eliminarPasswordsLocales();
     aplicarIconosDashboard();
 
     configurarAcordeonResultadosDashboard();
@@ -1235,12 +1283,7 @@ async function crearNuevaOperacion() {
         resultados
     });
 
-    registrarAuditoria(
-        "CREAR",
-        "OPERACIONES",
-        idOperacion,
-        `Registró operación ${operacion.tipo_operacion} - ${operacion.sub_tipo_operacion}`
-    );
+
 
     await refrescarOperacionesDesdeGoogleSheets();
 
@@ -1319,14 +1362,7 @@ async function actualizarOperacionExistente() {
         resultados
     });
 
-    registrarAuditoria(
-        estabaObservada ? "CORREGIR_OBSERVACION" : "EDITAR",
-        "OPERACIONES",
-        operacionEditandoId,
-        estabaObservada
-            ? "Corrigió operación observada y la devolvió a estado REGISTRADO"
-            : "Actualizó operación registrada"
-    );
+
 
     await refrescarOperacionesDesdeGoogleSheets();
 
@@ -1768,7 +1804,7 @@ async function guardarUsuarioDesdeAdmin(event) {
                 unidad,
                 correo,
                 usuario: cedula,
-                password: password || usuarioAnterior.password,
+
                 rol,
                 estado,
                 observacion,
@@ -1778,6 +1814,10 @@ async function guardarUsuarioDesdeAdmin(event) {
                 reset_password_por: usuarioAnterior.reset_password_por || "",
                 password_reseteada: password ? "SI" : (usuarioAnterior.password_reseteada || "NO")
             };
+
+            if (password) {
+                usuarioActualizado.password = password;
+            }
 
             await apiPost("SAVE_USER", {
                 usuario: usuarioActualizado
@@ -2970,12 +3010,7 @@ async function cambiarEstadoOperacionAdmin(idOperacion, nuevoEstado) {
             campos_extra: camposExtra
         });
 
-        registrarAuditoria(
-            nuevoEstado === "VALIDADO" ? "VALIDAR" : "EDITAR",
-            "OPERACIONES",
-            idOperacion,
-            `Cambió estado de operación a ${nuevoEstado}`
-        );
+
 
         await cargarPaginaOperacionesAdmin(paginacionOperacionesAdmin.page, {
             usarLoader: false
@@ -3034,12 +3069,7 @@ async function observarOperacionAdmin(idOperacion) {
             campos_extra: camposExtra
         });
 
-        registrarAuditoria(
-            "OBSERVAR",
-            "OPERACIONES",
-            idOperacion,
-            `Observó operación: ${observacion}`
-        );
+
 
         await cargarPaginaOperacionesAdmin(paginacionOperacionesAdmin.page, {
             usarLoader: false
@@ -3098,12 +3128,7 @@ async function anularOperacionAdmin(idOperacion) {
             campos_extra: camposExtra
         });
 
-        registrarAuditoria(
-            "ANULAR",
-            "OPERACIONES",
-            idOperacion,
-            `Anuló operación. Motivo: ${motivo}`
-        );
+
 
         await cargarPaginaOperacionesAdmin(paginacionOperacionesAdmin.page, {
             usarLoader: false
@@ -6432,7 +6457,7 @@ async function procesarResetPasswordDesdeModal(event) {
     await refrescarUsuariosDesdeGoogleSheets();
 
     registrarAuditoria(
-        "RESET_PASSWORD",
+        "RESETEAR_PASSWORD",
         "USUARIOS",
         usuario.id_usuario,
         `Se reseteó la contraseña del usuario ${usuario.usuario}`
