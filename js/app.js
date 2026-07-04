@@ -1574,17 +1574,31 @@ function crearBotonAccion({
     titulo,
     disabled = false
 }) {
+    const tiposPermitidos = [
+        "neutral",
+        "warning",
+        "success",
+        "danger",
+        "blue"
+    ];
+
+    const tipoSeguro = tiposPermitidos.includes(tipo)
+        ? tipo
+        : "neutral";
+
     return `
-        <button 
+        <button
             type="button"
-            class="icon-action ${tipo}"
-            data-action="${action}"
-            data-id="${id}"
-            title="${titulo}"
-            aria-label="${titulo}"
+            class="icon-action ${tipoSeguro}"
+            data-action="${escaparHtml(action)}"
+            data-id="${escaparHtml(id)}"
+            title="${escaparHtml(titulo)}"
+            aria-label="${escaparHtml(titulo)}"
             ${disabled ? "disabled" : ""}
         >
-            <iconify-icon icon="${icono}"></iconify-icon>
+            <iconify-icon
+                icon="${escaparHtml(icono)}"
+            ></iconify-icon>
         </button>
     `;
 }
@@ -1619,58 +1633,109 @@ function renderUsuariosAdmin() {
     }
 
     usuariosFiltrados.forEach((u) => {
-        const nombreCompleto = `${u.nombres} ${u.apellidos}`;
-        const estadoClass = (u.estado || "").toLowerCase();
+        const idUsuario = String(
+            u.id_usuario || ""
+        );
+
+        const nombreCompleto = [
+            u.nombres,
+            u.apellidos
+        ]
+            .filter(Boolean)
+            .join(" ")
+            .trim();
+
+        const estadoNormalizado = String(
+            u.estado || ""
+        )
+            .trim()
+            .toUpperCase();
+
+        const estadoClass =
+            estadoNormalizado === "ACTIVO"
+                ? "activo"
+                : estadoNormalizado === "INACTIVO"
+                    ? "inactivo"
+                    : "";
 
         const tr = document.createElement("tr");
 
         tr.innerHTML = `
-            <td>${u.id_usuario}</td>
-            <td>
-                <strong>${nombreCompleto}</strong><br>
-                <small>${u.cargo || ""}</small>
-            </td>
-            <td>${u.grado}</td>
-            <td>${u.usuario}</td>
-            <td><span class="role-badge">${u.rol}</span></td>
-            <td><span class="status-badge ${estadoClass}">${u.estado}</span></td>
-            
-            <td class="acciones-cell">
-                <div class="action-buttons action-buttons-icons">
-                    ${crearBotonAccion({
+        <td>${escaparHtml(idUsuario)}</td>
+
+        <td>
+            <strong>
+                ${escaparHtml(nombreCompleto)}
+            </strong>
+            <br>
+            <small>
+                ${escaparHtml(u.cargo || "")}
+            </small>
+        </td>
+
+        <td>${escaparHtml(u.grado || "")}</td>
+
+        <td>${escaparHtml(u.usuario || "")}</td>
+
+        <td>
+            <span class="role-badge">
+                ${escaparHtml(u.rol || "")}
+            </span>
+        </td>
+
+        <td>
+            <span class="status-badge ${estadoClass}">
+                ${escaparHtml(estadoNormalizado)}
+            </span>
+        </td>
+
+        <td class="acciones-cell">
+            <div class="action-buttons action-buttons-icons">
+
+                ${crearBotonAccion({
             action: "editar",
-            id: u.id_usuario,
+            id: idUsuario,
             icono: "mdi:pencil-outline",
             tipo: "neutral",
             titulo: "Editar usuario"
         })}
 
-                    ${crearBotonAccion({
+                ${crearBotonAccion({
             action: "reset-password",
-            id: u.id_usuario,
+            id: idUsuario,
             icono: "mdi:key-variant",
             tipo: "warning",
             titulo: "Resetear clave"
         })}
 
-                    ${crearBotonAccion({
+                ${crearBotonAccion({
             action: "estado",
-            id: u.id_usuario,
-            icono: u.estado === "ACTIVO" ? "mdi:account-cancel-outline" : "mdi:account-check-outline",
-            tipo: u.estado === "ACTIVO" ? "warning" : "success",
-            titulo: u.estado === "ACTIVO" ? "Inactivar usuario" : "Activar usuario"
+            id: idUsuario,
+            icono:
+                estadoNormalizado === "ACTIVO"
+                    ? "mdi:account-cancel-outline"
+                    : "mdi:account-check-outline",
+            tipo:
+                estadoNormalizado === "ACTIVO"
+                    ? "warning"
+                    : "success",
+            titulo:
+                estadoNormalizado === "ACTIVO"
+                    ? "Inactivar usuario"
+                    : "Activar usuario"
         })}
 
-                    ${crearBotonAccion({
+                ${crearBotonAccion({
             action: "eliminar",
-            id: u.id_usuario,
+            id: idUsuario,
             icono: "mdi:trash-can-outline",
             tipo: "danger",
             titulo: "Eliminar usuario"
         })}
-                </div>
-            </td>
-        `;
+
+            </div>
+        </td>
+    `;
 
         tbody.appendChild(tr);
     });
@@ -5263,17 +5328,50 @@ function renderAuditoria() {
     }
 
     datos.forEach((item) => {
+        const accion = String(
+            item.accion || ""
+        )
+            .trim()
+            .toUpperCase();
+
+        const claseAuditoria =
+            obtenerClaseAuditoria(accion);
+
         const tr = document.createElement("tr");
 
         tr.innerHTML = `
-            <td>${formatearFechaHora(item.fecha_hora)}</td>
-            <td>${item.usuario}</td>
-            <td>${item.rol}</td>
-            <td><span class="audit-badge ${obtenerClaseAuditoria(item.accion)}">${item.accion}</span></td>
-            <td>${item.modulo}</td>
-            <td>${item.id_registro || "-"}</td>
-            <td>${item.detalle || ""}</td>
-        `;
+        <td>
+            ${escaparHtml(
+            formatearFechaHora(item.fecha_hora)
+        )}
+        </td>
+
+        <td>
+            ${escaparHtml(item.usuario || "")}
+        </td>
+
+        <td>
+            ${escaparHtml(item.rol || "")}
+        </td>
+
+        <td>
+            <span class="audit-badge ${claseAuditoria}">
+                ${escaparHtml(accion)}
+            </span>
+        </td>
+
+        <td>
+            ${escaparHtml(item.modulo || "")}
+        </td>
+
+        <td>
+            ${escaparHtml(item.id_registro || "-")}
+        </td>
+
+        <td>
+            ${escaparHtml(item.detalle || "")}
+        </td>
+    `;
 
         tbody.appendChild(tr);
     });
