@@ -20,7 +20,7 @@ let sessionToken = localStorage.getItem(STORAGE_SESSION_TOKEN) || "";
 const STORAGE_OPERACION_PENDIENTE_ID = "gcm12_operacion_pendiente_id";
 let guardandoOperacion = false;
 
-const TIEMPO_INACTIVIDAD_MS = 10 * 60 * 1000; // 30 minutos
+const TIEMPO_INACTIVIDAD_MS = 10 * 60 * 1000; // 10 minutos
 let temporizadorInactividad = null;
 let ultimaActividadUsuario = Date.now();
 
@@ -41,10 +41,11 @@ let resultadosSistema = cargarResultadosSistema();
 let auditoriaSistema = cargarAuditoriaSistema();
 let operacionEditandoId = null;
 let reporteDetallado = false;
+let homeDataActual = null;
 
 let contadorLoaderGlobal = 0;
 
-const PAGE_SIZE_OPERACIONES = 25;
+const PAGE_SIZE_OPERACIONES = 40;
 
 let paginacionOperacionesAdmin = {
     page: 1,
@@ -52,6 +53,35 @@ let paginacionOperacionesAdmin = {
     total: 0,
     totalPages: 1
 };
+
+const PAGE_SIZE_AUDITORIA = 25;
+
+let paginacionAuditoria = {
+    page: 1,
+    pageSize: PAGE_SIZE_AUDITORIA,
+    total: 0,
+    totalPages: 1
+};
+
+const PAGE_SIZE_REPORTES = 50;
+
+let paginacionReportes = {
+    page: 1,
+    pageSize: PAGE_SIZE_REPORTES,
+    total: 0,
+    totalPages: 1
+};
+
+let filasReporteActuales = [];
+let resumenReporteActual = {
+    total_filas: 0,
+    total_operaciones: 0,
+    operaciones_con_resultados: 0
+};
+
+let temporizadorBusquedaReportes = null;
+
+let temporizadorBusquedaAuditoria = null;
 
 let paginacionMisOperaciones = {
     page: 1,
@@ -2910,7 +2940,9 @@ async function cambiarEstadoOperacionAdmin(idOperacion, nuevoEstado) {
             `Cambió estado de operación a ${nuevoEstado}`
         );
 
-        await refrescarOperacionesDesdeGoogleSheets();
+        await cargarPaginaOperacionesAdmin(paginacionOperacionesAdmin.page, {
+            usarLoader: false
+        });
 
         renderAuditoria();
 
@@ -2972,7 +3004,9 @@ async function observarOperacionAdmin(idOperacion) {
             `Observó operación: ${observacion}`
         );
 
-        await refrescarOperacionesDesdeGoogleSheets();
+        await cargarPaginaOperacionesAdmin(paginacionOperacionesAdmin.page, {
+            usarLoader: false
+        });
 
         renderAuditoria();
 
@@ -3034,7 +3068,9 @@ async function anularOperacionAdmin(idOperacion) {
             `Anuló operación. Motivo: ${motivo}`
         );
 
-        await refrescarOperacionesDesdeGoogleSheets();
+        await cargarPaginaOperacionesAdmin(paginacionOperacionesAdmin.page, {
+            usarLoader: false
+        });
 
         renderAuditoria();
 
@@ -3152,6 +3188,37 @@ function actualizarBotonPanelDashboard(panel) {
         : `<span>Ocultar</span><iconify-icon icon="mdi:chevron-up"></iconify-icon>`;
 }
 
+function obtenerFiltrosDashboardServidor() {
+    return {
+        fecha_desde: document.getElementById("dashFechaDesde")?.value || "",
+        fecha_hasta: document.getElementById("dashFechaHasta")?.value || "",
+        tipo_operacion: document.getElementById("dashTipo")?.value || "",
+        sub_tipo_operacion: document.getElementById("dashSubtipo")?.value || "",
+        canton: document.getElementById("dashCanton")?.value || "",
+        parroquia: document.getElementById("dashParroquia")?.value || "",
+        categoria: document.getElementById("dashCategoria")?.value || "",
+        subcategoria: document.getElementById("dashSubcategoria")?.value || ""
+    };
+}
+
+async function cargarDashboardData(opciones = {}) {
+    const usarLoader = opciones.usarLoader !== undefined ? opciones.usarLoader : true;
+
+    const data = await apiPost("GET_DASHBOARD_DATA", {
+        filtros: obtenerFiltrosDashboardServidor()
+    }, {
+        usarLoader,
+        textoLoader: "Cargando dashboard..."
+    });
+
+    operacionesSistema = data.operaciones || [];
+    resultadosSistema = data.resultados || [];
+
+    renderDashboard();
+
+    return data;
+}
+
 function configurarDashboard() {
     const dashboardPage = document.getElementById("dashboardPage");
     if (!dashboardPage) return;
@@ -3161,18 +3228,22 @@ function configurarDashboard() {
     const filtros = [
         "dashFechaDesde",
         "dashFechaHasta",
-        "dashEstado",
-        "dashTipo",
         "dashSubtipo",
-        "dashCanton",
         "dashParroquia",
-        "dashCategoria",
         "dashSubcategoria"
     ];
 
     filtros.forEach((id) => {
         const element = document.getElementById(id);
-        if (element) element.addEventListener("change", renderDashboard);
+        if (element) {
+            element.addEventListener("change", () => {
+                if (usuarioActual) {
+                    cargarDashboardData();
+                } else {
+                    renderDashboard();
+                }
+            });
+        }
     });
 
     const dashTipo = document.getElementById("dashTipo");
@@ -3182,21 +3253,36 @@ function configurarDashboard() {
     if (dashTipo) {
         dashTipo.addEventListener("change", () => {
             cargarSubtiposDashboard();
-            renderDashboard();
+
+            if (usuarioActual) {
+                cargarDashboardData();
+            } else {
+                renderDashboard();
+            }
         });
     }
 
     if (dashCanton) {
         dashCanton.addEventListener("change", () => {
             cargarParroquiasDashboard();
-            renderDashboard();
+
+            if (usuarioActual) {
+                cargarDashboardData();
+            } else {
+                renderDashboard();
+            }
         });
     }
 
     if (dashCategoria) {
         dashCategoria.addEventListener("change", () => {
             cargarSubcategoriasDashboard();
-            renderDashboard();
+
+            if (usuarioActual) {
+                cargarDashboardData();
+            } else {
+                renderDashboard();
+            }
         });
     }
 
@@ -3353,13 +3439,18 @@ function limpiarFiltrosDashboard() {
     if (parroquia) parroquia.value = "";
     if (subcategoria) subcategoria.value = "";
 
-    renderDashboard();
+    if (usuarioActual) {
+        cargarDashboardData();
+    } else {
+        renderDashboard();
+    }
+
 }
 
 function renderDashboard() {
     const dashboardPage = document.getElementById("dashboardPage");
     if (!dashboardPage) return;
-    recargarDatosDesdeStorage();
+
 
     const datos = obtenerDatosDashboardFiltrados();
     const operaciones = datos.operaciones;
@@ -3560,20 +3651,27 @@ function calcularSCSFEnKg(resultados) {
 
 function calcularSubcategoriaSCSFEnKg(resultados, subcategoriaBuscada) {
     return resultados
-        .filter((r) => {
-            return r.categoria === "Sustancias catalogadas sujetas a fiscalización" &&
-                r.subcategoria === subcategoriaBuscada;
+        .filter((resultado) => {
+            return (
+                String(resultado.categoria || "").trim() ===
+                "Sustancias catalogadas sujetas a fiscalización" &&
+                String(resultado.subcategoria || "").trim() ===
+                subcategoriaBuscada
+            );
         })
-        .reduce((total, r) => {
-            const cantidad = Number(r.cantidad) || 0;
-            const unidad = String(r.unidad_medida || "").toLowerCase();
+        .reduce((total, resultado) => {
+            const cantidad = Number(resultado.cantidad) || 0;
 
-            if (unidad.includes("gramo")) {
-                return total + (cantidad / 1000);
+            const unidad = String(resultado.unidad_medida || "")
+                .trim()
+                .toLowerCase();
+
+            if (unidad === "kilogramos") {
+                return total + cantidad;
             }
 
-            if (unidad.includes("kilogramo")) {
-                return total + cantidad;
+            if (unidad === "gramos") {
+                return total + (cantidad / 1000);
             }
 
             return total;
@@ -4026,6 +4124,83 @@ function renderDetalleCategoriaSubcategoria(resultados, tbodyId) {
 // ======================================================
 // REPORTES
 // ======================================================
+function obtenerFiltrosReportes() {
+    return {
+        fecha_desde: document.getElementById("repFechaDesde")?.value || "",
+        fecha_hasta: document.getElementById("repFechaHasta")?.value || "",
+        estado: document.getElementById("repEstado")?.value || "",
+        hubo_resultados: document.getElementById("repHuboResultados")?.value || "",
+        tipo_operacion: document.getElementById("repTipo")?.value || "",
+        sub_tipo_operacion: document.getElementById("repSubtipo")?.value || "",
+        canton: document.getElementById("repCanton")?.value || "",
+        parroquia: document.getElementById("repParroquia")?.value || "",
+        categoria: document.getElementById("repCategoria")?.value || "",
+        subcategoria: document.getElementById("repSubcategoria")?.value || "",
+        responsable: (document.getElementById("repResponsable")?.value || "").trim()
+    };
+}
+
+async function cargarPaginaReportes(page = 1, opciones = {}) {
+    const usarLoader = opciones.usarLoader !== undefined ? opciones.usarLoader : true;
+
+    const data = await apiPost("GET_REPORT_PAGE", {
+        page,
+        pageSize: paginacionReportes.pageSize,
+        detallado: reporteDetallado,
+        filtros: obtenerFiltrosReportes()
+    }, {
+        usarLoader,
+        textoLoader: "Cargando reportes..."
+    });
+
+    filasReporteActuales = data.filas || [];
+    resumenReporteActual = data.resumen || {
+        total_filas: 0,
+        total_operaciones: 0,
+        operaciones_con_resultados: 0
+    };
+
+    paginacionReportes = {
+        page: data.page || 1,
+        pageSize: data.pageSize || PAGE_SIZE_REPORTES,
+        total: data.total || 0,
+        totalPages: data.totalPages || 1
+    };
+
+    renderReportes();
+    renderPaginacionReportes();
+}
+
+function renderPaginacionReportes() {
+    const contenedor = document.getElementById("reportesPaginacion");
+    if (!contenedor) return;
+
+    renderPaginacionGenerica(
+        contenedor,
+        paginacionReportes,
+        "cambiarPaginaReportes"
+    );
+}
+
+function cambiarPaginaReportes(direccion) {
+    const nuevaPagina = paginacionReportes.page + direccion;
+
+    if (nuevaPagina < 1 || nuevaPagina > paginacionReportes.totalPages) return;
+
+    cargarPaginaReportes(nuevaPagina);
+}
+
+async function obtenerFilasReporteExportacionDesdeServidor() {
+    const data = await apiPost("GET_REPORT_EXPORT", {
+        detallado: reporteDetallado,
+        filtros: obtenerFiltrosReportes()
+    }, {
+        usarLoader: true,
+        textoLoader: "Preparando exportación..."
+    });
+
+    return data.filas || [];
+}
 
 function configurarReportes() {
     const reportesPage = document.getElementById("reportesPage");
@@ -4038,11 +4213,8 @@ function configurarReportes() {
         "repFechaHasta",
         "repEstado",
         "repHuboResultados",
-        "repTipo",
         "repSubtipo",
-        "repCanton",
         "repParroquia",
-        "repCategoria",
         "repSubcategoria",
         "repResponsable"
     ];
@@ -4052,7 +4224,14 @@ function configurarReportes() {
         if (!element) return;
 
         const evento = element.tagName === "INPUT" ? "input" : "change";
-        element.addEventListener(evento, renderReportes);
+
+        element.addEventListener(evento, () => {
+            clearTimeout(temporizadorBusquedaReportes);
+
+            temporizadorBusquedaReportes = setTimeout(() => {
+                cargarPaginaReportes(1);
+            }, evento === "input" ? 350 : 0);
+        });
     });
 
     const repTipo = document.getElementById("repTipo");
@@ -4062,21 +4241,21 @@ function configurarReportes() {
     if (repTipo) {
         repTipo.addEventListener("change", () => {
             cargarSubtiposReportes();
-            renderReportes();
+            cargarPaginaReportes(1);
         });
     }
 
     if (repCanton) {
         repCanton.addEventListener("change", () => {
             cargarParroquiasReportes();
-            renderReportes();
+            cargarPaginaReportes(1);
         });
     }
 
     if (repCategoria) {
         repCategoria.addEventListener("change", () => {
             cargarSubcategoriasReportes();
-            renderReportes();
+            cargarPaginaReportes(1);
         });
     }
 
@@ -4098,6 +4277,7 @@ function configurarReportes() {
     if (exportPdfBtn) {
         exportPdfBtn.addEventListener("click", exportarReportePDF);
     }
+
     const modoDetalladoBtn = document.getElementById("repModoDetalladoBtn");
 
     if (modoDetalladoBtn) {
@@ -4107,7 +4287,7 @@ function configurarReportes() {
             modoDetalladoBtn.textContent = reporteDetallado ? "Detallado: SI" : "Detallado: NO";
             modoDetalladoBtn.classList.toggle("active", reporteDetallado);
 
-            renderReportes();
+            cargarPaginaReportes(1);
         });
     }
 }
@@ -4211,7 +4391,7 @@ function limpiarFiltrosReportes() {
     const parroquia = document.getElementById("repParroquia");
     const categoria = document.getElementById("repCategoria");
     const subcategoria = document.getElementById("repSubcategoria");
-    const buscar = document.getElementById("repBuscar");
+    const buscar = document.getElementById("repResponsable");
 
     if (fechaDesde) fechaDesde.value = "";
     if (fechaHasta) fechaHasta.value = "";
@@ -4241,7 +4421,7 @@ function limpiarFiltrosReportes() {
     if (parroquia) parroquia.value = "";
     if (subcategoria) subcategoria.value = "";
 
-    renderReportes();
+    cargarPaginaReportes(1);
 }
 
 function obtenerColumnasReporte() {
@@ -4394,7 +4574,7 @@ function renderReportes() {
     if (!tbody || !thead) return;
 
     const columnas = obtenerColumnasReporte();
-    const filas = obtenerFilasReporteFiltradas();
+    const filas = filasReporteActuales || [];
 
     if (table) {
         table.classList.toggle("detallado", reporteDetallado);
@@ -4415,7 +4595,7 @@ function renderReportes() {
             </tr>
         `;
 
-        actualizarResumenReportes([]);
+        actualizarResumenReportes(resumenReporteActual);
         return;
     }
 
@@ -4435,28 +4615,37 @@ function renderReportes() {
         tbody.appendChild(tr);
     });
 
-    actualizarResumenReportes(filas);
+    actualizarResumenReportes(resumenReporteActual);
 }
 
-function actualizarResumenReportes(filas) {
-    const idsOperaciones = new Set(filas.map((f) => f.id_operacion).filter(Boolean));
+function actualizarResumenReportes(data) {
+    if (Array.isArray(data)) {
+        const idsOperaciones = new Set(data.map((f) => f.id_operacion).filter(Boolean));
 
-    let operacionesConResultados = new Set();
+        let operacionesConResultados = new Set();
 
-    filas.forEach((fila) => {
-        const op = operacionesSistema.find((o) => o.id_operacion === fila.id_operacion);
-        if (op && op.hubo_resultados === "SI") {
-            operacionesConResultados.add(op.id_operacion);
-        }
-    });
+        data.forEach((fila) => {
+            const op = operacionesSistema.find((o) => o.id_operacion === fila.id_operacion);
+            if (op && op.hubo_resultados === "SI") {
+                operacionesConResultados.add(op.id_operacion);
+            }
+        });
 
-    setText("repTotalFilas", formatNumero(filas.length));
-    setText("repTotalOperaciones", formatNumero(idsOperaciones.size));
-    setText("repOperacionesResultados", formatNumero(operacionesConResultados.size));
+        setText("repTotalFilas", formatNumero(data.length));
+        setText("repTotalOperaciones", formatNumero(idsOperaciones.size));
+        setText("repOperacionesResultados", formatNumero(operacionesConResultados.size));
+        return;
+    }
+
+    const resumen = data || {};
+
+    setText("repTotalFilas", formatNumero(resumen.total_filas || 0));
+    setText("repTotalOperaciones", formatNumero(resumen.total_operaciones || 0));
+    setText("repOperacionesResultados", formatNumero(resumen.operaciones_con_resultados || 0));
 }
 
-function exportarReporteCSV() {
-    const filas = obtenerFilasReporteFiltradas();
+async function exportarReporteCSV() {
+    const filas = await obtenerFilasReporteExportacionDesdeServidor();
 
     if (filas.length === 0) {
         mostrarMensajeReportes("No existen datos para exportar.", "error");
@@ -4493,8 +4682,8 @@ function exportarReporteCSV() {
     mostrarMensajeReportes("Reporte CSV exportado correctamente.", "success");
 }
 
-function exportarReportePDF() {
-    const filas = obtenerFilasReporteFiltradas();
+async function exportarReportePDF() {
+    const filas = await obtenerFilasReporteExportacionDesdeServidor();
 
     if (filas.length === 0) {
         mostrarMensajeReportes("No existen datos para exportar.", "error");
@@ -4560,7 +4749,7 @@ function exportarReportePDF() {
 
                 @page {
                     size: A4 landscape;
-                    margin: 10mm;
+                    margin: 8mm;
                 }
 
                 body {
@@ -4688,17 +4877,62 @@ function exportarReportePDF() {
                 }
 
                 @media print {
+                    html,
                     body {
-                        margin: 0;
+                        margin: 0 !important;
+                        padding: 0 !important;
+
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+
+                    .institutional-header,
+                    .report-title,
+                    .generated-info,
+                    .footer {
+                        break-inside: avoid;
+                        page-break-inside: avoid;
                     }
 
                     table {
+                        width: 100% !important;
+                        border-collapse: collapse !important;
                         page-break-inside: auto;
                     }
 
+                    thead {
+                        display: table-header-group;
+                    }
+
+                    tbody {
+                        display: table-row-group;
+                    }
+
                     tr {
+                        break-inside: avoid;
                         page-break-inside: avoid;
                         page-break-after: auto;
+                    }
+
+                    th {
+                        background: #361469 !important;
+                        color: #ffffff !important;
+                        border-color: #24113F !important;
+
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+
+                    td {
+                        overflow-wrap: anywhere;
+                        word-break: normal;
+                    }
+
+                    tr:nth-child(even) td {
+                        background: #F9FAFB !important;
+
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                 }
             </style>
@@ -4853,7 +5087,11 @@ function registrarAuditoria(accion, modulo, idRegistro = "", detalle = "", usuar
     guardarAuditoriaSistema();
 
     if (obtenerPaginaActivaId() === "auditoriaPage") {
-        renderAuditoria();
+        cargarPaginaAuditoria(1, {
+            usarLoader: false
+        }).catch(() => {
+            renderAuditoria();
+        });
     }
 
     if (USAR_GOOGLE_SHEETS) {
@@ -4879,22 +5117,28 @@ function configurarAuditoria() {
     const auditoriaPage = document.getElementById("auditoriaPage");
     if (!auditoriaPage) return;
 
-    const filtros = [
-        "auditoriaBuscar",
-        "auditoriaAccion",
-        "auditoriaModulo",
-        "auditoriaRol",
-        "auditoriaFechaDesde",
-        "auditoriaFechaHasta"
-    ];
+    const buscar = document.getElementById("auditoriaBuscar");
+    const accion = document.getElementById("auditoriaAccion");
+    const modulo = document.getElementById("auditoriaModulo");
+    const rol = document.getElementById("auditoriaRol");
+    const fechaDesde = document.getElementById("auditoriaFechaDesde");
+    const fechaHasta = document.getElementById("auditoriaFechaHasta");
 
-    filtros.forEach((id) => {
-        const element = document.getElementById(id);
-        if (!element) return;
+    if (buscar) {
+        buscar.addEventListener("input", () => {
+            clearTimeout(temporizadorBusquedaAuditoria);
 
-        const evento = element.tagName === "INPUT" ? "input" : "change";
-        element.addEventListener(evento, renderAuditoria);
-    });
+            temporizadorBusquedaAuditoria = setTimeout(() => {
+                cargarPaginaAuditoria(1);
+            }, 350);
+        });
+    }
+
+    if (accion) accion.addEventListener("change", () => cargarPaginaAuditoria(1));
+    if (modulo) modulo.addEventListener("change", () => cargarPaginaAuditoria(1));
+    if (rol) rol.addEventListener("change", () => cargarPaginaAuditoria(1));
+    if (fechaDesde) fechaDesde.addEventListener("change", () => cargarPaginaAuditoria(1));
+    if (fechaHasta) fechaHasta.addEventListener("change", () => cargarPaginaAuditoria(1));
 
     const limpiarBtn = document.getElementById("limpiarFiltrosAuditoriaBtn");
 
@@ -4911,7 +5155,7 @@ function limpiarFiltrosAuditoria() {
     document.getElementById("auditoriaFechaDesde").value = "";
     document.getElementById("auditoriaFechaHasta").value = "";
 
-    renderAuditoria();
+    cargarPaginaAuditoria(1);
 }
 
 function obtenerAuditoriaFiltrada() {
@@ -4954,7 +5198,7 @@ function renderAuditoria() {
     const tbody = document.getElementById("auditoriaTableBody");
     if (!tbody) return;
 
-    const datos = obtenerAuditoriaFiltrada();
+    const datos = [...auditoriaSistema];
 
     tbody.innerHTML = "";
 
@@ -5013,8 +5257,6 @@ function obtenerClaseAuditoria(accion) {
 function renderInicioPorRol() {
     if (!usuarioActual) return;
 
-    recargarDatosDesdeStorage();
-
     const statsGrid = document.getElementById("inicioStatsGrid");
     const actions = document.getElementById("inicioActions");
     const recentPanel = document.getElementById("inicioRecentPanel");
@@ -5030,18 +5272,23 @@ function renderInicioPorRol() {
     recentBody.innerHTML = "";
     recentPanel.classList.add("hidden");
 
+    if (!homeDataActual || !homeDataActual.stats) {
+        recentBody.innerHTML = "";
+        return;
+    }
+
     if (usuarioActual.rol === "ADMIN") {
-        renderInicioAdmin(statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody);
+        renderInicioAdminServidor(homeDataActual, statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody);
         return;
     }
 
     if (usuarioActual.rol === "COMANDANTE_ECO") {
-        renderInicioComandanteOperaciones(statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody);
+        renderInicioEcoServidor(homeDataActual, statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody);
         return;
     }
 
     if (usuarioActual.rol === "COMANDANTE_UNIDAD") {
-        renderInicioComandanteUnidad(statsGrid, actions);
+        renderInicioUnidadServidor(homeDataActual, statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody);
     }
 }
 
@@ -5064,6 +5311,122 @@ function crearBotonInicio(texto, pageId, title, subtitle, clase = "btn-primary")
             ${texto}
         </button>
     `;
+}
+
+function renderInicioAdminServidor(data, statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody) {
+    const stats = data.stats || {};
+
+    statsGrid.innerHTML = `
+        ${crearStatInicio("Pendientes de validar", stats.operaciones_registradas || 0, "gold")}
+        ${crearStatInicio("Operaciones observadas", stats.operaciones_observadas || 0, "red")}
+        ${crearStatInicio("Operaciones validadas", stats.operaciones_validadas || 0, "green")}
+        ${crearStatInicio("Operaciones anuladas", stats.operaciones_anuladas || 0, "gray")}
+        ${crearStatInicio("Usuarios registrados", stats.total_usuarios || 0, "purple")}
+        ${crearStatInicio("Usuarios activos", stats.usuarios_activos || 0, "green")}
+    `;
+
+    actions.innerHTML = `
+        ${crearBotonInicio("Gestionar usuarios", "usuariosPage", "Usuarios", "Gestión de usuarios y roles")}
+        ${crearBotonInicio("Administrar operaciones", "operacionesPage", "Operaciones", "Administración general de operaciones", "btn-secondary")}
+        ${crearBotonInicio("Ver reportes", "reportesPage", "Reportes", "Consulta y exportación de información", "btn-outline-dark")}
+        ${crearBotonInicio("Auditoría", "auditoriaPage", "Auditoría", "Historial de acciones del sistema", "btn-outline-dark")}
+    `;
+
+    renderTablaInicioOperaciones(
+        data.recientes || [],
+        recentPanel,
+        recentTitle,
+        recentHead,
+        recentBody,
+        "Últimas operaciones registradas"
+    );
+}
+
+function renderInicioEcoServidor(data, statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody) {
+    const stats = data.stats || {};
+
+    statsGrid.innerHTML = `
+        ${crearStatInicio("Mis operaciones", stats.operaciones_total || 0, "purple")}
+        ${crearStatInicio("Registradas", stats.operaciones_registradas || 0, "gold")}
+        ${crearStatInicio("Observadas", stats.operaciones_observadas || 0, "red")}
+        ${crearStatInicio("Validadas", stats.operaciones_validadas || 0, "green")}
+        ${crearStatInicio("Anuladas", stats.operaciones_anuladas || 0, "gray")}
+        ${crearStatInicio("Con resultados", stats.operaciones_con_resultados || 0, "green")}
+    `;
+
+    actions.innerHTML = `
+        ${crearBotonInicio("Registrar operación", "registrarPage", "Registrar operación", "Registro de operaciones y resultados")}
+        ${crearBotonInicio("Ver mis operaciones", "misOperacionesPage", "Mis operaciones", "Operaciones registradas por el usuario", "btn-secondary")}
+    `;
+
+    renderTablaInicioOperaciones(
+        data.recientes || [],
+        recentPanel,
+        recentTitle,
+        recentHead,
+        recentBody,
+        "Mis últimas operaciones"
+    );
+}
+
+function renderInicioUnidadServidor(data, statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody) {
+    const stats = data.stats || {};
+
+    statsGrid.innerHTML = `
+        ${crearStatInicio("Operaciones validadas", stats.operaciones_validadas || 0, "purple")}
+        ${crearStatInicio("Con resultados", stats.operaciones_con_resultados || 0, "gold")}
+        ${crearStatInicio("Sin resultados", stats.operaciones_sin_resultados || 0, "gray")}
+    `;
+
+    actions.innerHTML = `
+        ${crearBotonInicio("Ir al dashboard", "dashboardPage", "Dashboard", "Estadísticas generales de operaciones")}
+        ${crearBotonInicio("Ver reportes", "reportesPage", "Reportes", "Consulta y exportación de información", "btn-secondary")}
+    `;
+
+    renderTablaInicioOperaciones(
+        data.recientes || [],
+        recentPanel,
+        recentTitle,
+        recentHead,
+        recentBody,
+        "Últimas operaciones validadas"
+    );
+}
+
+function renderTablaInicioOperaciones(operaciones, recentPanel, recentTitle, recentHead, recentBody, titulo) {
+    recentPanel.classList.remove("hidden");
+    recentTitle.textContent = titulo;
+
+    recentHead.innerHTML = `
+        <tr>
+            <th>Fecha</th>
+            <th>ID</th>
+            <th>Tipo</th>
+            <th>Cantón</th>
+            <th>Responsable</th>
+            <th>Estado</th>
+        </tr>
+    `;
+
+    if (!operaciones || operaciones.length === 0) {
+        recentBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="home-empty">Sin operaciones registradas.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    recentBody.innerHTML = operaciones.map((op) => `
+        <tr>
+            <td>${formatearFecha(op.fecha_operacion)}</td>
+            <td>${op.id_operacion}</td>
+            <td>${op.tipo_operacion}</td>
+            <td>${op.canton}</td>
+            <td>${op.grado_responsable} ${op.responsable}</td>
+            <td><span class="op-status ${normalizarEstadoClass(op.estado_operacion)}">${op.estado_operacion}</span></td>
+        </tr>
+    `).join("");
 }
 
 function renderInicioAdmin(statsGrid, actions, recentPanel, recentTitle, recentHead, recentBody) {
@@ -5269,6 +5632,11 @@ async function cargarDatosDePagina(pageId) {
     try {
         mostrarEstadoCargaPagina("Actualizando información...");
 
+        if (pageId === "inicioPage") {
+            await cargarHomeData();
+            return;
+        }
+
         if (pageId === "usuariosPage") {
             await obtenerUsuariosDesdeGoogleSheets();
             renderUsuariosAdmin();
@@ -5285,44 +5653,18 @@ async function cargarDatosDePagina(pageId) {
             return;
         }
 
-        if (
-            pageId === "inicioPage" ||
-            pageId === "misOperacionesPage" ||
-            pageId === "operacionesPage" ||
-            pageId === "dashboardPage" ||
-            pageId === "reportesPage"
-        ) {
-            await obtenerOperacionesDesdeGoogleSheets();
-
-            if (pageId === "inicioPage") {
-                renderInicioPorRol();
-                return;
-            }
-
-            if (pageId === "misOperacionesPage") {
-                renderMisOperaciones();
-                return;
-            }
-
-            if (pageId === "operacionesPage") {
-                renderOperacionesAdmin();
-                return;
-            }
-
-            if (pageId === "dashboardPage") {
-                renderDashboard();
-                return;
-            }
-
-            if (pageId === "reportesPage") {
-                renderReportes();
-                return;
-            }
+        if (pageId === "reportesPage") {
+            await cargarPaginaReportes(1);
+            return;
         }
 
         if (pageId === "auditoriaPage") {
-            await obtenerAuditoriaDesdeGoogleSheets();
-            renderAuditoria();
+            await cargarPaginaAuditoria(1);
+            return;
+        }
+
+        if (pageId === "dashboardPage") {
+            await cargarDashboardData();
             return;
         }
 
@@ -6411,6 +6753,21 @@ async function cargarDatosDesdeGoogleSheets(renderizar = true) {
     renderPaginaActiva();
 }
 
+async function cargarHomeData(opciones = {}) {
+    const usarLoader = opciones.usarLoader !== undefined ? opciones.usarLoader : true;
+
+    const data = await apiPost("GET_HOME_DATA", {}, {
+        usarLoader,
+        textoLoader: "Cargando inicio..."
+    });
+
+    homeDataActual = data || null;
+
+    renderInicioPorRol();
+
+    return homeDataActual;
+}
+
 async function obtenerUsuariosDesdeGoogleSheets() {
     const usuarios = await apiPost("GET_USERS");
 
@@ -6602,6 +6959,63 @@ function normalizarOperacionDesdeSheets(operacion) {
     };
 }
 
+function obtenerFiltrosAuditoria() {
+    return {
+        texto: (document.getElementById("auditoriaBuscar")?.value || "").trim(),
+        accion: document.getElementById("auditoriaAccion")?.value || "",
+        modulo: document.getElementById("auditoriaModulo")?.value || "",
+        rol: document.getElementById("auditoriaRol")?.value || "",
+        fecha_desde: document.getElementById("auditoriaFechaDesde")?.value || "",
+        fecha_hasta: document.getElementById("auditoriaFechaHasta")?.value || ""
+    };
+}
+
+async function cargarPaginaAuditoria(page = 1, opciones = {}) {
+    const usarLoader = opciones.usarLoader !== undefined ? opciones.usarLoader : true;
+
+    const data = await apiPost("GET_AUDIT_PAGE", {
+        page,
+        pageSize: paginacionAuditoria.pageSize,
+        filtros: obtenerFiltrosAuditoria()
+    }, {
+        usarLoader,
+        textoLoader: "Cargando auditoría..."
+    });
+
+    auditoriaSistema = data.auditoria || [];
+
+    paginacionAuditoria = {
+        page: data.page || 1,
+        pageSize: data.pageSize || PAGE_SIZE_AUDITORIA,
+        total: data.total || 0,
+        totalPages: data.totalPages || 1
+    };
+
+    localStorage.setItem(STORAGE_AUDITORIA, JSON.stringify(auditoriaSistema));
+
+    renderAuditoria();
+    renderPaginacionAuditoria();
+}
+
+function renderPaginacionAuditoria() {
+    const contenedor = document.getElementById("auditoriaPaginacion");
+    if (!contenedor) return;
+
+    renderPaginacionGenerica(
+        contenedor,
+        paginacionAuditoria,
+        "cambiarPaginaAuditoria"
+    );
+}
+
+function cambiarPaginaAuditoria(direccion) {
+    const nuevaPagina = paginacionAuditoria.page + direccion;
+
+    if (nuevaPagina < 1 || nuevaPagina > paginacionAuditoria.totalPages) return;
+
+    cargarPaginaAuditoria(nuevaPagina);
+}
+
 async function obtenerAuditoriaDesdeGoogleSheets() {
     const auditoria = await apiPost("GET_AUDIT");
 
@@ -6635,24 +7049,16 @@ function limpiarDatosOperativosEnMemoria() {
 
 async function cargarDatosInicialesEnSegundoPlano() {
     try {
-        await cargarDatosDesdeGoogleSheets(false);
-        renderPaginaActiva();
+        const pageId = obtenerPaginaActivaId();
+        await cargarDatosDePagina(pageId);
     } catch (error) {
         console.error("Error cargando datos iniciales:", error);
-        alert("Ingresó al sistema, pero no se pudieron cargar todos los datos. Revise la conexión.");
+        alert("Ingresó al sistema, pero no se pudieron cargar los datos iniciales. Revise la conexión.");
     }
 }
 
 function paginaActivaUsaOperaciones() {
-    const pageId = obtenerPaginaActivaId();
-
-    return [
-        "inicioPage",
-        "misOperacionesPage",
-        "operacionesPage",
-        "dashboardPage",
-        "reportesPage"
-    ].includes(pageId);
+    return false;
 }
 
 async function actualizarDatosPaginaActivaDesdeSheets() {
@@ -6661,6 +7067,13 @@ async function actualizarDatosPaginaActivaDesdeSheets() {
     const pageId = obtenerPaginaActivaId();
 
     try {
+        if (pageId === "inicioPage") {
+            await cargarHomeData({
+                usarLoader: false
+            });
+            return;
+        }
+
         if (pageId === "usuariosPage") {
             await obtenerUsuariosDesdeGoogleSheets();
             renderPaginaActiva();
@@ -6681,21 +7094,32 @@ async function actualizarDatosPaginaActivaDesdeSheets() {
             return;
         }
 
-        if (paginaActivaUsaOperaciones()) {
-            await obtenerOperacionesDesdeGoogleSheets();
-            renderPaginaActiva();
+        if (pageId === "reportesPage") {
+            await cargarPaginaReportes(paginacionReportes.page, {
+                usarLoader: false
+            });
             return;
         }
 
         if (pageId === "auditoriaPage") {
-            await obtenerAuditoriaDesdeGoogleSheets();
-            renderPaginaActiva();
+            await cargarPaginaAuditoria(paginacionAuditoria.page, {
+                usarLoader: false
+            });
             return;
         }
+
+        if (pageId === "dashboardPage") {
+            await cargarDashboardData({
+                usarLoader: false
+            });
+            return;
+        }
+
     } catch (error) {
         console.warn("No se pudo actualizar datos de la página activa:", error);
     }
 }
+
 let intervaloActualizacionSheets = null;
 
 function iniciarActualizacionAutomaticaSheets() {
