@@ -5097,58 +5097,47 @@ function mostrarMensajeReportes(mensaje, tipo) {
 // AUDITORÍA DEL SISTEMA
 // ======================================================
 
-function registrarAuditoria(accion, modulo, idRegistro = "", detalle = "", usuarioForzado = null) {
-    const usuario = usuarioForzado || usuarioActual;
-
-    const nombreUsuario = usuario
-        ? `${usuario.grado || ""} ${usuario.nombres || ""} ${usuario.apellidos || ""}`.trim()
-        : "NO IDENTIFICADO";
-
-    const rolUsuario = usuario ? usuario.rol : "NO_IDENTIFICADO";
-    const usuarioCedula = usuario ? usuario.usuario : "";
-
-    const registro = {
-        id_auditoria: generarIdAuditoria(),
-        fecha_hora: new Date().toISOString(),
-        usuario: nombreUsuario,
-        usuario_cedula: usuarioCedula,
-        rol: rolUsuario,
-        accion,
-        modulo,
-        id_registro: idRegistro || "",
-        detalle: detalle || "",
-        ip_dispositivo: "N/A"
-    };
-
-    auditoriaSistema.push(registro);
-    guardarAuditoriaSistema();
-
-    if (obtenerPaginaActivaId() === "auditoriaPage") {
-        cargarPaginaAuditoria(1, {
-            usarLoader: false
-        }).catch(() => {
-            renderAuditoria();
-        });
+async function registrarAuditoria(
+    accion,
+    modulo,
+    idRegistro = "",
+    detalle = ""
+) {
+    if (!usuarioActual || !sessionToken) {
+        console.warn(
+            "No se registró auditoría porque no existe una sesión activa."
+        );
+        return;
     }
 
-    if (USAR_GOOGLE_SHEETS) {
-        apiPost("SAVE_AUDIT", {
-            auditoria: registro
-        }).catch((error) => {
-            console.warn("No se pudo guardar auditoría ", error);
-        });
+    try {
+        await apiPost(
+            "SAVE_AUDIT",
+            {
+                accion: String(accion || "").trim(),
+                modulo: String(modulo || "").trim(),
+                id_registro: String(idRegistro || "").trim(),
+                detalle: String(detalle || "").trim()
+            },
+            {
+                usarLoader: false
+            }
+        );
+
+        if (obtenerPaginaActivaId() === "auditoriaPage") {
+            await cargarPaginaAuditoria(1, {
+                usarLoader: false
+            });
+        }
+
+    } catch (error) {
+        console.warn(
+            "No se pudo registrar la auditoría:",
+            error
+        );
     }
 }
 
-function generarIdAuditoria() {
-    const fecha = new Date();
-    const yyyy = fecha.getFullYear();
-    const mm = String(fecha.getMonth() + 1).padStart(2, "0");
-    const dd = String(fecha.getDate()).padStart(2, "0");
-    const random = Math.floor(Math.random() * 900000) + 100000;
-
-    return `AUD-${yyyy}${mm}${dd}-${random}`;
-}
 
 function configurarAuditoria() {
     const auditoriaPage = document.getElementById("auditoriaPage");
