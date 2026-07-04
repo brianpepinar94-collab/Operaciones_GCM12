@@ -3654,9 +3654,9 @@ function calcularSubcategoriaSCSFEnKg(resultados, subcategoriaBuscada) {
         .filter((resultado) => {
             return (
                 String(resultado.categoria || "").trim() ===
-                    "Sustancias catalogadas sujetas a fiscalización" &&
+                "Sustancias catalogadas sujetas a fiscalización" &&
                 String(resultado.subcategoria || "").trim() ===
-                    subcategoriaBuscada
+                subcategoriaBuscada
             );
         })
         .reduce((total, resultado) => {
@@ -4749,7 +4749,7 @@ async function exportarReportePDF() {
 
                 @page {
                     size: A4 landscape;
-                    margin: 10mm;
+                    margin: 8mm;
                 }
 
                 body {
@@ -4877,17 +4877,62 @@ async function exportarReportePDF() {
                 }
 
                 @media print {
+                    html,
                     body {
-                        margin: 0;
+                        margin: 0 !important;
+                        padding: 0 !important;
+
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+
+                    .institutional-header,
+                    .report-title,
+                    .generated-info,
+                    .footer {
+                        break-inside: avoid;
+                        page-break-inside: avoid;
                     }
 
                     table {
+                        width: 100% !important;
+                        border-collapse: collapse !important;
                         page-break-inside: auto;
                     }
 
+                    thead {
+                        display: table-header-group;
+                    }
+
+                    tbody {
+                        display: table-row-group;
+                    }
+
                     tr {
+                        break-inside: avoid;
                         page-break-inside: avoid;
                         page-break-after: auto;
+                    }
+
+                    th {
+                        background: #361469 !important;
+                        color: #ffffff !important;
+                        border-color: #24113F !important;
+
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+
+                    td {
+                        overflow-wrap: anywhere;
+                        word-break: normal;
+                    }
+
+                    tr:nth-child(even) td {
+                        background: #F9FAFB !important;
+
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                 }
             </style>
