@@ -1675,35 +1675,48 @@
 
     <div id="mapaModal" class="modal-overlay hidden">
         <div class="modal-card modal-map-card">
-            <button type="button" id="mapaModalClose" class="modal-close">
-                ×
-            </button>
 
-            <div class="section-title">
-                <h3>Seleccionar punto en mapa</h3>
+            <!-- CABECERA FIJA -->
+            <div class="modal-map-header">
+                <div class="section-title">
+                    <h3>Seleccionar punto en mapa</h3>
+                </div>
+
+                <button type="button" id="mapaModalClose" class="modal-close">
+                    ×
+                </button>
             </div>
 
-            <p class="modal-help">
-                Haga clic sobre el mapa para marcar el punto exacto de la operación.
-                Luego confirme para rellenar las coordenadas.
-            </p>
+            <!-- CONTENIDO CON SCROLL -->
+            <div class="modal-map-body">
 
-            <div class="field">
-                <label>Sector / referencia</label>
-                <input type="text" id="sectorMapaReferencia"
-                    placeholder="Ej. CPL, barrio, vía, comunidad o referencia del punto" />
+                <p class="modal-help">
+                    Haga clic sobre el mapa para marcar el punto exacto de la operación.
+                    Luego confirme para rellenar las coordenadas.
+                </p>
+
+                <div class="field">
+                    <label>Sector / referencia</label>
+
+                    <input type="text" id="sectorMapaReferencia"
+                        placeholder="Ej. CPL, barrio, vía, comunidad o referencia del punto" />
+                </div>
+
+                <div id="mapaOperacion" class="mapa-operacion"></div>
+
+                <div class="mapa-info-box">
+                    <strong>Coordenadas seleccionadas:</strong>
+
+                    <span id="mapaCoordenadasPreview">
+                        Ningún punto seleccionado
+                    </span>
+                </div>
+
+                <p id="mapaMessage" class="form-message"></p>
             </div>
 
-            <div id="mapaOperacion" class="mapa-operacion"></div>
-
-            <div class="mapa-info-box">
-                <strong>Coordenadas seleccionadas:</strong>
-                <span id="mapaCoordenadasPreview">Ningún punto seleccionado</span>
-            </div>
-
-            <p id="mapaMessage" class="form-message"></p>
-
-            <div class="form-actions">
+            <!-- BOTONES SIEMPRE VISIBLES -->
+            <div class="form-actions modal-map-footer">
                 <button type="button" id="mapaCancelarBtn" class="btn btn-outline-dark">
                     Cancelar
                 </button>
@@ -1712,8 +1725,11 @@
                     Usar este punto
                 </button>
             </div>
+
         </div>
     </div>
+
+
     <div id="adminActionModal" class="modal-overlay hidden">
         <div class="modal-card admin-action-card">
             <div class="modal-header">

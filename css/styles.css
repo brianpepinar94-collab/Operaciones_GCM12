@@ -3052,3 +3052,162 @@ button,
     font-size: 13px;
   }
 }
+
+/* ============================= */
+/* MODAL MAPA RESPONSIVE */
+/* Cabecera y botones fijos */
+/* ============================= */
+
+#mapaModal {
+  padding: 16px;
+  overflow: hidden;
+}
+
+#mapaModal .modal-map-card {
+  width: min(96vw, 980px);
+  height: 92vh;
+  height: 92dvh;
+  max-height: 860px;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 0;
+  overflow: hidden;
+  border-radius: 22px;
+}
+
+/* Cabecera fija */
+
+#mapaModal .modal-map-header {
+  position: relative;
+  flex: 0 0 auto;
+
+  padding: 22px 70px 14px 24px;
+  border-bottom: 1px solid var(--gray-soft);
+  background: var(--white);
+}
+
+#mapaModal .modal-map-header .section-title {
+  margin: 0;
+  padding: 0;
+  border-bottom: none;
+}
+
+#mapaModal .modal-map-header h3 {
+  margin: 0;
+}
+
+/* Cuerpo desplazable */
+
+#mapaModal .modal-map-body {
+  flex: 1 1 auto;
+  min-height: 0;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+
+  padding: 18px 24px;
+}
+
+/* Tamaño controlado del mapa */
+
+#mapaModal .mapa-operacion {
+  width: 100%;
+  height: clamp(280px, 46vh, 440px);
+  margin: 14px 0;
+  flex-shrink: 0;
+}
+
+/* Botones siempre visibles */
+
+#mapaModal .modal-map-footer {
+  flex: 0 0 auto;
+
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+
+  margin: 0;
+  padding: 14px 24px 20px;
+
+  background: var(--white);
+  border-top: 1px solid var(--gray-soft);
+  box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.06);
+}
+
+#mapaModal .modal-map-footer .btn {
+  width: auto;
+  min-width: 180px;
+}
+
+/* ============================= */
+/* MODAL MAPA EN CELULAR */
+/* ============================= */
+
+@media (max-width: 768px) {
+  #mapaModal {
+    padding: 8px;
+  }
+
+  #mapaModal .modal-map-card {
+    width: 100%;
+
+    height: calc(100vh - 16px);
+    height: calc(100dvh - 16px);
+
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+
+    border-radius: 18px;
+  }
+
+  #mapaModal .modal-map-header {
+    padding: 18px 62px 14px 16px;
+  }
+
+  #mapaModal .modal-map-header h3 {
+    font-size: 18px;
+  }
+
+  #mapaModal .modal-map-body {
+    padding: 14px 16px;
+  }
+
+  #mapaModal .mapa-operacion {
+    height: clamp(250px, 43dvh, 350px);
+    border-radius: 14px;
+  }
+
+  #mapaModal .modal-map-footer {
+    flex-direction: column;
+    gap: 10px;
+
+    padding:
+      12px
+      16px
+      calc(12px + env(safe-area-inset-bottom));
+  }
+
+  #mapaModal .modal-map-footer .btn {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  #mapaModal .modal-map-header {
+    padding-top: 16px;
+    padding-bottom: 12px;
+  }
+
+  #mapaModal .modal-map-body {
+    padding: 12px 14px;
+  }
+
+  #mapaModal .mapa-operacion {
+    height: 300px;
+  }
+}
