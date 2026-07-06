@@ -163,7 +163,7 @@ body {
 
 .btn-primary {
   width: 100%;
-  background: var(--primary);
+  background:#133079 ;
   color: var(--white);
 }
 
@@ -205,7 +205,7 @@ body {
 }
 
 .sidebar {
-  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(180deg, #133079 0%, var(--primary-dark) 100%);
   color: var(--white);
   padding: 20px 16px;
 }
@@ -257,7 +257,7 @@ body {
 }
 
 .menu button.active {
-  background: rgba(249, 207, 22, 0.16);
+  background: rgba(81, 111, 207, 0.16);
   border-left: 4px solid var(--gold);
   color: var(--white);
 }
@@ -292,7 +292,7 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: var(--primary);
+  background: #133079;
   color: var(--white);
   padding: 10px 12px;
   border-radius: 16px;
@@ -1057,7 +1057,7 @@ button,
   border-radius: 22px;
   padding: 22px;
   background:
-    linear-gradient(135deg, var(--dash-bg-1), var(--dash-bg-2)),
+    linear-gradient(135deg, #1e3161, var(--dash-bg-2)),
     radial-gradient(circle at top right, rgba(73, 35, 120, 0.35), transparent 35%);
   color: var(--dash-text);
   box-shadow: 0 12px 28px rgba(23, 9, 37, 0.28);
@@ -1297,7 +1297,7 @@ button,
 }
 
 .dash-table-panel {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(40, 20, 148, 0.08);
   border: 1px solid rgba(104, 224, 239, 0.25);
   border-radius: 18px;
   padding: 16px;
@@ -1314,7 +1314,7 @@ button,
 }
 
 .dash-table-panel th {
-  background: rgba(104, 224, 239, 0.14);
+  background: rgba(35, 3, 244, 0.14);
   color: var(--white);
 }
 
@@ -1404,17 +1404,17 @@ button,
 }
 
 .dash-table-panel thead th {
-  background: rgba(46, 75, 79) !important;
+  background: rgb(36, 25, 98) !important;
   color: #ffffff !important;
   border-bottom: 1px solid rgba(104, 224, 239, 0.35);
 }
 
 .dash-table-panel tbody tr {
-  background: rgba(3, 24, 33, 0.72) !important;
+  background: rgba(37, 30, 80, 0.72) !important;
 }
 
 .dash-table-panel tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.06) !important;
+  background: rgba(35, 31, 60, 0.06) !important;
 }
 
 .dash-table-panel tbody td {
@@ -2159,85 +2159,221 @@ button,
     width: 100%;
   }
 }
-
 /* ============================= */
-/* SCROLL VERTICAL DETALLE DASHBOARD */
+/* SCROLL DE TODAS LAS TABLAS DEL DASHBOARD */
 /* ============================= */
 
-.dash-detail-full {
+/*
+ * Todas las tablas del dashboard utilizan
+ * el mismo comportamiento.
+ */
+#dashboardPage .dash-table-panel {
   max-height: 420px;
-  overflow: auto  ;
-  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  /*
+   * El panel completo ya no se desplaza.
+   * El scroll se aplica solo a la tabla.
+   */
+  overflow: hidden !important;
 }
 
-/* Mantiene la cabecera fija dentro de la tabla */
-.dash-detail-full thead th {
+/*
+ * El título queda siempre visible y fuera
+ * del área desplazable.
+ */
+#dashboardPage .dash-table-panel > h4 {
+  position: static !important;
+  flex: 0 0 auto;
+
+  margin: 0 0 12px;
+  padding: 0 0 10px;
+
+  color: #ffffff;
+  background: transparent;
+
+  line-height: 1.3;
+  text-transform: uppercase;
+
+  border-bottom: 1px solid
+    rgba(255, 255, 255, 0.16);
+}
+
+/*
+ * Único contenedor encargado del scroll
+ * vertical y horizontal.
+ */
+#dashboardPage .dash-table-scroll {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+
+  overflow-x: auto;
+  overflow-y: auto;
+
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+
+  border-radius: 10px;
+  isolation: isolate;
+}
+
+/*
+ * Configuración común de todas las tablas.
+ */
+#dashboardPage .dash-table-scroll table {
+  width: 100%;
+  min-width: 100%;
+  margin: 0;
+
+  border-collapse: separate;
+  border-spacing: 0;
+
+  background: transparent !important;
+}
+
+/*
+ * La cabecera se mantiene fija dentro del
+ * área desplazable.
+ */
+#dashboardPage .dash-table-scroll thead {
+  position: relative;
+  z-index: 20;
+}
+
+#dashboardPage .dash-table-scroll thead th {
   position: sticky;
   top: 0;
-  z-index: 4;
+  z-index: 20;
+
+  background: #241962 !important;
+  color: #ffffff !important;
+  background-clip: padding-box;
+
+  border-bottom: 1px solid
+    rgba(104, 224, 239, 0.45);
+
+  box-shadow:
+    0 2px 0 rgba(104, 224, 239, 0.16),
+    0 5px 10px rgba(0, 0, 0, 0.20);
 }
 
-/* Evita que la tabla se comprima */
-.dash-detail-full table {
+/*
+ * El cuerpo siempre queda debajo de
+ * los encabezados.
+ */
+#dashboardPage .dash-table-scroll tbody {
+  position: relative;
+  z-index: 1;
+}
+
+#dashboardPage .dash-table-scroll tbody tr {
+  background:
+    rgba(37, 30, 80, 0.94) !important;
+}
+
+#dashboardPage
+.dash-table-scroll
+tbody
+tr:nth-child(even) {
+  background:
+    rgba(29, 24, 65, 0.94) !important;
+}
+
+#dashboardPage .dash-table-scroll tbody td {
+  position: relative;
+  z-index: 1;
+
+  background: transparent !important;
+  color: #ffffff !important;
+
+  border-bottom: 1px solid
+    rgba(255, 255, 255, 0.12);
+}
+
+/*
+ * Tabla de detalle por categoría y
+ * subcategoría.
+ */
+#dashboardPage
+.dash-detail-full
+.dash-table-scroll
+table {
   min-width: 780px;
-  margin: 0;
 }
 
+/*
+ * Las tablas de rankings necesitan ancho
+ * mínimo para no comprimir las columnas.
+ */
+#dashboardPage
+.dash-tables-grid
+.dash-table-scroll
+table {
+  min-width: 620px;
+}
+
+/* Barra de desplazamiento opcional */
+
+#dashboardPage
+.dash-table-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+#dashboardPage
+.dash-table-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+}
+
+#dashboardPage
+.dash-table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(104, 207, 224, 0.42);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+#dashboardPage
+.dash-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(104, 207, 224, 0.62);
+  background-clip: padding-box;
+}
+
+/* Pantallas pequeñas */
+
 @media (max-width: 768px) {
-  .dash-detail-full {
+  #dashboardPage .dash-table-panel {
     max-height: 360px;
-    overflow: auto;
+    padding: 12px;
   }
-}
 
-/* ============================= */
-/* SCROLL VERTICAL TABLAS DASHBOARD */
-/* ============================= */
+  #dashboardPage .dash-table-panel > h4 {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    font-size: 14px;
+  }
 
-.dash-table-panel {
-  max-height: 420px;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-}
+  #dashboardPage .dash-table-scroll {
+    max-height: 290px;
+  }
 
-/* Mantiene el título visible arriba del panel */
-.dash-table-panel h4 {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background: rgba(31, 20, 48, 0.96);
-  padding-bottom: 10px;
-}
+  #dashboardPage
+  .dash-table-scroll
+  table {
+    min-width: 620px;
+  }
 
-/* Mantiene la cabecera de la tabla fija */
-.dash-table-panel thead th {
-  position: sticky;
-  top: 38px;
-  z-index: 4;
-}
-
-/* Evita que la tabla se comprima */
-.dash-table-panel table {
-  margin: 0;
-}
-
-/* Ajuste específico para la tabla grande de detalle */
-.dash-detail-full {
-  max-height: 420px;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.dash-detail-full thead th {
-  position: sticky;
-  top: 38px;
-  z-index: 4;
-}
-
-@media (max-width: 768px) {
-  .dash-table-panel,
-  .dash-detail-full {
-    max-height: 360px;
+  #dashboardPage
+  .dash-detail-full
+  .dash-table-scroll
+  table {
+    min-width: 780px;
   }
 }
 
@@ -2660,6 +2796,7 @@ button,
 
   .user-box {
     width: auto !important;
+    background: #133079;
     max-width: 55%;
     display: flex !important;
     padding: 8px 10px;
@@ -2703,6 +2840,7 @@ button,
   .user-box {
     max-width: 62%;
     padding: 7px 8px;
+    background: #133079;
   }
 
   .user-info strong {
@@ -2766,7 +2904,7 @@ button,
     gap: 8px;
     padding: 7px 9px;
     border-radius: 15px;
-    background: var(--primary);
+    background: #133079;
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.20);
   }
 
@@ -2846,7 +2984,7 @@ button,
   overflow: hidden;
   isolation: isolate;
   background:
-    radial-gradient(circle at center, rgba(79, 37, 130, 0.55), transparent 38%),
+    radial-gradient(circle at center, rgba(34, 15, 248, 0.55), transparent 38%),
     linear-gradient(135deg, #050505 0%, #160D25 48%, #050505 100%);
 }
 
@@ -2904,7 +3042,7 @@ button,
   overflow: hidden;
   isolation: isolate;
   background:
-    radial-gradient(circle at center, rgba(54, 20, 105, 0.72), transparent 42%),
+    radial-gradient(circle at center, rgba(23, 20, 105, 0.72), transparent 42%),
     linear-gradient(135deg, #030207 0%, #160D25 45%, #050505 100%);
 }
 
@@ -2943,8 +3081,8 @@ button,
   padding: 34px;
   border-radius: 24px;
   background:
-    linear-gradient(180deg, rgba(28, 20, 39, 0.96), rgba(16, 12, 23, 0.96));
-  border-top: 5px solid var(--gold);
+    linear-gradient(180deg, rgba(22, 16, 61, 0.96), rgba(16, 12, 23, 0.96));
+  border-top: 5px solid #133079;
   border-left: 1px solid rgba(255, 255, 255, 0.08);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -3008,14 +3146,14 @@ button,
 }
 
 .login-form .btn-primary {
-  background: var(--primary);
+  background:#133079;
   border: 1px solid rgba(249, 207, 22, 0.25);
   min-height: 52px;
-  box-shadow: 0 8px 18px rgba(54, 20, 105, 0.28);
+  box-shadow: 0 8px 18px rgba(24, 20, 105, 0.28);
 }
 
 .login-form .btn-primary:hover {
-  background: var(--primary-soft);
+  background: #04267d;
 }
 
 .login-footer {

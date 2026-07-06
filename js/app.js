@@ -542,6 +542,8 @@ document.addEventListener("DOMContentLoaded", () => {
     configurarReportes();
     configurarAuditoria();
 
+    prepararScrollTablasDashboard();
+
     configurarModalAccionAdmin();
 
     configurarMapaOperacion();
@@ -3344,6 +3346,58 @@ async function cargarDashboardData(opciones = {}) {
     renderDashboard();
 
     return data;
+}
+function prepararScrollTablasDashboard() {
+    const paneles = document.querySelectorAll(
+        "#dashboardPage .dash-table-panel"
+    );
+
+    paneles.forEach((panel) => {
+        /*
+         * Evita envolver dos veces una tabla
+         * si la función vuelve a ejecutarse.
+         */
+        if (panel.dataset.scrollPreparado === "SI") {
+            return;
+        }
+
+        /*
+         * Busca solamente la tabla hija directa
+         * del panel.
+         */
+        const tabla = Array.from(
+            panel.children
+        ).find((elemento) => {
+            return elemento.tagName === "TABLE";
+        });
+
+        if (!tabla) {
+            return;
+        }
+
+        const contenedorScroll =
+            document.createElement("div");
+
+        contenedorScroll.className =
+            "dash-table-scroll";
+
+        /*
+         * Coloca el contenedor donde estaba
+         * originalmente la tabla.
+         */
+        panel.insertBefore(
+            contenedorScroll,
+            tabla
+        );
+
+        /*
+         * Introduce la tabla dentro del área
+         * desplazable.
+         */
+        contenedorScroll.appendChild(tabla);
+
+        panel.dataset.scrollPreparado = "SI";
+    });
 }
 
 function configurarDashboard() {
