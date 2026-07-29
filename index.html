@@ -210,18 +210,33 @@
                         </div>
 
                         <div class="section-title">
-                            <h3>3. Responsable</h3>
+                            <h3>3. Responsable de la operación</h3>
                         </div>
 
                         <div class="form-grid">
                             <div class="field">
-                                <label>Responsable</label>
-                                <input type="text" id="responsable" readonly />
+                                <label>Grado del responsable</label>
+                                <select id="gradoResponsable" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="SLDO">SLDO</option>
+                                    <option value="CBOS">CBOS</option>
+                                    <option value="CBOP">CBOP</option>
+                                    <option value="SGOS">SGOS</option>
+                                    <option value="SGOP">SGOP</option>
+                                    <option value="SUBS">SUBS</option>
+                                    <option value="SUBP">SUBP</option>
+                                    <option value="SUBT">SUBT</option>
+                                    <option value="TNTE">TNTE</option>
+                                    <option value="CAPT">CAPT</option>
+                                    <option value="MAYO">MAYO</option>
+                                    <option value="TCRN">TCRN</option>
+                                </select>
                             </div>
 
                             <div class="field">
-                                <label>Grado</label>
-                                <input type="text" id="gradoResponsable" readonly />
+                                <label>Responsable de la operación</label>
+                                <input type="text" id="responsable"
+                                    placeholder="Ingrese nombres y apellidos del responsable" required />
                             </div>
                         </div>
 
@@ -250,17 +265,9 @@
                             <h3>5. Resultados encontrados</h3>
                         </div>
 
-                        <div class="form-grid">
-                            <div class="field">
-                                <label>¿Hubo resultados?</label>
-                                <select id="huboResultados" required>
-                                    <option value="NO">NO</option>
-                                    <option value="SI">SI</option>
-                                </select>
-                            </div>
-                        </div>
+                        <input type="hidden" id="huboResultados" value="SI" />
 
-                        <div id="resultadosBlock" class="resultados-block hidden">
+                        <div id="resultadosBlock" class="resultados-block">
                             <div class="form-grid">
                                 <div class="field">
                                     <label>Categoría</label>
@@ -367,14 +374,7 @@
                                 </select>
                             </div>
 
-                            <div class="field">
-                                <label>Hubo resultados</label>
-                                <select id="filtroResultadosMisOperaciones">
-                                    <option value="">Todos</option>
-                                    <option value="SI">SI</option>
-                                    <option value="NO">NO</option>
-                                </select>
-                            </div>
+                            
                         </div>
 
                         <div class="table-wrapper">
@@ -386,14 +386,14 @@
                                         <th>Tipo</th>
                                         <th>Subtipo</th>
                                         <th>Cantón</th>
-                                        <th>Resultados</th>
+                                        
                                         <th>Estado</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="misOperacionesTableBody">
                                     <tr>
-                                        <td colspan="8" class="empty-table">Sin operaciones registradas.</td>
+                                        <td colspan="7" class="empty-table">Sin operaciones registradas.</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -629,14 +629,7 @@
                                 </select>
                             </div>
 
-                            <div class="field">
-                                <label>Resultados</label>
-                                <select id="filtroResultadosOperacionesAdmin">
-                                    <option value="">Todos</option>
-                                    <option value="SI">SI</option>
-                                    <option value="NO">NO</option>
-                                </select>
-                            </div>
+                            
 
                             <div class="field admin-filter-buttons">
                                 <label>&nbsp;</label>
@@ -657,14 +650,13 @@
                                         <th>Subtipo</th>
                                         <th>Cantón</th>
                                         <th>Responsable</th>
-                                        <th>Resultados</th>
                                         <th>Estado</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="operacionesAdminTableBody">
                                     <tr>
-                                        <td colspan="9" class="empty-table">Sin operaciones registradas.</td>
+                                        <td colspan="8" class="empty-table">Sin operaciones registradas.</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -802,20 +794,7 @@
                                     <strong id="dashTotalOperaciones">0</strong>
                                 </article>
 
-                                <article class="dash-summary-card">
-                                    <span>Con resultados</span>
-                                    <strong id="dashConResultados">0</strong>
-                                </article>
-
-                                <article class="dash-summary-card">
-                                    <span>Sin resultados</span>
-                                    <strong id="dashSinResultados">0</strong>
-                                </article>
-
-                                <article class="dash-summary-card">
-                                    <span>Efectividad</span>
-                                    <strong id="dashEfectividad">0%</strong>
-                                </article>
+                                
 
                                 <article class="dash-summary-card">
                                     <span>Oficiales empleados</span>
@@ -828,7 +807,7 @@
                                 </article>
 
                                 <article class="dash-summary-card">
-                                    <span>Soldados de reserva </span>
+                                    <span>Soldados de reserva</span>
                                     <strong id="dashSoldados">0</strong>
                                 </article>
 
@@ -838,12 +817,7 @@
                                 </article>
                             </div>
                             <div class="dash-chart-grid">
-                                <section class="dash-chart-panel">
-                                    <h4>Operaciones con resultados vs sin resultados</h4>
-                                    <div class="dash-chart-box small">
-                                        <canvas id="dashChartEfectividad"></canvas>
-                                    </div>
-                                </section>
+                                
 
                                 <section class="dash-chart-panel">
                                     <h4>Personal empleado</h4>
@@ -1324,9 +1298,7 @@
                             </div>
 
                             <div class="report-actions">
-                                <button type="button" id="repModoDetalladoBtn" class="btn btn-outline-dark btn-auto">
-                                    Detallado: NO
-                                </button>
+                                
 
                                 <button type="button" id="exportCsvBtn" class="btn btn-secondary btn-auto">
                                     Exportar CSV
@@ -1361,14 +1333,7 @@
                             </select>
                         </div> -->
 
-                        <div class="field">
-                            <label>Hubo resultados</label>
-                            <select id="repHuboResultados">
-                                <option value="">Todos</option>
-                                <option value="SI">SI</option>
-                                <option value="NO">NO</option>
-                            </select>
-                        </div>
+                        
 
                         <div class="field">
                             <label>Tipo de operación</label>
@@ -1438,10 +1403,7 @@
                             <strong id="repTotalOperaciones">0</strong>
                         </div>
 
-                        <div>
-                            <span>Operaciones con resultados</span>
-                            <strong id="repOperacionesResultados">0</strong>
-                        </div>
+                        
                     </div>
 
                     <div class="table-wrapper">

@@ -1536,7 +1536,7 @@ button,
 
 .report-summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
   gap: 14px;
   margin: 18px 0;
 }
@@ -1606,6 +1606,17 @@ button,
   min-width: 1450px;
 }
 
+
+.report-table td.reporte-operacion-agrupada {
+  vertical-align: top;
+  background: #FAF9FC;
+  border-right: 1px solid #E6E3EA;
+  font-weight: 500;
+}
+
+.report-table.detallado td {
+  vertical-align: top;
+}
 /* ============================= */
 /* AUDITORÍA */
 /* ============================= */
@@ -3349,3 +3360,4 @@ table {
     height: 300px;
   }
 }
+

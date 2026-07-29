@@ -40,7 +40,7 @@ let operacionesSistema = cargarOperacionesSistema();
 let resultadosSistema = cargarResultadosSistema();
 let auditoriaSistema = cargarAuditoriaSistema();
 let operacionEditandoId = null;
-let reporteDetallado = false;
+let reporteDetallado = true;
 let homeDataActual = null;
 
 let contadorLoaderGlobal = 0;
@@ -75,8 +75,7 @@ let paginacionReportes = {
 let filasReporteActuales = [];
 let resumenReporteActual = {
     total_filas: 0,
-    total_operaciones: 0,
-    operaciones_con_resultados: 0
+    total_operaciones: 0
 };
 
 let temporizadorBusquedaReportes = null;
@@ -760,6 +759,65 @@ logoutBtn.addEventListener("click", async () => {
     }
 });
 
+function configurarResponsableOperacionSegunRol(modo = "nuevo") {
+    const responsableInput = document.getElementById("responsable");
+    const gradoResponsableInput = document.getElementById("gradoResponsable");
+
+    if (!responsableInput || !gradoResponsableInput || !usuarioActual) {
+        return;
+    }
+
+    const rol = String(usuarioActual.rol || "").trim();
+
+    /*
+     * El administrador registra operaciones ejecutadas
+     * por otros responsables. Por eso puede escribir
+     * manualmente el grado y el nombre.
+     */
+    if (rol === "ADMIN") {
+        responsableInput.readOnly = false;
+        gradoResponsableInput.disabled = false;
+
+        if (modo === "nuevo") {
+            responsableInput.value = "";
+            gradoResponsableInput.value = "";
+        }
+
+        responsableInput.placeholder =
+            "Ingrese nombres y apellidos del responsable";
+
+        return;
+    }
+
+    /*
+     * El Comandante de ECO registra sus propias operaciones.
+     * Por eso el sistema mantiene su grado y nombre bloqueados.
+     */
+    if (rol === "COMANDANTE_ECO") {
+        if (modo === "nuevo") {
+            responsableInput.value =
+                `${usuarioActual.nombres} ${usuarioActual.apellidos}`;
+
+            gradoResponsableInput.value =
+                usuarioActual.grado;
+        }
+
+        responsableInput.readOnly = true;
+        gradoResponsableInput.disabled = true;
+
+        responsableInput.placeholder =
+            "Responsable cargado desde la sesión";
+
+        return;
+    }
+
+    /*
+     * Otros roles no deberían registrar operaciones.
+     */
+    responsableInput.readOnly = true;
+    gradoResponsableInput.disabled = true;
+}
+
 // INICIAR SISTEMA
 function iniciarSistema() {
     loginView.classList.add("hidden");
@@ -770,8 +828,15 @@ function iniciarSistema() {
     userName.textContent = nombreCompleto;
     userRole.textContent = usuarioActual.rol;
 
-    document.getElementById("responsable").value = `${usuarioActual.nombres} ${usuarioActual.apellidos}`;
-    document.getElementById("gradoResponsable").value = usuarioActual.grado;
+    configurarResponsableOperacionSegunRol("nuevo");
+
+    if (huboResultados) {
+        huboResultados.value = "SI";
+    }
+
+    if (resultadosBlock) {
+        resultadosBlock.classList.remove("hidden");
+    }
 
     welcomeTitle.textContent = `Bienvenido, ${nombreCompleto}`;
     welcomeText.textContent = `Rol asignado: ${usuarioActual.rol}.`;
@@ -1038,16 +1103,20 @@ tipoOperacion.addEventListener("change", () => {
     });
 });
 
-// MOSTRAR / OCULTAR RESULTADOS
-huboResultados.addEventListener("change", () => {
-    if (huboResultados.value === "SI") {
-        resultadosBlock.classList.remove("hidden");
-    } else {
-        resultadosBlock.classList.add("hidden");
-        resultadosTemporales = [];
-        renderResultados();
+// TODAS LAS OPERACIONES DEBEN TENER RESULTADOS
+function asegurarOperacionConResultados() {
+    if (huboResultados) {
+        huboResultados.value = "SI";
     }
-});
+
+    if (resultadosBlock) {
+        resultadosBlock.classList.remove("hidden");
+    }
+}
+
+if (huboResultados) {
+    huboResultados.addEventListener("change", asegurarOperacionConResultados);
+}
 
 // CATEGORÍAS
 function cargarCategorias() {
@@ -1164,27 +1233,57 @@ operacionForm.addEventListener("submit", async (event) => {
         return;
     }
 
-    if (huboResultados.value === "SI") {
-        const parroquia = document.getElementById("parroquia").value.trim();
-        const sector = document.getElementById("sector").value.trim();
-        const coordenadas = document.getElementById("coordenadas").value.trim();
-        const canton = document.getElementById("canton").value;
+    const responsableOperacion =
+        document.getElementById("responsable").value.trim();
 
-        if (canton !== "MANTA" && !parroquia) {
-            mostrarMensaje("Si hubo resultados, la parroquia es obligatoria.", "error");
-            return;
-        }
+    const gradoResponsableOperacion =
+        document.getElementById("gradoResponsable").value.trim();
 
-        if (!sector || !coordenadas) {
-            mostrarMensaje("Si hubo resultados, sector y coordenadas son obligatorios.", "error");
-            return;
-        }
-
-        if (resultadosTemporales.length === 0) {
-            mostrarMensaje("Debe agregar al menos un resultado.", "error");
-            return;
-        }
+    if (!gradoResponsableOperacion || !responsableOperacion) {
+        mostrarMensaje(
+            "Ingrese el grado y el responsable de la operación.",
+            "error"
+        );
+        return;
     }
+
+    const parroquia =
+        document.getElementById("parroquia").value.trim();
+
+    const sector =
+        document.getElementById("sector").value.trim();
+
+    const coordenadas =
+        document.getElementById("coordenadas").value.trim();
+
+    const canton =
+        document.getElementById("canton").value;
+
+    if (canton !== "MANTA" && !parroquia) {
+        mostrarMensaje(
+            "La parroquia es obligatoria para registrar una operación con resultados.",
+            "error"
+        );
+        return;
+    }
+
+    if (!sector || !coordenadas) {
+        mostrarMensaje(
+            "El sector y las coordenadas son obligatorios para registrar una operación con resultados.",
+            "error"
+        );
+        return;
+    }
+
+    if (resultadosTemporales.length === 0) {
+        mostrarMensaje(
+            "Debe agregar al menos un resultado para guardar la operación.",
+            "error"
+        );
+        return;
+    }
+
+    asegurarOperacionConResultados();
 
     if (guardandoOperacion) {
         mostrarMensaje("La operación ya se está guardando. Espere unos segundos.", "error");
@@ -1237,12 +1336,12 @@ async function crearNuevaOperacion() {
         parroquia: document.getElementById("parroquia").value.trim(),
         sector: document.getElementById("sector").value.trim(),
         coordenadas: document.getElementById("coordenadas").value.trim(),
-        responsable: `${usuarioActual.nombres} ${usuarioActual.apellidos}`,
-        grado_responsable: usuarioActual.grado,
+        responsable: document.getElementById("responsable").value.trim(),
+        grado_responsable: document.getElementById("gradoResponsable").value.trim(),
         num_oficiales: Number(document.getElementById("numOficiales").value),
         num_vol: Number(document.getElementById("numVol").value),
         num_sldr: Number(document.getElementById("numSldr").value),
-        hubo_resultados: huboResultados.value,
+        hubo_resultados: "SI",
         estado_operacion: "REGISTRADO",
         registrado_por: `${usuarioActual.nombres} ${usuarioActual.apellidos}`,
         id_usuario_registro: usuarioActual.id_usuario,
@@ -1264,21 +1363,19 @@ async function crearNuevaOperacion() {
 
     const resultados = [];
 
-    if (huboResultados.value === "SI") {
-        resultadosTemporales.forEach((resultado) => {
-            resultados.push({
-                id_resultado: generarIdResultado(),
-                id_operacion: idOperacion,
-                categoria: resultado.categoria,
-                subcategoria: resultado.subcategoria,
-                cantidad: resultado.cantidad,
-                unidad_medida: resultado.unidad,
-                descripcion: resultado.descripcion,
-                registrado_por: `${usuarioActual.nombres} ${usuarioActual.apellidos}`,
-                fecha_registro: fechaActual
-            });
+    resultadosTemporales.forEach((resultado) => {
+        resultados.push({
+            id_resultado: generarIdResultado(),
+            id_operacion: idOperacion,
+            categoria: resultado.categoria,
+            subcategoria: resultado.subcategoria,
+            cantidad: resultado.cantidad,
+            unidad_medida: resultado.unidad,
+            descripcion: resultado.descripcion,
+            registrado_por: `${usuarioActual.nombres} ${usuarioActual.apellidos}`,
+            fecha_registro: fechaActual
         });
-    }
+    });
 
     await apiPost("SAVE_OPERATION", {
         operacion,
@@ -1326,10 +1423,12 @@ async function actualizarOperacionExistente() {
         parroquia: document.getElementById("parroquia").value.trim(),
         sector: document.getElementById("sector").value.trim(),
         coordenadas: document.getElementById("coordenadas").value.trim(),
+        responsable: document.getElementById("responsable").value.trim(),
+        grado_responsable: document.getElementById("gradoResponsable").value.trim(),
         num_oficiales: Number(document.getElementById("numOficiales").value),
         num_vol: Number(document.getElementById("numVol").value),
         num_sldr: Number(document.getElementById("numSldr").value),
-        hubo_resultados: huboResultados.value,
+        hubo_resultados: "SI",
         ultima_modificacion: fechaActual,
         estado_operacion: estabaObservada ? "REGISTRADO" : operacionActual.estado_operacion,
         corregido_por: estabaObservada && usuarioActual
@@ -1343,21 +1442,19 @@ async function actualizarOperacionExistente() {
 
     const resultados = [];
 
-    if (huboResultados.value === "SI") {
-        resultadosTemporales.forEach((resultado) => {
-            resultados.push({
-                id_resultado: generarIdResultado(),
-                id_operacion: operacionEditandoId,
-                categoria: resultado.categoria,
-                subcategoria: resultado.subcategoria,
-                cantidad: resultado.cantidad,
-                unidad_medida: resultado.unidad,
-                descripcion: resultado.descripcion,
-                registrado_por: `${usuarioActual.nombres} ${usuarioActual.apellidos}`,
-                fecha_registro: fechaActual
-            });
+    resultadosTemporales.forEach((resultado) => {
+        resultados.push({
+            id_resultado: generarIdResultado(),
+            id_operacion: operacionEditandoId,
+            categoria: resultado.categoria,
+            subcategoria: resultado.subcategoria,
+            cantidad: resultado.cantidad,
+            unidad_medida: resultado.unidad,
+            descripcion: resultado.descripcion,
+            registrado_por: `${usuarioActual.nombres} ${usuarioActual.apellidos}`,
+            fecha_registro: fechaActual
         });
-    }
+    });
 
     await apiPost("SAVE_OPERATION", {
         operacion: operacionActualizada,
@@ -1376,12 +1473,15 @@ async function actualizarOperacionExistente() {
 function limpiarFormularioOperacion() {
     operacionForm.reset();
 
-    document.getElementById("responsable").value = `${usuarioActual.nombres} ${usuarioActual.apellidos}`;
-    document.getElementById("gradoResponsable").value = usuarioActual.grado;
+    configurarResponsableOperacionSegunRol("nuevo");
+
+    if (huboResultados) {
+        huboResultados.value = "SI";
+    }
 
     resultadosTemporales = [];
     renderResultados();
-    resultadosBlock.classList.add("hidden");
+    resultadosBlock.classList.remove("hidden");
 
     cargarCantones();
     parroquiaSelect.innerHTML = `<option value="">Seleccione cantón...</option>`;
@@ -1465,7 +1565,12 @@ function configurarFormularioMobile() {
             parroquiaSelect.disabled = false;
             resultadosTemporales = [];
             renderResultados();
-            resultadosBlock.classList.add("hidden");
+            resultadosBlock.classList.remove("hidden");
+
+            if (huboResultados) {
+                huboResultados.value = "SI";
+            }
+
             geoStatus.textContent = "";
 
             operacionEditandoId = null;
@@ -1473,10 +1578,7 @@ function configurarFormularioMobile() {
             const guardarBtn = document.getElementById("guardarOperacionBtn");
             if (guardarBtn) guardarBtn.textContent = "Guardar operación";
 
-            if (usuarioActual) {
-                document.getElementById("responsable").value = `${usuarioActual.nombres} ${usuarioActual.apellidos}`;
-                document.getElementById("gradoResponsable").value = usuarioActual.grado;
-            }
+            configurarResponsableOperacionSegunRol("nuevo");
         }, 0);
     });
 }
@@ -2102,14 +2204,12 @@ function mostrarMensajeUsuarios(mensaje, tipo, destino = "auto") {
 function configurarMisOperaciones() {
     const buscar = document.getElementById("buscarMisOperaciones");
     const filtroEstado = document.getElementById("filtroEstadoMisOperaciones");
-    const filtroResultados = document.getElementById("filtroResultadosMisOperaciones");
     const tbody = document.getElementById("misOperacionesTableBody");
 
     if (!tbody) return;
 
     if (buscar) buscar.addEventListener("input", () => cargarPaginaMisOperaciones(1));
     if (filtroEstado) filtroEstado.addEventListener("change", () => cargarPaginaMisOperaciones(1));
-    if (filtroResultados) filtroResultados.addEventListener("change", () => cargarPaginaMisOperaciones(1));
 
     tbody.addEventListener("click", (event) => {
         const button = event.target.closest("button");
@@ -2135,7 +2235,7 @@ function renderMisOperaciones() {
 
     const texto = (document.getElementById("buscarMisOperaciones")?.value || "").toLowerCase().trim();
     const estado = document.getElementById("filtroEstadoMisOperaciones")?.value || "";
-    const resultados = document.getElementById("filtroResultadosMisOperaciones")?.value || "";
+
 
     recargarDatosDesdeStorage();
 
@@ -2158,9 +2258,9 @@ function renderMisOperaciones() {
 
         const coincideTexto = !texto || textoOperacion.includes(texto);
         const coincideEstado = !estado || op.estado_operacion === estado;
-        const coincideResultados = !resultados || op.hubo_resultados === resultados;
 
-        return coincideTexto && coincideEstado && coincideResultados;
+
+        return coincideTexto && coincideEstado;
     });
 
     tbody.innerHTML = "";
@@ -2186,7 +2286,7 @@ function renderMisOperaciones() {
             <td>${op.tipo_operacion}</td>
             <td>${op.sub_tipo_operacion}</td>
             <td>${op.canton}</td>
-            <td>${op.hubo_resultados}</td>
+            
             <td><span class="op-status ${estadoClass}">${op.estado_operacion}</span></td>
             <td class="acciones-cell">
                 <div class="action-buttons action-buttons-icons">
@@ -2443,32 +2543,26 @@ function cargarOperacionParaEditar(idOperacion) {
 
     document.getElementById("responsable").value = operacion.responsable;
     document.getElementById("gradoResponsable").value = operacion.grado_responsable;
+    configurarResponsableOperacionSegunRol("editar");
 
     document.getElementById("numOficiales").value = operacion.num_oficiales;
     document.getElementById("numVol").value = operacion.num_vol;
     document.getElementById("numSldr").value = operacion.num_sldr;
 
-    huboResultados.value = operacion.hubo_resultados;
+    huboResultados.value = "SI";
+    resultadosBlock.classList.remove("hidden");
 
-    if (operacion.hubo_resultados === "SI") {
-        resultadosBlock.classList.remove("hidden");
+    resultadosTemporales = resultadosSistema
+        .filter((r) => r.id_operacion === idOperacion)
+        .map((r) => ({
+            categoria: r.categoria,
+            subcategoria: r.subcategoria,
+            cantidad: r.cantidad,
+            unidad: r.unidad_medida,
+            descripcion: r.descripcion
+        }));
 
-        resultadosTemporales = resultadosSistema
-            .filter((r) => r.id_operacion === idOperacion)
-            .map((r) => ({
-                categoria: r.categoria,
-                subcategoria: r.subcategoria,
-                cantidad: r.cantidad,
-                unidad: r.unidad_medida,
-                descripcion: r.descripcion
-            }));
-
-        renderResultados();
-    } else {
-        resultadosBlock.classList.add("hidden");
-        resultadosTemporales = [];
-        renderResultados();
-    }
+    renderResultados();
 
     document.getElementById("observacionGeneral").value = operacion.observacion_general || "";
 
@@ -2574,7 +2668,7 @@ function configurarAdministrarOperaciones() {
     const filtroFechaHasta = document.getElementById("filtroFechaHastaOperacionesAdmin");
     const filtroEstado = document.getElementById("filtroEstadoOperacionesAdmin");
     const filtroTipo = document.getElementById("filtroTipoOperacionesAdmin");
-    const filtroResultados = document.getElementById("filtroResultadosOperacionesAdmin");
+
     const limpiarBtn = document.getElementById("limpiarFiltrosOperacionesAdminBtn");
     const tbody = document.getElementById("operacionesAdminTableBody");
 
@@ -2585,7 +2679,7 @@ function configurarAdministrarOperaciones() {
     if (filtroFechaHasta) filtroFechaHasta.addEventListener("change", () => cargarPaginaOperacionesAdmin(1));
     if (filtroEstado) filtroEstado.addEventListener("change", () => cargarPaginaOperacionesAdmin(1));
     if (filtroTipo) filtroTipo.addEventListener("change", () => cargarPaginaOperacionesAdmin(1));
-    if (filtroResultados) filtroResultados.addEventListener("change", () => cargarPaginaOperacionesAdmin(1));
+
 
     if (limpiarBtn) {
         limpiarBtn.addEventListener("click", (event) => {
@@ -2629,7 +2723,7 @@ function limpiarFiltrosOperacionesAdmin() {
     const fechaHasta = document.getElementById("filtroFechaHastaOperacionesAdmin");
     const estado = document.getElementById("filtroEstadoOperacionesAdmin");
     const tipo = document.getElementById("filtroTipoOperacionesAdmin");
-    const resultados = document.getElementById("filtroResultadosOperacionesAdmin");
+
     const detallePanel = document.getElementById("detalleOperacionAdminPanel");
 
     if (buscar) buscar.value = "";
@@ -2637,7 +2731,7 @@ function limpiarFiltrosOperacionesAdmin() {
     if (fechaHasta) fechaHasta.value = "";
     if (estado) estado.value = "";
     if (tipo) tipo.value = "";
-    if (resultados) resultados.value = "";
+
 
     if (detallePanel) {
         detallePanel.classList.add("hidden");
@@ -2657,7 +2751,7 @@ function renderOperacionesAdmin() {
     const fechaHasta = document.getElementById("filtroFechaHastaOperacionesAdmin")?.value || "";
     const estado = document.getElementById("filtroEstadoOperacionesAdmin")?.value || "";
     const tipo = document.getElementById("filtroTipoOperacionesAdmin")?.value || "";
-    const resultados = document.getElementById("filtroResultadosOperacionesAdmin")?.value || "";
+
 
     let operaciones = [...operacionesSistema];
 
@@ -2683,14 +2777,13 @@ function renderOperacionesAdmin() {
         const coincideFechaHasta = !fechaHasta || fechaOperacion <= fechaHasta;
         const coincideEstado = !estado || op.estado_operacion === estado;
         const coincideTipo = !tipo || op.tipo_operacion === tipo;
-        const coincideResultados = !resultados || op.hubo_resultados === resultados;
+
 
         return coincideTexto &&
             coincideFechaDesde &&
             coincideFechaHasta &&
             coincideEstado &&
-            coincideTipo &&
-            coincideResultados;
+            coincideTipo;
     });
 
     tbody.innerHTML = "";
@@ -2720,7 +2813,6 @@ function renderOperacionesAdmin() {
             <td>${op.sub_tipo_operacion}</td>
             <td>${op.canton}</td>
             <td>${op.grado_responsable} ${op.responsable}</td>
-            <td>${op.hubo_resultados}</td>
             <td><span class="op-status ${estadoClass}">${op.estado_operacion}</span></td>
             <td class="acciones-cell">
                 <div class="admin-actions admin-actions-icons">
@@ -3638,23 +3730,52 @@ function renderDashboard() {
     const resultados = datos.resultados;
 
     const totalOperaciones = operaciones.length;
-    const conResultados = operaciones.filter((op) => op.hubo_resultados === "SI").length;
-    const sinResultados = operaciones.filter((op) => op.hubo_resultados === "NO").length;
-    const efectividad = totalOperaciones > 0 ? ((conResultados / totalOperaciones) * 100).toFixed(1) : "0.0";
 
-    const totalOficiales = sumarCampoOperaciones(operaciones, "num_oficiales");
-    const totalVoluntarios = sumarCampoOperaciones(operaciones, "num_vol");
-    const totalSoldados = sumarCampoOperaciones(operaciones, "num_sldr");
-    const totalPersonal = totalOficiales + totalVoluntarios + totalSoldados;
 
-    setText("dashTotalOperaciones", formatNumero(totalOperaciones));
-    setText("dashConResultados", formatNumero(conResultados));
-    setText("dashSinResultados", formatNumero(sinResultados));
-    setText("dashEfectividad", `${efectividad}%`);
-    setText("dashOficiales", formatNumero(totalOficiales));
-    setText("dashVoluntarios", formatNumero(totalVoluntarios));
-    setText("dashSoldados", formatNumero(totalSoldados));
-    setText("dashPersonalTotal", formatNumero(totalPersonal));
+    const totalOficiales = sumarCampoOperaciones(
+        operaciones,
+        "num_oficiales"
+    );
+
+    const totalVoluntarios = sumarCampoOperaciones(
+        operaciones,
+        "num_vol"
+    );
+
+    const totalSoldados = sumarCampoOperaciones(
+        operaciones,
+        "num_sldr"
+    );
+
+    const totalPersonal =
+        totalOficiales +
+        totalVoluntarios +
+        totalSoldados;
+
+    setText(
+        "dashTotalOperaciones",
+        formatNumero(totalOperaciones)
+    );
+
+    setText(
+        "dashOficiales",
+        formatNumero(totalOficiales)
+    );
+
+    setText(
+        "dashVoluntarios",
+        formatNumero(totalVoluntarios)
+    );
+
+    setText(
+        "dashSoldados",
+        formatNumero(totalSoldados)
+    );
+
+    setText(
+        "dashPersonalTotal",
+        formatNumero(totalPersonal)
+    );
 
     // Armamento y municiones
     setText("dashArmasCortas", formatNumero(sumarCategoria(resultados, "Armas de fuego cortas")));
@@ -4134,9 +4255,6 @@ function aplicarIconosDashboard() {
     const iconosPorMetrica = {
         // Resumen
         dashTotalOperaciones: "mdi:clipboard-text-outline",
-        dashConResultados: "mdi:checkbox-marked-circle-outline",
-        dashSinResultados: "mdi:close-circle-outline",
-        dashEfectividad: "mdi:chart-line",
         dashOficiales: "mdi:account-star-outline",
         dashVoluntarios: "mdi:account-group-outline",
         dashSoldados: "mdi:account-outline",
@@ -4309,8 +4427,7 @@ function obtenerFiltrosReportes() {
     return {
         fecha_desde: document.getElementById("repFechaDesde")?.value || "",
         fecha_hasta: document.getElementById("repFechaHasta")?.value || "",
-        estado: document.getElementById("repEstado")?.value || "",
-        hubo_resultados: document.getElementById("repHuboResultados")?.value || "",
+
         tipo_operacion: document.getElementById("repTipo")?.value || "",
         sub_tipo_operacion: document.getElementById("repSubtipo")?.value || "",
         canton: document.getElementById("repCanton")?.value || "",
@@ -4327,18 +4444,17 @@ async function cargarPaginaReportes(page = 1, opciones = {}) {
     const data = await apiPost("GET_REPORT_PAGE", {
         page,
         pageSize: paginacionReportes.pageSize,
-        detallado: reporteDetallado,
+        detallado: true,
         filtros: obtenerFiltrosReportes()
     }, {
         usarLoader,
-        textoLoader: "Cargando reportes..."
+        textoLoader: "Cargando reportes."
     });
 
     filasReporteActuales = data.filas || [];
     resumenReporteActual = data.resumen || {
         total_filas: 0,
-        total_operaciones: 0,
-        operaciones_con_resultados: 0
+        total_operaciones: 0
     };
 
     paginacionReportes = {
@@ -4373,11 +4489,11 @@ function cambiarPaginaReportes(direccion) {
 
 async function obtenerFilasReporteExportacionDesdeServidor() {
     const data = await apiPost("GET_REPORT_EXPORT", {
-        detallado: reporteDetallado,
+        detallado: true,
         filtros: obtenerFiltrosReportes()
     }, {
         usarLoader: true,
-        textoLoader: "Preparando exportación..."
+        textoLoader: "Preparando exportación."
     });
 
     return data.filas || [];
@@ -4392,8 +4508,6 @@ function configurarReportes() {
     const filtros = [
         "repFechaDesde",
         "repFechaHasta",
-        "repEstado",
-        "repHuboResultados",
         "repSubtipo",
         "repParroquia",
         "repSubcategoria",
@@ -4459,18 +4573,7 @@ function configurarReportes() {
         exportPdfBtn.addEventListener("click", exportarReportePDF);
     }
 
-    const modoDetalladoBtn = document.getElementById("repModoDetalladoBtn");
-
-    if (modoDetalladoBtn) {
-        modoDetalladoBtn.addEventListener("click", () => {
-            reporteDetallado = !reporteDetallado;
-
-            modoDetalladoBtn.textContent = reporteDetallado ? "Detallado: SI" : "Detallado: NO";
-            modoDetalladoBtn.classList.toggle("active", reporteDetallado);
-
-            cargarPaginaReportes(1);
-        });
-    }
+    
 }
 
 function cargarFiltrosReportes() {
@@ -4565,7 +4668,7 @@ function cargarSubcategoriasReportes() {
 function limpiarFiltrosReportes() {
     const fechaDesde = document.getElementById("repFechaDesde");
     const fechaHasta = document.getElementById("repFechaHasta");
-    const estado = document.getElementById("repEstado");
+
     const tipo = document.getElementById("repTipo");
     const subtipo = document.getElementById("repSubtipo");
     const canton = document.getElementById("repCanton");
@@ -4606,35 +4709,72 @@ function limpiarFiltrosReportes() {
 }
 
 function obtenerColumnasReporte() {
-    if (reporteDetallado) {
-        return [
-            { key: "fecha_operacion", titulo: "Fecha" },
-            { key: "id_operacion", titulo: "ID operación" },
-            { key: "tipo_operacion", titulo: "Tipo" },
-            { key: "sub_tipo_operacion", titulo: "Subtipo" },
-            { key: "canton", titulo: "Cantón" },
-            { key: "parroquia", titulo: "Parroquia" },
-            { key: "sector", titulo: "Sector" },
-            { key: "responsable", titulo: "Responsable" },
-            { key: "categoria", titulo: "Categoría" },
-            { key: "subcategoria", titulo: "Subcategoría" },
-            { key: "cantidad", titulo: "Cant." },
-            { key: "unidad_medida", titulo: "Unidad" },
-            { key: "descripcion", titulo: "Descripción" }
-        ];
-    }
-
     return [
-        { key: "fecha_operacion", titulo: "Fecha" },
-        { key: "id_operacion", titulo: "ID operación" },
-        { key: "tipo_operacion", titulo: "Tipo" },
-        { key: "sub_tipo_operacion", titulo: "Subtipo" },
-        { key: "canton", titulo: "Cantón" },
-        { key: "parroquia", titulo: "Parroquia" },
-        { key: "sector", titulo: "Sector" },
-        { key: "responsable", titulo: "Responsable" },
-        { key: "hubo_resultados", titulo: "Hubo resultados" },
-        { key: "observacion_general", titulo: "Observación general" }
+        {
+            key: "fecha_operacion",
+            titulo: "Fecha",
+            grupo: "operacion"
+        },
+        {
+            key: "id_operacion",
+            titulo: "ID operación",
+            grupo: "operacion"
+        },
+        {
+            key: "tipo_operacion",
+            titulo: "Tipo",
+            grupo: "operacion"
+        },
+        {
+            key: "sub_tipo_operacion",
+            titulo: "Subtipo",
+            grupo: "operacion"
+        },
+        {
+            key: "canton",
+            titulo: "Cantón",
+            grupo: "operacion"
+        },
+        {
+            key: "parroquia",
+            titulo: "Parroquia",
+            grupo: "operacion"
+        },
+        {
+            key: "sector",
+            titulo: "Sector",
+            grupo: "operacion"
+        },
+        {
+            key: "responsable",
+            titulo: "Responsable",
+            grupo: "operacion"
+        },
+        {
+            key: "categoria",
+            titulo: "Categoría",
+            grupo: "resultado"
+        },
+        {
+            key: "subcategoria",
+            titulo: "Subcategoría",
+            grupo: "resultado"
+        },
+        {
+            key: "cantidad",
+            titulo: "Cant.",
+            grupo: "resultado"
+        },
+        {
+            key: "unidad_medida",
+            titulo: "Unidad",
+            grupo: "resultado"
+        },
+        {
+            key: "descripcion",
+            titulo: "Descripción",
+            grupo: "resultado"
+        }
     ];
 }
 
@@ -4758,12 +4898,14 @@ function renderReportes() {
     const filas = filasReporteActuales || [];
 
     if (table) {
-        table.classList.toggle("detallado", reporteDetallado);
+        table.classList.add("detallado");
     }
 
     thead.innerHTML = `
         <tr>
-            ${columnas.map((col) => `<th>${col.titulo}</th>`).join("")}
+            ${columnas.map((col) => {
+                return `<th>${escaparHtml(col.titulo)}</th>`;
+            }).join("")}
         </tr>
     `;
 
@@ -4772,7 +4914,9 @@ function renderReportes() {
     if (filas.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="${columnas.length}" class="empty-table">Sin datos disponibles con los filtros seleccionados.</td>
+                <td colspan="${columnas.length}" class="empty-table">
+                    Sin datos disponibles con los filtros seleccionados.
+                </td>
             </tr>
         `;
 
@@ -4780,17 +4924,83 @@ function renderReportes() {
         return;
     }
 
-    filas.forEach((fila) => {
+    /*
+     * Cuenta cuántas filas de resultado tiene cada operación
+     * dentro de la página actual. Esto permite usar rowspan.
+     */
+    const conteoPorOperacion = new Map();
+
+    filas.forEach((fila, index) => {
+        const claveOperacion = String(
+            fila.id_operacion || `FILA-${index}`
+        );
+
+        const totalActual =
+            conteoPorOperacion.get(claveOperacion) || 0;
+
+        conteoPorOperacion.set(
+            claveOperacion,
+            totalActual + 1
+        );
+    });
+
+    const operacionesYaPintadas = new Set();
+
+    filas.forEach((fila, index) => {
         const tr = document.createElement("tr");
 
+        const claveOperacion = String(
+            fila.id_operacion || `FILA-${index}`
+        );
+
+        const primeraFilaOperacion =
+            !operacionesYaPintadas.has(claveOperacion);
+
+        if (primeraFilaOperacion) {
+            operacionesYaPintadas.add(claveOperacion);
+        }
+
+        const totalFilasOperacion =
+            conteoPorOperacion.get(claveOperacion) || 1;
+
         tr.innerHTML = columnas.map((col) => {
-            let valor = fila[col.key] || "";
+            const esColumnaOperacion =
+                col.grupo === "operacion";
+
+            /*
+             * Si no es la primera fila de la operación,
+             * no se vuelven a imprimir los datos generales.
+             */
+            if (
+                esColumnaOperacion &&
+                !primeraFilaOperacion
+            ) {
+                return "";
+            }
+
+            let valor = fila[col.key] ?? "";
 
             if (col.key === "fecha_operacion") {
                 valor = formatearFecha(valor);
             }
 
-            return `<td>${valor || ""}</td>`;
+            const valorSeguro =
+                typeof escaparHtml === "function"
+                    ? escaparHtml(String(valor))
+                    : String(valor);
+
+            if (esColumnaOperacion) {
+                return `
+                    <td
+                        rowspan="${totalFilasOperacion}"
+                        class="reporte-operacion-agrupada"
+                    >
+                        ${valorSeguro}
+                    </td>
+                `;
+            }
+
+            return `<td>${valorSeguro}</td>`;
         }).join("");
 
         tbody.appendChild(tr);
@@ -4801,28 +5011,36 @@ function renderReportes() {
 
 function actualizarResumenReportes(data) {
     if (Array.isArray(data)) {
-        const idsOperaciones = new Set(data.map((f) => f.id_operacion).filter(Boolean));
+        const idsOperaciones = new Set(
+            data
+                .map((fila) => fila.id_operacion)
+                .filter(Boolean)
+        );
 
-        let operacionesConResultados = new Set();
+        setText(
+            "repTotalFilas",
+            formatNumero(data.length)
+        );
 
-        data.forEach((fila) => {
-            const op = operacionesSistema.find((o) => o.id_operacion === fila.id_operacion);
-            if (op && op.hubo_resultados === "SI") {
-                operacionesConResultados.add(op.id_operacion);
-            }
-        });
+        setText(
+            "repTotalOperaciones",
+            formatNumero(idsOperaciones.size)
+        );
 
-        setText("repTotalFilas", formatNumero(data.length));
-        setText("repTotalOperaciones", formatNumero(idsOperaciones.size));
-        setText("repOperacionesResultados", formatNumero(operacionesConResultados.size));
         return;
     }
 
     const resumen = data || {};
 
-    setText("repTotalFilas", formatNumero(resumen.total_filas || 0));
-    setText("repTotalOperaciones", formatNumero(resumen.total_operaciones || 0));
-    setText("repOperacionesResultados", formatNumero(resumen.operaciones_con_resultados || 0));
+    setText(
+        "repTotalFilas",
+        formatNumero(resumen.total_filas || 0)
+    );
+
+    setText(
+        "repTotalOperaciones",
+        formatNumero(resumen.total_operaciones || 0)
+    );
 }
 
 async function exportarReporteCSV() {
@@ -5944,7 +6162,7 @@ function renderGraficosDashboard(operaciones, resultados) {
         return;
     }
 
-    renderGraficoEfectividad(operaciones);
+
     renderGraficoPersonal(operaciones);
     renderGraficoCategorias(resultados);
     renderGraficoCanton(operaciones);
@@ -6064,61 +6282,7 @@ function generarColores(cantidad) {
     return colores;
 }
 
-function renderGraficoEfectividad(operaciones) {
-    const conResultados = operaciones.filter((op) => op.hubo_resultados === "SI").length;
-    const sinResultados = operaciones.filter((op) => op.hubo_resultados === "NO").length;
 
-    const canvasId = "dashChartEfectividad";
-    const canvas = document.getElementById(canvasId);
-    if (!canvas || typeof Chart === "undefined") return;
-
-    if (dashboardCharts[canvasId]) {
-        dashboardCharts[canvasId].destroy();
-    }
-
-    dashboardCharts[canvasId] = new Chart(canvas.getContext("2d"), {
-        type: "doughnut",
-        data: {
-            labels: ["Con resultados", "Sin resultados"],
-            datasets: [
-                {
-                    data: [conResultados, sinResultados],
-                    backgroundColor: [
-                        "rgba(243, 198, 35, 0.85)",
-                        "rgba(118, 115, 111, 0.75)"
-                    ],
-                    borderColor: "rgba(255, 255, 255, 0.18)",
-                    borderWidth: 1.5
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: "62%",
-            plugins: {
-                legend: {
-                    display: true,
-                    position: "bottom",
-                    labels: {
-                        color: "rgba(255, 255, 255, 0.82)",
-                        font: {
-                            size: 12,
-                            weight: "bold"
-                        }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: "rgba(20, 10, 34, 0.96)",
-                    titleColor: "#ffffff",
-                    bodyColor: "#ffffff",
-                    borderColor: "rgba(243, 198, 35, 0.45)",
-                    borderWidth: 1
-                }
-            }
-        }
-    });
-}
 
 function renderGraficoPersonal(operaciones) {
     const oficiales = sumarCampoOperaciones(operaciones, "num_oficiales");
@@ -7059,16 +7223,14 @@ function obtenerFiltrosOperacionesAdmin() {
         fecha_desde: document.getElementById("filtroFechaDesdeOperacionesAdmin")?.value || "",
         fecha_hasta: document.getElementById("filtroFechaHastaOperacionesAdmin")?.value || "",
         estado: document.getElementById("filtroEstadoOperacionesAdmin")?.value || "",
-        tipo_operacion: document.getElementById("filtroTipoOperacionesAdmin")?.value || "",
-        hubo_resultados: document.getElementById("filtroResultadosOperacionesAdmin")?.value || ""
+        tipo_operacion: document.getElementById("filtroTipoOperacionesAdmin")?.value || ""
     };
 }
 
 function obtenerFiltrosMisOperaciones() {
     return {
         texto: (document.getElementById("buscarMisOperaciones")?.value || "").trim(),
-        estado: document.getElementById("filtroEstadoMisOperaciones")?.value || "",
-        hubo_resultados: document.getElementById("filtroResultadosMisOperaciones")?.value || ""
+        estado: document.getElementById("filtroEstadoMisOperaciones")?.value || ""
     };
 }
 
