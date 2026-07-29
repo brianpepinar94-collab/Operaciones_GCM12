@@ -2268,7 +2268,7 @@ function renderMisOperaciones() {
     if (operaciones.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" class="empty-table">Sin operaciones registradas.</td>
+                <td colspan="7" class="empty-table">Sin operaciones registradas.</td>
             </tr>
         `;
         return;
@@ -2410,10 +2410,6 @@ function verDetalleOperacion(idOperacion) {
                 <strong>Of: ${operacion.num_oficiales} | Vol: ${operacion.num_vol} | Sldr: ${operacion.num_sldr}</strong>
             </div>
 
-            <div class="detail-item">
-                <span>Hubo resultados</span>
-                <strong>${operacion.hubo_resultados}</strong>
-            </div>
 
             <div class="detail-item">
                 <span>Registrado por</span>
@@ -2791,7 +2787,7 @@ function renderOperacionesAdmin() {
     if (operaciones.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="9" class="empty-table">Sin operaciones registradas.</td>
+                <td colspan="8" class="empty-table">Sin operaciones registradas.</td>
             </tr>
         `;
         return;
@@ -2962,11 +2958,6 @@ function verDetalleOperacionAdmin(idOperacion) {
             <div class="detail-item">
                 <span>Personal participante</span>
                 <strong>Of: ${operacion.num_oficiales} | Vol: ${operacion.num_vol} | Sldr: ${operacion.num_sldr}</strong>
-            </div>
-
-            <div class="detail-item">
-                <span>Hubo resultados</span>
-                <strong>${operacion.hubo_resultados}</strong>
             </div>
 
             <div class="detail-item">
@@ -3993,24 +3984,21 @@ function renderRankingUbicacion(tbodyId, operaciones, resultados, campo) {
             mapa.set(clave, {
                 nombre: clave,
                 operaciones: 0,
-                operaciones_con_resultados: 0,
-                registros_resultado: 0,
-                ids_operaciones_con_resultado: new Set()
+                registros_resultado: 0
             });
         }
 
         mapa.get(clave).operaciones += 1;
-
-        if (op.hubo_resultados === "SI") {
-            mapa.get(clave).ids_operaciones_con_resultado.add(op.id_operacion);
-        }
     });
 
-    resultados.forEach((r) => {
-        const op = operaciones.find((o) => o.id_operacion === r.id_operacion);
-        if (!op) return;
+    resultados.forEach((resultado) => {
+        const operacion = operaciones.find((op) => {
+            return op.id_operacion === resultado.id_operacion;
+        });
 
-        const clave = op[campo] || "SIN DATO";
+        if (!operacion) return;
+
+        const clave = operacion[campo] || "SIN DATO";
 
         if (mapa.has(clave)) {
             mapa.get(clave).registros_resultado += 1;
@@ -4018,19 +4006,12 @@ function renderRankingUbicacion(tbodyId, operaciones, resultados, campo) {
     });
 
     const data = Array.from(mapa.values())
-        .map((item) => ({
-            nombre: item.nombre,
-            operaciones: item.operaciones,
-            operaciones_con_resultados: item.ids_operaciones_con_resultado.size,
-            registros_resultado: item.registros_resultado
-        }))
         .sort((a, b) => b.operaciones - a.operaciones)
         .slice(0, 10);
 
     renderTablaSimple(tbody, data, [
         "nombre",
         "operaciones",
-        "operaciones_con_resultados",
         "registros_resultado"
     ]);
 }
@@ -4042,26 +4023,27 @@ function renderRankingTiempoMes(operaciones, tbodyId) {
     const mapa = new Map();
 
     operaciones.forEach((op) => {
-        const clave = op.fecha_operacion ? op.fecha_operacion.slice(0, 7) : "SIN FECHA";
+        const clave = op.fecha_operacion
+            ? op.fecha_operacion.slice(0, 7)
+            : "SIN FECHA";
 
         if (!mapa.has(clave)) {
             mapa.set(clave, {
                 nombre: clave,
-                operaciones: 0,
-                con_resultados: 0
+                operaciones: 0
             });
         }
 
         mapa.get(clave).operaciones += 1;
-
-        if (op.hubo_resultados === "SI") {
-            mapa.get(clave).con_resultados += 1;
-        }
     });
 
-    const data = Array.from(mapa.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const data = Array.from(mapa.values())
+        .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-    renderTablaSimple(tbody, data, ["nombre", "operaciones", "con_resultados"]);
+    renderTablaSimple(tbody, data, [
+        "nombre",
+        "operaciones"
+    ]);
 }
 
 function renderRankingTiempoSemana(operaciones, tbodyId) {
@@ -4076,23 +4058,21 @@ function renderRankingTiempoSemana(operaciones, tbodyId) {
         if (!mapa.has(clave)) {
             mapa.set(clave, {
                 nombre: clave,
-                operaciones: 0,
-                con_resultados: 0
+                operaciones: 0
             });
         }
 
         mapa.get(clave).operaciones += 1;
-
-        if (op.hubo_resultados === "SI") {
-            mapa.get(clave).con_resultados += 1;
-        }
     });
 
-    const data = Array.from(mapa.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const data = Array.from(mapa.values())
+        .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-    renderTablaSimple(tbody, data, ["nombre", "operaciones", "con_resultados"]);
+    renderTablaSimple(tbody, data, [
+        "nombre",
+        "operaciones"
+    ]);
 }
-
 function renderRankingSubtipo(operaciones, tbodyId) {
     const tbody = document.getElementById(tbodyId);
     if (!tbody) return;
@@ -4105,27 +4085,20 @@ function renderRankingSubtipo(operaciones, tbodyId) {
         if (!mapa.has(clave)) {
             mapa.set(clave, {
                 nombre: clave,
-                operaciones: 0,
-                con_resultados: 0,
-                efectividad: "0%"
+                operaciones: 0
             });
         }
 
         mapa.get(clave).operaciones += 1;
-
-        if (op.hubo_resultados === "SI") {
-            mapa.get(clave).con_resultados += 1;
-        }
     });
 
-    const data = Array.from(mapa.values()).map((item) => ({
-        ...item,
-        efectividad: item.operaciones > 0
-            ? `${((item.con_resultados / item.operaciones) * 100).toFixed(1)}%`
-            : "0%"
-    })).sort((a, b) => b.operaciones - a.operaciones);
+    const data = Array.from(mapa.values())
+        .sort((a, b) => b.operaciones - a.operaciones);
 
-    renderTablaSimple(tbody, data, ["nombre", "operaciones", "con_resultados", "efectividad"]);
+    renderTablaSimple(tbody, data, [
+        "nombre",
+        "operaciones"
+    ]);
 }
 
 function renderRankingTipo(operaciones, tbodyId) {
@@ -4140,21 +4113,20 @@ function renderRankingTipo(operaciones, tbodyId) {
         if (!mapa.has(clave)) {
             mapa.set(clave, {
                 nombre: clave,
-                operaciones: 0,
-                con_resultados: 0
+                operaciones: 0
             });
         }
 
         mapa.get(clave).operaciones += 1;
-
-        if (op.hubo_resultados === "SI") {
-            mapa.get(clave).con_resultados += 1;
-        }
     });
 
-    const data = Array.from(mapa.values()).sort((a, b) => b.operaciones - a.operaciones);
+    const data = Array.from(mapa.values())
+        .sort((a, b) => b.operaciones - a.operaciones);
 
-    renderTablaSimple(tbody, data, ["nombre", "operaciones", "con_resultados"]);
+    renderTablaSimple(tbody, data, [
+        "nombre",
+        "operaciones"
+    ]);
 }
 
 function renderTablaSimple(tbody, data, campos) {
@@ -4573,7 +4545,7 @@ function configurarReportes() {
         exportPdfBtn.addEventListener("click", exportarReportePDF);
     }
 
-    
+
 }
 
 function cargarFiltrosReportes() {
@@ -4904,8 +4876,8 @@ function renderReportes() {
     thead.innerHTML = `
         <tr>
             ${columnas.map((col) => {
-                return `<th>${escaparHtml(col.titulo)}</th>`;
-            }).join("")}
+        return `<th>${escaparHtml(col.titulo)}</th>`;
+    }).join("")}
         </tr>
     `;
 
@@ -5825,7 +5797,7 @@ function renderInicioEcoServidor(data, statsGrid, actions, recentPanel, recentTi
         ${crearStatInicio("Observadas", stats.operaciones_observadas || 0, "red")}
         ${crearStatInicio("Validadas", stats.operaciones_validadas || 0, "green")}
         ${crearStatInicio("Anuladas", stats.operaciones_anuladas || 0, "gray")}
-        ${crearStatInicio("Con resultados", stats.operaciones_con_resultados || 0, "green")}
+
     `;
 
     actions.innerHTML = `
@@ -5848,8 +5820,7 @@ function renderInicioUnidadServidor(data, statsGrid, actions, recentPanel, recen
 
     statsGrid.innerHTML = `
         ${crearStatInicio("Operaciones validadas", stats.operaciones_validadas || 0, "purple")}
-        ${crearStatInicio("Con resultados", stats.operaciones_con_resultados || 0, "gold")}
-        ${crearStatInicio("Sin resultados", stats.operaciones_sin_resultados || 0, "gray")}
+        ${crearStatInicio("Total operaciones", stats.operaciones_total || 0, "green")}
     `;
 
     actions.innerHTML = `

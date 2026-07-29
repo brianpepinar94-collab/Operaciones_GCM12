@@ -1592,11 +1592,7 @@ button,
 /* BOTÓN MODO DETALLADO */
 /* ============================= */
 
-#repModoDetalladoBtn.active {
-  background: var(--primary);
-  color: var(--white);
-  border-color: var(--primary);
-}
+
 
 .report-table {
   min-width: 1250px;
