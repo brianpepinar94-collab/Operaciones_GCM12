@@ -4870,7 +4870,7 @@ function mostrarDetalleOperacionEspecificaDashboard(idOperacion) {
     detalleCard.classList.remove("hidden");
 
     detalleCard.innerHTML = `
-    }
+    
         <div class="dash-operation-detail-header">
             <div>
                 <span>Operación seleccionada</span>
@@ -5895,67 +5895,67 @@ async function exportarReportePDF() {
     const logoGrupo = `${baseUrl}assets/logo-gcm12.png`;
     const logoEjercito = `${baseUrl}assets/logo-ejercito.png`;
 
-} const conteoPorOperacionPdf = new Map();
+    const conteoPorOperacionPdf = new Map();
 
-filas.forEach((fila, index) => {
-    const claveOperacion = String(
-        fila.id_operacion || `FILA-${index}`
-    );
-
-    const totalActual =
-        conteoPorOperacionPdf.get(claveOperacion) || 0;
-
-    conteoPorOperacionPdf.set(
-        claveOperacion,
-        totalActual + 1
-    );
-});
-
-const operacionesPdfYaPintadas = new Set();
-
-const filasHtml = filas.map((fila, index) => {
-    const claveOperacion = String(
-        fila.id_operacion || `FILA-${index}`
-    );
-
-    const primeraFilaOperacion =
-        !operacionesPdfYaPintadas.has(claveOperacion);
-
-    if (primeraFilaOperacion) {
-        operacionesPdfYaPintadas.add(claveOperacion);
-    }
-
-    const totalFilasOperacion =
-        conteoPorOperacionPdf.get(claveOperacion) || 1;
-
-    const celdas = columnas.map((col) => {
-        const esColumnaOperacion =
-            col.grupo === "operacion";
-
-        /*
-        * En el PDF, igual que en la tabla web,
-        * los datos generales de la operación
-        * solo se imprimen una vez.
-        */
-        if (
-            esColumnaOperacion &&
-            !primeraFilaOperacion
-        ) {
-            return "";
-        }
-
-        let valor = fila[col.key] ?? "";
-
-        if (col.key === "fecha_operacion") {
-            valor = formatearFecha(valor);
-        }
-
-        const valorSeguro = escaparHtml(
-            String(valor)
+    filas.forEach((fila, index) => {
+        const claveOperacion = String(
+            fila.id_operacion || `FILA-${index}`
         );
 
-        if (esColumnaOperacion) {
-            return `
+        const totalActual =
+            conteoPorOperacionPdf.get(claveOperacion) || 0;
+
+        conteoPorOperacionPdf.set(
+            claveOperacion,
+            totalActual + 1
+        );
+    });
+
+    const operacionesPdfYaPintadas = new Set();
+
+    const filasHtml = filas.map((fila, index) => {
+        const claveOperacion = String(
+            fila.id_operacion || `FILA-${index}`
+        );
+
+        const primeraFilaOperacion =
+            !operacionesPdfYaPintadas.has(claveOperacion);
+
+        if (primeraFilaOperacion) {
+            operacionesPdfYaPintadas.add(claveOperacion);
+        }
+
+        const totalFilasOperacion =
+            conteoPorOperacionPdf.get(claveOperacion) || 1;
+
+        const celdas = columnas.map((col) => {
+            const esColumnaOperacion =
+                col.grupo === "operacion";
+
+            /*
+            * En el PDF, igual que en la tabla web,
+            * los datos generales de la operación
+            * solo se imprimen una vez.
+            */
+            if (
+                esColumnaOperacion &&
+                !primeraFilaOperacion
+            ) {
+                return "";
+            }
+
+            let valor = fila[col.key] ?? "";
+
+            if (col.key === "fecha_operacion") {
+                valor = formatearFecha(valor);
+            }
+
+            const valorSeguro = escaparHtml(
+                String(valor)
+            );
+
+            if (esColumnaOperacion) {
+                return `
                     <td
                         rowspan="${totalFilasOperacion}"
                         class="pdf-operacion-agrupada"
@@ -5963,38 +5963,51 @@ const filasHtml = filas.map((fila, index) => {
                         ${valorSeguro}
                     </td>
                 `;
-        }
+            }
 
-        return `
-                <td class="pdf-resultado-celda">
+            let claseResultadoPdf = "pdf-resultado-celda";
+
+            if (
+                col.key === "cantidad" ||
+                col.key === "unidad_medida"
+            ) {
+                claseResultadoPdf += " pdf-resultado-centrado";
+            }
+
+            if (col.key === "descripcion") {
+                claseResultadoPdf += " pdf-resultado-descripcion";
+            }
+
+            return `
+                <td class="${claseResultadoPdf}">
                     ${valorSeguro}
                 </td>
             `;
-    }).join("");
+        }).join("");
 
-    return `
+        return `
             <tr>
                 ${celdas}
             </tr>
         `;
-}).join("");
+    }).join("");
 
-const encabezadoHtml = columnas.map((col) => `<th>${escaparHtml(col.titulo)}</th>`).join("");
+    const encabezadoHtml = columnas.map((col) => `<th>${escaparHtml(col.titulo)}</th>`).join("");
 
-const ventana = window.open("", "_blank");
+    const ventana = window.open("", "_blank");
 
-if (!ventana) {
-    mostrarMensajeReportes("El navegador bloqueó la ventana emergente. Permita pop-ups para exportar PDF.", "error");
-    return;
-}
+    if (!ventana) {
+        mostrarMensajeReportes("El navegador bloqueó la ventana emergente. Permita pop-ups para exportar PDF.", "error");
+        return;
+    }
 
-const tituloReporte = reporteDetallado
-    ? "Reporte Operacional Detallado"
-    : "Reporte Operacional General";
+    const tituloReporte = reporteDetallado
+        ? "Reporte Operacional Detallado"
+        : "Reporte Operacional General";
 
 
 
-ventana.document.write(`
+    ventana.document.write(`
         <!DOCTYPE html>
         <html lang="es">
         <head>
@@ -6109,22 +6122,35 @@ ventana.document.write(`
                     vertical-align: middle !important;
                     text-align: center !important;
                     font-weight: 700;
-                    background: #F3F0F8 !important;
+                    background: #EEF2F7 !important;
                     color: #111827;
                 }
 
                 .pdf-resultado-celda {
-                    vertical-align: top;
+                    vertical-align: middle;
                     text-align: left;
+                    background: #FFFFFF;
                 }
 
-                td:nth-child(11),
-                td:nth-child(12) {
-                    text-align: center;
-                }            
+                .pdf-resultado-centrado {
+                    text-align: center !important;
+                    vertical-align: middle !important;
+                    font-weight: 600;
+                }
 
-                tr:nth-child(even) td {
+                .pdf-resultado-descripcion {
+                    text-align: left !important;
+                    vertical-align: middle !important;
+                }
+
+                
+
+                tbody tr:nth-child(even) td.pdf-resultado-celda {
                     background: #F9FAFB;
+                }
+
+                tbody tr:nth-child(even) td.pdf-operacion-agrupada {
+                    background: #EEF2F7 !important;
                 }
 
                 .generated-by {
@@ -6211,8 +6237,15 @@ ventana.document.write(`
                         word-break: normal;
                     }
 
-                    tr:nth-child(even) td {
+                    tbody tr:nth-child(even) td.pdf-resultado-celda {
                         background: #F9FAFB !important;
+
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+
+                    tbody tr:nth-child(even) td.pdf-operacion-agrupada {
+                        background: #EEF2F7 !important;
 
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
@@ -6268,15 +6301,15 @@ ventana.document.write(`
         </body>
         </html>
     `);
-registrarAuditoria(
-    "EXPORTAR_PDF",
-    "REPORTES",
-    "",
-    `Exportó reporte ${reporteDetallado ? "detallado" : "general"} en PDF`
-);
-ventana.document.close();
+    registrarAuditoria(
+        "EXPORTAR_PDF",
+        "REPORTES",
+        "",
+        `Exportó reporte ${reporteDetallado ? "detallado" : "general"} en PDF`
+    );
+    ventana.document.close();
 
-mostrarMensajeReportes("Vista PDF generada. Use Guardar como PDF en la ventana de impresión.", "success");
+    mostrarMensajeReportes("Vista PDF generada. Use Guardar como PDF en la ventana de impresión.", "success");
 }
 
 
