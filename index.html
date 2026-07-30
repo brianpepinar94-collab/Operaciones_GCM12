@@ -794,6 +794,9 @@
                             <button type="button" class="dash-tab" data-dash-tab="ubicacion">Ubicación</button>
                             <button type="button" class="dash-tab" data-dash-tab="tiempo">Tiempo</button>
                             <button type="button" class="dash-tab" data-dash-tab="operaciones">Operaciones</button>
+                            <button type="button" class="dash-tab" data-dash-tab="operacionEspecifica">
+                                Operación específica
+                            </button>
                         </div>
 
                         <!-- RESUMEN -->
@@ -1286,6 +1289,55 @@
                                     </table>
                                 </section>
                             </div>
+                        </div>
+
+                        <!-- OPERACIÓN ESPECÍFICA -->
+                        <div id="dashTabOperacionEspecifica" class="dash-tab-content">
+                            <section class="dash-specific-panel">
+                                <div class="dash-specific-head">
+                                    <div>
+                                        <h4>Consulta de operación específica</h4>
+                                        <p>
+                                            Seleccione una operación de acuerdo con los filtros aplicados
+                                            en el Dashboard.
+                                        </p>
+                                    </div>
+
+                                    <div class="field dash-specific-search">
+                                        <label>Buscar dentro de las operaciones filtradas</label>
+                                        <input type="text" id="dashBuscarOperacionEspecifica"
+                                            placeholder="Buscar por ID, sector, responsable, subtipo o cantón" />
+                                    </div>
+                                </div>
+
+                                <div class="dash-table-panel dash-specific-table-panel">
+                                    <h4>Operaciones filtradas</h4>
+
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Fecha</th>
+                                                <th>Hora</th>
+                                                <th>Cantón</th>
+                                                <th>Parroquia</th>
+                                                <th>Sector</th>
+                                                <th>Responsable</th>
+                                                <th>Acción</th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody id="dashOperacionEspecificaBody">
+                                            <tr>
+                                                <td colspan="7" class="empty-table">
+                                                    Sin operaciones disponibles.
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div id="dashOperacionDetalleCard" class="dash-operation-detail-card hidden"></div>
+                            </section>
                         </div>
 
                     </div>

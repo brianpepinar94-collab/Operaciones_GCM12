@@ -3357,3 +3357,427 @@ table {
   }
 }
 
+/* ============================= */
+/* DASHBOARD - OPERACIÓN ESPECÍFICA */
+/* ============================= */
+
+.dash-specific-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.dash-specific-head {
+  display: grid;
+  grid-template-columns: 1.2fr minmax(260px, 0.8fr);
+  gap: 16px;
+  align-items: end;
+
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(34, 11, 150, 0.25);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.dash-specific-head h4 {
+  margin: 0;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.dash-specific-head p {
+  margin: 6px 0 0;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.dash-specific-search {
+  margin: 0;
+}
+
+.dash-specific-table-panel table {
+  min-width: 920px;
+}
+
+.dash-operation-detail-card {
+  border-radius: 20px;
+  padding: 18px;
+  background:
+    linear-gradient(135deg, rgba(14, 24, 35, 0.94), rgba(34, 20, 112, 0.9));
+  border: 1px solid rgba(34, 12, 155, 0.35);
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.22),
+    inset 0 0 18px rgba(255, 255, 255, 0.03);
+}
+
+.dash-operation-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.dash-operation-detail-header span {
+  display: block;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.dash-operation-detail-header h4 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 24px;
+}
+
+.dash-operation-detail-header p {
+  margin: 6px 0 0;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.dash-operation-status {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(62, 97, 167, 0.22);
+  color: #ffffff;
+  border: 1px solid rgba(62, 167, 106, 0.50);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.dash-operation-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dash-operation-detail-grid > div {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.dash-operation-detail-grid span,
+.dash-operation-personnel span {
+  display: block;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.dash-operation-detail-grid strong,
+.dash-operation-personnel strong {
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.dash-operation-personnel {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dash-operation-personnel article {
+  background: rgba(104, 207, 224, 0.10);
+  border: 1px solid rgba(104, 207, 224, 0.25);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.dash-operation-personnel strong {
+  font-size: 24px;
+}
+
+.dash-operation-results {
+  margin-top: 14px;
+}
+
+.dash-operation-results h4,
+.dash-operation-observation h4 {
+  margin: 0 0 10px;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.dash-operation-results table {
+  min-width: 850px;
+}
+
+.dash-operation-results th {
+  background: #241962 !important;
+  color: #ffffff !important;
+}
+
+.dash-operation-results td {
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.dash-operation-observation {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border-left: 4px solid var(--dash-gold);
+}
+
+.dash-operation-observation p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.dash-operation-detail-empty {
+  padding: 18px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.74);
+}
+
+@media (max-width: 980px) {
+  .dash-specific-head {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-operation-detail-grid {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+
+  .dash-operation-personnel {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .dash-operation-detail-grid,
+  .dash-operation-personnel {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-operation-detail-header {
+    flex-direction: column;
+  }
+
+  .dash-operation-status {
+    width: 100%;
+    text-align: center;
+  }
+}
+/* ============================= */
+/* RESULTADOS DE OPERACIÓN - ESTILO DASHBOARD */
+/* ============================= */
+
+.dash-operation-personnel.compact {
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
+}
+
+/*
+ * Contenedor general de resultados.
+ * Mantiene el mismo lenguaje visual del dashboard.
+ */
+.dash-operation-result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+/*
+ * Tarjeta individual de resultado.
+ * Similar a las tarjetas tácticas del dashboard.
+ */
+.dash-operation-result-card {
+  position: relative;
+  overflow: hidden;
+
+  min-height: 145px;
+  padding: 16px 18px;
+
+  border-radius: 16px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(13, 34, 48, 0.96),
+      rgba(20, 22, 67, 0.92)
+    );
+
+  border: 1px solid rgba(104, 132, 224, 0.28);
+
+  box-shadow:
+    inset 0 0 16px rgba(255, 255, 255, 0.03),
+    0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+/*
+ * Línea superior dorada sutil.
+ */
+.dash-operation-result-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+
+  width: 100%;
+  height: 3px;
+
+  background:
+    linear-gradient(
+      90deg,
+       rgba(40, 23, 140, 0.65),
+      rgba(40, 23, 140, 0.65)
+    );
+}
+
+/*
+ * Ícono grande como marca de agua,
+ * igual al estilo de las métricas superiores.
+ */
+.dash-operation-result-watermark {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+
+  font-size: 58px;
+  color: rgba(104, 207, 224, 0.34);
+
+  filter:
+    drop-shadow(0 0 8px rgba(104, 207, 224, 0.25));
+
+  pointer-events: none;
+}
+
+/*
+ * Encabezado: categoría + cantidad.
+ */
+.dash-operation-result-top {
+  position: relative;
+  z-index: 1;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+
+  padding-right: 70px;
+  margin-bottom: 10px;
+}
+
+.dash-operation-result-top span {
+  display: block;
+
+  color: rgba(255, 255, 255, 0.70);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 1.25;
+}
+
+/*
+ * Cantidad destacada.
+ */
+.dash-operation-result-amount {
+  flex: 0 0 auto;
+
+  padding: 7px 11px;
+  border-radius: 999px;
+
+  background: rgba(60, 53, 133, 0.2);
+  border: 1px solid rgba(69, 62, 167, 0.42);
+
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 14px;
+
+  white-space: nowrap;
+}
+
+/*
+ * Subcategoría como dato principal.
+ */
+.dash-operation-result-title {
+  position: relative;
+  z-index: 1;
+
+  display: block;
+  margin-bottom: 10px;
+
+  color: #ffffff;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+/*
+ * Descripción.
+ */
+.dash-operation-result-description {
+  position: relative;
+  z-index: 1;
+
+  margin: 0;
+  max-width: 88%;
+
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/*
+ * Estado vacío.
+ */
+.dash-operation-result-empty {
+  padding: 18px;
+  border-radius: 14px;
+  text-align: center;
+
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+/*
+ * Ajustes responsive.
+ */
+@media (max-width: 980px) {
+  .dash-operation-result-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dash-operation-personnel.compact {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+
+  .dash-operation-result-card {
+    min-height: auto;
+  }
+
+  .dash-operation-result-top {
+    flex-direction: column;
+    padding-right: 60px;
+  }
+
+  .dash-operation-result-title {
+    font-size: 19px;
+  }
+
+  .dash-operation-result-description {
+    max-width: 100%;
+  }
+
+  .dash-operation-result-watermark {
+    font-size: 48px;
+  }
+}
+
+@media (max-width: 520px) {
+  .dash-operation-personnel.compact {
+    grid-template-columns: 1fr;
+  }
+}
+

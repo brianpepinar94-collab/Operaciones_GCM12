@@ -3959,6 +3959,32 @@ function configurarDashboard() {
         });
     }
 
+    const buscarOperacionEspecifica =
+        document.getElementById("dashBuscarOperacionEspecifica");
+
+    if (buscarOperacionEspecifica) {
+        buscarOperacionEspecifica.addEventListener("input", () => {
+            renderOperacionEspecificaDashboard();
+        });
+    }
+
+    const tablaOperacionEspecifica =
+        document.getElementById("dashOperacionEspecificaBody");
+
+    if (tablaOperacionEspecifica) {
+        tablaOperacionEspecifica.addEventListener("click", (event) => {
+            const boton = event.target.closest("button");
+
+            if (!boton) return;
+
+            const idOperacion = boton.dataset.idOperacion;
+
+            if (!idOperacion) return;
+
+            mostrarDetalleOperacionEspecificaDashboard(idOperacion);
+        });
+    }
+
     const limpiarBtn = document.getElementById("dashLimpiarFiltros");
 
     if (limpiarBtn) {
@@ -4112,6 +4138,21 @@ function limpiarFiltrosDashboard() {
     if (parroquia) parroquia.value = "";
     if (subcategoria) subcategoria.value = "";
 
+    const buscarOperacionEspecifica =
+        document.getElementById("dashBuscarOperacionEspecifica");
+
+    const detalleOperacionEspecifica =
+        document.getElementById("dashOperacionDetalleCard");
+
+    if (buscarOperacionEspecifica) {
+        buscarOperacionEspecifica.value = "";
+    }
+
+    if (detalleOperacionEspecifica) {
+        detalleOperacionEspecifica.classList.add("hidden");
+        detalleOperacionEspecifica.innerHTML = "";
+    }
+
     if (usuarioActual) {
         cargarDashboardData();
     } else {
@@ -4258,6 +4299,7 @@ function renderDashboard() {
 
     renderGraficosDashboard(operaciones, resultados);
     renderDetalleCategoriaSubcategoria(resultados, "dashDetalleCategoriaSubcategoria");
+    renderOperacionEspecificaDashboard();
 }
 
 function obtenerDatosDashboardFiltrados() {
@@ -4564,6 +4606,372 @@ function renderTablaSimple(tbody, data, campos) {
         }).join("");
 
         tbody.appendChild(tr);
+    });
+}
+
+
+function obtenerResultadosPorOperacionDashboard(idOperacion) {
+    return resultadosSistema.filter((resultado) => {
+        return String(resultado.id_operacion || "") ===
+            String(idOperacion || "");
+    });
+}
+
+function contarResultadosOperacionDashboard(idOperacion) {
+    return obtenerResultadosPorOperacionDashboard(idOperacion).length;
+}
+
+function obtenerOperacionesEspecificasFiltradasDashboard() {
+    const datos = obtenerDatosDashboardFiltrados();
+
+    let operaciones = datos.operaciones || [];
+
+    const textoBusqueda = normalizarTextoMayusculas(
+        document.getElementById("dashBuscarOperacionEspecifica")?.value || ""
+    );
+
+    if (textoBusqueda) {
+        operaciones = operaciones.filter((op) => {
+            const textoOperacion = normalizarTextoMayusculas([
+                op.id_operacion,
+                op.fecha_operacion,
+                op.hora_inicio,
+                op.hora_fin,
+                op.tipo_operacion,
+                op.sub_tipo_operacion,
+                op.canton,
+                op.parroquia,
+                op.sector,
+                op.responsable,
+                op.grado_responsable,
+                op.registrado_por
+            ].join(" "));
+
+            return textoOperacion.includes(textoBusqueda);
+        });
+    }
+
+    return operaciones.sort((a, b) => {
+        const fechaA = String(
+            a.fecha_operacion || ""
+        );
+
+        const fechaB = String(
+            b.fecha_operacion || ""
+        );
+
+        if (fechaA !== fechaB) {
+            return fechaB.localeCompare(fechaA);
+        }
+
+        const horaA = String(
+            a.hora_inicio || ""
+        );
+
+        const horaB = String(
+            b.hora_inicio || ""
+        );
+
+        return horaA.localeCompare(horaB);
+    });
+}
+
+function obtenerIconoResultadoDashboard(categoria) {
+    const categoriaNormalizada =
+        normalizarTextoMayusculas(categoria);
+
+    const iconos = {
+        "ARMAS DE FUEGO CORTAS": "game-icons:pistol-gun",
+        "ARMAS DE FUEGO LARGAS": "game-icons:machine-gun",
+        "ARMAS BLANCAS": "game-icons:knife-thrust",
+        "ARMAS DE FUEGO NO LETALES": "game-icons:gunshot",
+        "ARMAS NO LETALES": "mdi:police-badge-outline",
+        "MUNICIONES": "game-icons:bullets",
+        "MUNICIÓN PERCUTIDA": "game-icons:bullet-impacts",
+        "ALIMENTADORAS": "game-icons:ammo-box",
+        "ACCESORIOS DE ARMAS": "game-icons:laser-gun",
+        "EXPLOSIVOS": "game-icons:explosive-materials",
+        "GRANADAS": "game-icons:grenade",
+        "DINERO EFECTIVO": "mdi:cash-multiple",
+        "SUSTANCIAS CATALOGADAS SUJETAS A FISCALIZACIÓN": "game-icons:powder-bag",
+        "TELÉFONOS CELULARES": "mdi:cellphone",
+        "ACCESORIOS CELULARES": "mdi:cellphone-cog",
+        "EQUIPOS DE COMUNICACIÓN": "mdi:radio-handheld",
+        "EQUIPOS DE VIDEOVIGILANCIA": "mdi:cctv",
+        "EQUIPOS DE RED": "mdi:router-wireless",
+        "EQUIPAMIENTO TÁCTICO": "game-icons:kevlar-vest",
+        "COMBUSTIBLE": "mdi:gas-station",
+        "VEHÍCULOS Y MAQUINARIA": "mdi:truck",
+        "PERSONAS APREHENDIDAS": "mdi:account-lock-outline",
+        "BEBIDAS ALCOHÓLICAS": "mdi:bottle-wine-outline",
+        "TABACOS": "mdi:cigar",
+        "OTROS OBJETOS": "mdi:package-variant-closed"
+    };
+
+    return iconos[categoriaNormalizada] ||
+        "mdi:package-variant-closed";
+}
+function renderOperacionEspecificaDashboard() {
+    const tbody =
+        document.getElementById("dashOperacionEspecificaBody");
+
+    const detalleCard =
+        document.getElementById("dashOperacionDetalleCard");
+
+    if (!tbody) return;
+
+    const operaciones =
+        obtenerOperacionesEspecificasFiltradasDashboard();
+
+    tbody.innerHTML = "";
+
+    if (!operaciones || operaciones.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty-table">
+                    Sin operaciones disponibles con los filtros seleccionados.
+                </td>
+            </tr>
+        `;
+
+        if (detalleCard) {
+            detalleCard.classList.add("hidden");
+            detalleCard.innerHTML = "";
+        }
+
+        return;
+    }
+
+    operaciones.forEach((op) => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${formatearFecha(op.fecha_operacion)}</td>
+
+            <td>
+                ${formatearHoraOperacion(op.hora_inicio)}
+                -
+                ${formatearHoraOperacion(op.hora_fin)}
+            </td>
+
+            <td>${escaparHtml(op.canton || "")}</td>
+
+            <td>${escaparHtml(op.parroquia || "NO APLICA")}</td>
+
+            <td>${escaparHtml(op.sector || "")}</td>
+
+            <td>
+                ${escaparHtml(
+            `${op.grado_responsable || ""} ${op.responsable || ""}`.trim()
+        )}
+            </td>
+
+            <td>
+                <button
+                    type="button"
+                    class="btn btn-secondary btn-small"
+                    data-id-operacion="${escaparHtml(op.id_operacion || "")}"
+                >
+                    Ver detalle
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+function mostrarDetalleOperacionEspecificaDashboard(idOperacion) {
+    const detalleCard =
+        document.getElementById("dashOperacionDetalleCard");
+
+    if (!detalleCard) return;
+
+    const datos = obtenerDatosDashboardFiltrados();
+
+    const operacion = (datos.operaciones || []).find((op) => {
+        return String(op.id_operacion || "") ===
+            String(idOperacion || "");
+    });
+
+    if (!operacion) {
+        detalleCard.classList.remove("hidden");
+        detalleCard.innerHTML = `
+            <div class="dash-operation-detail-empty">
+                No se encontró la operación seleccionada.
+            </div>
+        `;
+        return;
+    }
+
+    const resultadosOperacion =
+        obtenerResultadosPorOperacionDashboard(
+            operacion.id_operacion
+        );
+
+    const totalOficiales =
+        Number(operacion.num_oficiales) || 0;
+
+    const totalVoluntarios =
+        Number(operacion.num_vol) || 0;
+
+    const totalSoldados =
+        Number(operacion.num_sldr) || 0;
+
+    const totalPersonal =
+        totalOficiales +
+        totalVoluntarios +
+        totalSoldados;
+
+    const resultadosHtml = resultadosOperacion.length === 0
+        ? `
+            <div class="dash-operation-result-empty">
+                Sin resultados asociados.
+            </div>
+        `
+        : resultadosOperacion.map((resultado) => {
+            const icono =
+                obtenerIconoResultadoDashboard(
+                    resultado.categoria
+                );
+
+            return `
+                <article class="dash-operation-result-card">
+                    <iconify-icon
+                        class="dash-operation-result-watermark"
+                        icon="${escaparHtml(icono)}"
+                    ></iconify-icon>
+
+                    <div class="dash-operation-result-top">
+                        <span>
+                            ${escaparHtml(resultado.categoria || "")}
+                        </span>
+
+                        <div class="dash-operation-result-amount">
+                            ${formatDecimal(resultado.cantidad || 0)}
+                            ${escaparHtml(resultado.unidad_medida || "")}
+                        </div>
+                    </div>
+
+                    <strong class="dash-operation-result-title">
+                        ${escaparHtml(resultado.subcategoria || "")}
+                    </strong>
+
+                    <p class="dash-operation-result-description">
+                        ${escaparHtml(
+                resultado.descripcion ||
+                "Sin descripción."
+            )}
+                    </p>
+                </article>
+            `;
+        }).join("");
+
+    detalleCard.classList.remove("hidden");
+
+    detalleCard.innerHTML = `
+    }
+        <div class="dash-operation-detail-header">
+            <div>
+                <span>Operación seleccionada</span>
+                <h4>Detalle operacional</h4>
+                <p>
+                    ${escaparHtml(operacion.tipo_operacion || "")}
+                    /
+                    ${escaparHtml(operacion.sub_tipo_operacion || "")}
+                </p>
+            </div>
+        </div>
+
+        <div class="dash-operation-detail-grid">
+            <div>
+                <span>Fecha</span>
+                <strong>${formatearFecha(operacion.fecha_operacion)}</strong>
+            </div>
+
+            <div>
+                <span>Horario</span>
+                <strong>
+                    ${formatearHoraOperacion(operacion.hora_inicio)}
+                    -
+                    ${formatearHoraOperacion(operacion.hora_fin)}
+                </strong>
+            </div>
+
+            <div>
+                <span>Cantón</span>
+                <strong>${escaparHtml(operacion.canton || "")}</strong>
+            </div>
+
+            <div>
+                <span>Parroquia</span>
+                <strong>${escaparHtml(operacion.parroquia || "NO APLICA")}</strong>
+            </div>
+
+            <div>
+                <span>Sector</span>
+                <strong>${escaparHtml(operacion.sector || "")}</strong>
+            </div>
+
+            <div>
+                <span>Coordenadas</span>
+                <strong>${escaparHtml(operacion.coordenadas || "SIN COORDENADAS")}</strong>
+            </div>
+
+            <div>
+                <span>Responsable</span>
+                <strong>
+                    ${escaparHtml(
+        `${operacion.grado_responsable || ""} ${operacion.responsable || ""}`.trim()
+    )}
+                </strong>
+            </div>
+        </div>
+
+        <div class="dash-operation-personnel compact">
+            <article>
+                <span>Oficiales</span>
+                <strong>${formatNumero(totalOficiales)}</strong>
+            </article>
+
+            <article>
+                <span>PTP</span>
+                <strong>${formatNumero(totalVoluntarios)}</strong>
+            </article>
+
+            <article>
+                <span>SLDR</span>
+                <strong>${formatNumero(totalSoldados)}</strong>
+            </article>
+
+            <article>
+                <span>Total personal</span>
+                <strong>${formatNumero(totalPersonal)}</strong>
+            </article>
+        </div>
+
+        <div class="dash-operation-results">
+            <h4>Resultados de la operación</h4>
+
+            <div class="dash-operation-result-grid">
+                ${resultadosHtml}
+            </div>
+        </div>
+
+        <div class="dash-operation-observation">
+            <h4>Observación general</h4>
+            <p>
+                ${escaparHtml(
+        operacion.observacion_general ||
+        "Sin observación general."
+    )}
+            </p>
+        </div>
+    `;
+
+    detalleCard.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
     });
 }
 
