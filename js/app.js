@@ -42,6 +42,10 @@ let auditoriaSistema = cargarAuditoriaSistema();
 let operacionEditandoId = null;
 let reporteDetallado = true;
 let homeDataActual = null;
+let ubicacionesDinamicasSistema = {
+    cantones: [],
+    parroquiasPorCanton: {}
+};
 
 let contadorLoaderGlobal = 0;
 
@@ -467,6 +471,326 @@ const ubicacionCatalogo = {
     }
 };
 
+const CANTON_OTRO = "OTRO CANTÓN";
+
+function normalizarTextoMayusculas(valor) {
+    return String(valor || "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toUpperCase();
+}
+
+function ordenarTextoUbicacion(a, b) {
+    return String(a || "").localeCompare(
+        String(b || ""),
+        "es",
+        {
+            sensitivity: "base"
+        }
+    );
+}
+
+function agregarValorUnicoUbicacion(set, valor) {
+    const texto = normalizarTextoMayusculas(valor);
+
+    if (!texto) return;
+
+    /*
+     * OTRO CANTÓN solo sirve en el formulario
+     * de registro. No debe aparecer como filtro.
+     */
+    if (texto === CANTON_OTRO) return;
+
+    set.add(texto);
+}
+
+function obtenerCantonesParaFiltros() {
+    const set = new Set();
+
+    ubicacionCatalogo.cantones.forEach((canton) => {
+        agregarValorUnicoUbicacion(set, canton);
+    });
+
+    (
+        ubicacionesDinamicasSistema.cantones || []
+    ).forEach((canton) => {
+        agregarValorUnicoUbicacion(set, canton);
+    });
+
+    return Array.from(set)
+        .sort(ordenarTextoUbicacion);
+}
+
+function obtenerParroquiasParaFiltros(canton) {
+    const cantonNormalizado =
+        normalizarTextoMayusculas(canton);
+
+    if (!cantonNormalizado) {
+        return [];
+    }
+
+    const set = new Set();
+
+    (
+        ubicacionCatalogo.parroquiasPorCanton[
+        cantonNormalizado
+        ] || []
+    ).forEach((parroquia) => {
+        agregarValorUnicoUbicacion(set, parroquia);
+    });
+
+    (
+        ubicacionesDinamicasSistema
+            .parroquiasPorCanton[
+        cantonNormalizado
+        ] || []
+    ).forEach((parroquia) => {
+        agregarValorUnicoUbicacion(set, parroquia);
+    });
+
+    return Array.from(set)
+        .sort(ordenarTextoUbicacion);
+}
+
+function cargarOpcionesSelectUbicacion(
+    select,
+    textoInicial,
+    opciones
+) {
+    if (!select) return;
+
+    const valorActual = select.value;
+
+    select.innerHTML =
+        `<option value="">${textoInicial}</option>`;
+
+    opciones.forEach((valor) => {
+        const option = document.createElement("option");
+        option.value = valor;
+        option.textContent = valor;
+        select.appendChild(option);
+    });
+
+    const existeValorActual = Array.from(
+        select.options
+    ).some((option) => {
+        return option.value === valorActual;
+    });
+
+    select.value = existeValorActual
+        ? valorActual
+        : "";
+}
+
+async function cargarUbicacionesDinamicasDesdeServidor() {
+    if (!usuarioActual) {
+        return ubicacionesDinamicasSistema;
+    }
+
+    try {
+        const data = await apiPost(
+            "GET_LOCATION_FILTERS",
+            {}
+        );
+
+        ubicacionesDinamicasSistema = {
+            cantones: data.cantones || [],
+            parroquiasPorCanton:
+                data.parroquiasPorCanton || {}
+        };
+
+        return ubicacionesDinamicasSistema;
+
+    } catch (error) {
+        console.warn(
+            "No se pudieron cargar ubicaciones dinámicas:",
+            error
+        );
+
+        return ubicacionesDinamicasSistema;
+    }
+}
+
+async function actualizarFiltrosUbicacionDinamicaSistema() {
+    await cargarUbicacionesDinamicasDesdeServidor();
+
+    cargarFiltrosDashboard();
+    cargarFiltrosReportes();
+}
+
+function convertirCampoAMayusculas(input) {
+    if (!input) return;
+
+    const inicio = input.selectionStart;
+    const fin = input.selectionEnd;
+
+    const valorMayuscula = input.value.toUpperCase();
+
+    if (input.value !== valorMayuscula) {
+        input.value = valorMayuscula;
+
+        if (
+            document.activeElement === input &&
+            typeof input.setSelectionRange === "function" &&
+            inicio !== null &&
+            fin !== null
+        ) {
+            input.setSelectionRange(inicio, fin);
+        }
+    }
+}
+
+function configurarInputsMayusculasOperacion() {
+    [
+        "responsable",
+        "cantonManual",
+        "parroquiaManual"
+    ].forEach((id) => {
+        const input = document.getElementById(id);
+
+        if (!input) return;
+
+        input.addEventListener("input", () => {
+            convertirCampoAMayusculas(input);
+        });
+
+        input.addEventListener("blur", () => {
+            input.value = normalizarTextoMayusculas(input.value);
+        });
+    });
+}
+
+function actualizarCamposUbicacionManual() {
+    const cantonManualField =
+        document.getElementById("cantonManualField");
+
+    const parroquiaManualField =
+        document.getElementById("parroquiaManualField");
+
+    const cantonManual =
+        document.getElementById("cantonManual");
+
+    const parroquiaManual =
+        document.getElementById("parroquiaManual");
+
+    const esOtroCanton =
+        cantonSelect &&
+        cantonSelect.value === CANTON_OTRO;
+
+    if (cantonManualField) {
+        cantonManualField.classList.toggle(
+            "hidden",
+            !esOtroCanton
+        );
+    }
+
+    if (parroquiaManualField) {
+        parroquiaManualField.classList.toggle(
+            "hidden",
+            !esOtroCanton
+        );
+    }
+
+    if (cantonManual) {
+        cantonManual.required = esOtroCanton;
+
+        if (!esOtroCanton) {
+            cantonManual.value = "";
+        }
+    }
+
+    if (parroquiaManual) {
+        parroquiaManual.required = esOtroCanton;
+
+        if (!esOtroCanton) {
+            parroquiaManual.value = "";
+        }
+    }
+}
+
+function obtenerCantonOperacion() {
+    if (
+        cantonSelect &&
+        cantonSelect.value === CANTON_OTRO
+    ) {
+        return normalizarTextoMayusculas(
+            document.getElementById("cantonManual")?.value || ""
+        );
+    }
+
+    return normalizarTextoMayusculas(
+        document.getElementById("canton")?.value || ""
+    );
+}
+
+function obtenerParroquiaOperacion() {
+    if (
+        cantonSelect &&
+        cantonSelect.value === CANTON_OTRO
+    ) {
+        return normalizarTextoMayusculas(
+            document.getElementById("parroquiaManual")?.value || ""
+        );
+    }
+
+    if (
+        cantonSelect &&
+        cantonSelect.value === "MANTA"
+    ) {
+        return "";
+    }
+
+    return normalizarTextoMayusculas(
+        document.getElementById("parroquia")?.value || ""
+    );
+}
+
+function cargarUbicacionOperacionEnFormulario(operacion) {
+    const cantonOperacion = normalizarTextoMayusculas(
+        operacion.canton || ""
+    );
+
+    const parroquiaOperacion = normalizarTextoMayusculas(
+        operacion.parroquia || ""
+    );
+
+    const cantonExiste =
+        ubicacionCatalogo.cantones.includes(
+            cantonOperacion
+        );
+
+    if (
+        cantonOperacion &&
+        !cantonExiste
+    ) {
+        cantonSelect.value = CANTON_OTRO;
+        cantonSelect.dispatchEvent(new Event("change"));
+
+        const cantonManual =
+            document.getElementById("cantonManual");
+
+        const parroquiaManual =
+            document.getElementById("parroquiaManual");
+
+        if (cantonManual) {
+            cantonManual.value = cantonOperacion;
+        }
+
+        if (parroquiaManual) {
+            parroquiaManual.value = parroquiaOperacion;
+        }
+
+        return;
+    }
+
+    cantonSelect.value = cantonOperacion;
+    cantonSelect.dispatchEvent(new Event("change"));
+
+    if (cantonOperacion !== "MANTA") {
+        parroquiaSelect.value = parroquiaOperacion;
+    }
+}
+
 const menuPorRol = {
     ADMIN: [
         { id: "inicioPage", title: "Inicio", subtitle: "Panel general del administrador", label: "Inicio" },
@@ -533,6 +857,8 @@ const formMessage = document.getElementById("formMessage");
 document.addEventListener("DOMContentLoaded", () => {
     cargarCategorias();
     cargarCantones();
+    configurarInputsMayusculasOperacion();
+    actualizarCamposUbicacionManual();
     configurarFormularioMobile();
     configurarGestionUsuarios();
     configurarMisOperaciones();
@@ -842,6 +1168,15 @@ function iniciarSistema() {
     welcomeText.textContent = `Rol asignado: ${usuarioActual.rol}.`;
 
     construirMenu(usuarioActual.rol);
+
+    actualizarFiltrosUbicacionDinamicaSistema()
+        .catch((error) => {
+            console.warn(
+                "No se pudieron actualizar los filtros de ubicación:",
+                error
+            );
+        });
+
     iniciarActualizacionAutomaticaSheets();
     iniciarControlInactividad();
 }
@@ -1233,11 +1568,25 @@ operacionForm.addEventListener("submit", async (event) => {
         return;
     }
 
+    const responsableInput =
+        document.getElementById("responsable");
+
+    const gradoResponsableInput =
+        document.getElementById("gradoResponsable");
+
     const responsableOperacion =
-        document.getElementById("responsable").value.trim();
+        normalizarTextoMayusculas(
+            responsableInput?.value || ""
+        );
 
     const gradoResponsableOperacion =
-        document.getElementById("gradoResponsable").value.trim();
+        normalizarTextoMayusculas(
+            gradoResponsableInput?.value || ""
+        );
+
+    if (responsableInput) {
+        responsableInput.value = responsableOperacion;
+    }
 
     if (!gradoResponsableOperacion || !responsableOperacion) {
         mostrarMensaje(
@@ -1247,21 +1596,41 @@ operacionForm.addEventListener("submit", async (event) => {
         return;
     }
 
+    const cantonSeleccionado =
+        document.getElementById("canton").value;
+
+    const canton =
+        obtenerCantonOperacion();
+
     const parroquia =
-        document.getElementById("parroquia").value.trim();
+        obtenerParroquiaOperacion();
+
+    const sectorInput =
+        document.getElementById("sector");
 
     const sector =
-        document.getElementById("sector").value.trim();
+        normalizarTextoMayusculas(
+            sectorInput?.value || ""
+        );
 
     const coordenadas =
         document.getElementById("coordenadas").value.trim();
 
-    const canton =
-        document.getElementById("canton").value;
+    if (sectorInput) {
+        sectorInput.value = sector;
+    }
 
-    if (canton !== "MANTA" && !parroquia) {
+    if (!canton) {
         mostrarMensaje(
-            "La parroquia es obligatoria para registrar una operación con resultados.",
+            "Seleccione o ingrese el cantón de la operación.",
+            "error"
+        );
+        return;
+    }
+
+    if (cantonSeleccionado !== "MANTA" && !parroquia) {
+        mostrarMensaje(
+            "Seleccione o ingrese la parroquia de la operación.",
             "error"
         );
         return;
@@ -1332,11 +1701,15 @@ async function crearNuevaOperacion() {
         tipo_operacion: tipoOperacion.value,
         sub_tipo_operacion: subTipoOperacion.value,
         provincia: document.getElementById("provincia").value.trim(),
-        canton: document.getElementById("canton").value.trim(),
-        parroquia: document.getElementById("parroquia").value.trim(),
-        sector: document.getElementById("sector").value.trim(),
+        canton: obtenerCantonOperacion(),
+        parroquia: obtenerParroquiaOperacion(),
+        sector: normalizarTextoMayusculas(
+            document.getElementById("sector").value
+        ),
         coordenadas: document.getElementById("coordenadas").value.trim(),
-        responsable: document.getElementById("responsable").value.trim(),
+        responsable: normalizarTextoMayusculas(
+            document.getElementById("responsable").value
+        ),
         grado_responsable: document.getElementById("gradoResponsable").value.trim(),
         num_oficiales: Number(document.getElementById("numOficiales").value),
         num_vol: Number(document.getElementById("numVol").value),
@@ -1419,11 +1792,15 @@ async function actualizarOperacionExistente() {
         tipo_operacion: tipoOperacion.value,
         sub_tipo_operacion: subTipoOperacion.value,
         provincia: document.getElementById("provincia").value.trim(),
-        canton: document.getElementById("canton").value.trim(),
-        parroquia: document.getElementById("parroquia").value.trim(),
-        sector: document.getElementById("sector").value.trim(),
+        canton: obtenerCantonOperacion(),
+        parroquia: obtenerParroquiaOperacion(),
+        sector: normalizarTextoMayusculas(
+            document.getElementById("sector").value
+        ),
         coordenadas: document.getElementById("coordenadas").value.trim(),
-        responsable: document.getElementById("responsable").value.trim(),
+        responsable: normalizarTextoMayusculas(
+            document.getElementById("responsable").value
+        ),
         grado_responsable: document.getElementById("gradoResponsable").value.trim(),
         num_oficiales: Number(document.getElementById("numOficiales").value),
         num_vol: Number(document.getElementById("numVol").value),
@@ -1486,6 +1863,7 @@ function limpiarFormularioOperacion() {
     cargarCantones();
     parroquiaSelect.innerHTML = `<option value="">Seleccione cantón...</option>`;
     parroquiaSelect.disabled = false;
+    actualizarCamposUbicacionManual();
 
     if (!operacionEditandoId) {
         limpiarIdOperacionPendiente();
@@ -1553,6 +1931,13 @@ function cargarCantones() {
         option.textContent = canton;
         cantonSelect.appendChild(option);
     });
+
+    const optionOtro = document.createElement("option");
+    optionOtro.value = CANTON_OTRO;
+    optionOtro.textContent = CANTON_OTRO;
+    cantonSelect.appendChild(optionOtro);
+
+    actualizarCamposUbicacionManual();
 }
 
 function configurarFormularioMobile() {
@@ -1563,6 +1948,7 @@ function configurarFormularioMobile() {
             cargarCantones();
             parroquiaSelect.innerHTML = `<option value="">Seleccione cantón...</option>`;
             parroquiaSelect.disabled = false;
+            actualizarCamposUbicacionManual();
             resultadosTemporales = [];
             renderResultados();
             resultadosBlock.classList.remove("hidden");
@@ -1585,12 +1971,26 @@ function configurarFormularioMobile() {
 
 cantonSelect.addEventListener("change", () => {
     const canton = cantonSelect.value;
-    const parroquias = ubicacionCatalogo.parroquiasPorCanton[canton] || [];
+
+    actualizarCamposUbicacionManual();
+
+    if (canton === CANTON_OTRO) {
+        parroquiaSelect.innerHTML =
+            `<option value="">Use parroquia no listada</option>`;
+
+        parroquiaSelect.disabled = true;
+        return;
+    }
+
+    const parroquias =
+        ubicacionCatalogo.parroquiasPorCanton[canton] || [];
 
     parroquiaSelect.innerHTML = "";
 
     if (canton === "MANTA") {
-        parroquiaSelect.innerHTML = `<option value="">No aplica para este registro</option>`;
+        parroquiaSelect.innerHTML =
+            `<option value="">No aplica para este registro</option>`;
+
         parroquiaSelect.disabled = true;
         return;
     }
@@ -1598,11 +1998,14 @@ cantonSelect.addEventListener("change", () => {
     parroquiaSelect.disabled = false;
 
     if (parroquias.length === 0) {
-        parroquiaSelect.innerHTML = `<option value="">Sin parroquias configuradas</option>`;
+        parroquiaSelect.innerHTML =
+            `<option value="">Sin parroquias configuradas</option>`;
+
         return;
     }
 
-    parroquiaSelect.innerHTML = `<option value="">Seleccione...</option>`;
+    parroquiaSelect.innerHTML =
+        `<option value="">Seleccione...</option>`;
 
     parroquias.forEach((parroquia) => {
         const option = document.createElement("option");
@@ -2530,9 +2933,7 @@ function cargarOperacionParaEditar(idOperacion) {
     subTipoOperacion.value = operacion.sub_tipo_operacion;
 
     document.getElementById("provincia").value = operacion.provincia;
-    document.getElementById("canton").value = operacion.canton;
-    cantonSelect.dispatchEvent(new Event("change"));
-    document.getElementById("parroquia").value = operacion.parroquia;
+    cargarUbicacionOperacionEnFormulario(operacion);
 
     document.getElementById("sector").value = operacion.sector;
     document.getElementById("coordenadas").value = operacion.coordenadas;
@@ -3166,6 +3567,10 @@ async function cambiarEstadoOperacionAdmin(idOperacion, nuevoEstado) {
             usarLoader: false
         });
 
+        if (nuevoEstado === "VALIDADO") {
+            await actualizarFiltrosUbicacionDinamicaSistema();
+        }
+
         renderAuditoria();
 
         mostrarMensajeOperacionesAdmin(`Operación actualizada a estado ${nuevoEstado}.`, "success");
@@ -3488,6 +3893,10 @@ function configurarDashboard() {
     if (!dashboardPage) return;
 
     cargarFiltrosDashboard();
+    cargarUbicacionesDinamicasDesdeServidor()
+        .then(() => {
+            cargarFiltrosDashboard();
+        });
 
     const filtros = [
         "dashFechaDesde",
@@ -3584,22 +3993,23 @@ function configurarDashboard() {
 }
 
 function cargarFiltrosDashboard() {
-    const dashCanton = document.getElementById("dashCanton");
-    const dashCategoria = document.getElementById("dashCategoria");
+    const dashCanton =
+        document.getElementById("dashCanton");
+
+    const dashCategoria =
+        document.getElementById("dashCategoria");
 
     if (dashCanton) {
-        dashCanton.innerHTML = `<option value="">Todos</option>`;
-
-        ubicacionCatalogo.cantones.forEach((canton) => {
-            const option = document.createElement("option");
-            option.value = canton;
-            option.textContent = canton;
-            dashCanton.appendChild(option);
-        });
+        cargarOpcionesSelectUbicacion(
+            dashCanton,
+            "Todos",
+            obtenerCantonesParaFiltros()
+        );
     }
 
     if (dashCategoria) {
-        dashCategoria.innerHTML = `<option value="">Todas</option>`;
+        dashCategoria.innerHTML =
+            `<option value="">Todas</option>`;
 
         Object.keys(categoriasResultados).forEach((categoria) => {
             const option = document.createElement("option");
@@ -3634,22 +4044,21 @@ function cargarSubtiposDashboard() {
 }
 
 function cargarParroquiasDashboard() {
-    const dashCanton = document.getElementById("dashCanton");
-    const dashParroquia = document.getElementById("dashParroquia");
+    const dashCanton =
+        document.getElementById("dashCanton");
+
+    const dashParroquia =
+        document.getElementById("dashParroquia");
 
     if (!dashCanton || !dashParroquia) return;
 
     const canton = dashCanton.value;
-    const parroquias = ubicacionCatalogo.parroquiasPorCanton[canton] || [];
 
-    dashParroquia.innerHTML = `<option value="">Todas</option>`;
-
-    parroquias.forEach((parroquia) => {
-        const option = document.createElement("option");
-        option.value = parroquia;
-        option.textContent = parroquia;
-        dashParroquia.appendChild(option);
-    });
+    cargarOpcionesSelectUbicacion(
+        dashParroquia,
+        "Todas",
+        obtenerParroquiasParaFiltros(canton)
+    );
 }
 
 function cargarSubcategoriasDashboard() {
@@ -4476,6 +4885,10 @@ function configurarReportes() {
     if (!reportesPage) return;
 
     cargarFiltrosReportes();
+    cargarUbicacionesDinamicasDesdeServidor()
+        .then(() => {
+            cargarFiltrosReportes();
+        });
 
     const filtros = [
         "repFechaDesde",
@@ -4549,22 +4962,23 @@ function configurarReportes() {
 }
 
 function cargarFiltrosReportes() {
-    const repCanton = document.getElementById("repCanton");
-    const repCategoria = document.getElementById("repCategoria");
+    const repCanton =
+        document.getElementById("repCanton");
+
+    const repCategoria =
+        document.getElementById("repCategoria");
 
     if (repCanton) {
-        repCanton.innerHTML = `<option value="">Todos</option>`;
-
-        ubicacionCatalogo.cantones.forEach((canton) => {
-            const option = document.createElement("option");
-            option.value = canton;
-            option.textContent = canton;
-            repCanton.appendChild(option);
-        });
+        cargarOpcionesSelectUbicacion(
+            repCanton,
+            "Todos",
+            obtenerCantonesParaFiltros()
+        );
     }
 
     if (repCategoria) {
-        repCategoria.innerHTML = `<option value="">Todas</option>`;
+        repCategoria.innerHTML =
+            `<option value="">Todas</option>`;
 
         Object.keys(categoriasResultados).forEach((categoria) => {
             const option = document.createElement("option");
@@ -4599,24 +5013,22 @@ function cargarSubtiposReportes() {
 }
 
 function cargarParroquiasReportes() {
-    const repCanton = document.getElementById("repCanton");
-    const repParroquia = document.getElementById("repParroquia");
+    const repCanton =
+        document.getElementById("repCanton");
+
+    const repParroquia =
+        document.getElementById("repParroquia");
 
     if (!repCanton || !repParroquia) return;
 
     const canton = repCanton.value;
-    const parroquias = ubicacionCatalogo.parroquiasPorCanton[canton] || [];
 
-    repParroquia.innerHTML = `<option value="">Todas</option>`;
-
-    parroquias.forEach((parroquia) => {
-        const option = document.createElement("option");
-        option.value = parroquia;
-        option.textContent = parroquia;
-        repParroquia.appendChild(option);
-    });
+    cargarOpcionesSelectUbicacion(
+        repParroquia,
+        "Todas",
+        obtenerParroquiasParaFiltros(canton)
+    );
 }
-
 function cargarSubcategoriasReportes() {
     const repCategoria = document.getElementById("repCategoria");
     const repSubcategoria = document.getElementById("repSubcategoria");
@@ -4640,38 +5052,36 @@ function cargarSubcategoriasReportes() {
 function limpiarFiltrosReportes() {
     const fechaDesde = document.getElementById("repFechaDesde");
     const fechaHasta = document.getElementById("repFechaHasta");
-
     const tipo = document.getElementById("repTipo");
     const subtipo = document.getElementById("repSubtipo");
     const canton = document.getElementById("repCanton");
     const parroquia = document.getElementById("repParroquia");
     const categoria = document.getElementById("repCategoria");
     const subcategoria = document.getElementById("repSubcategoria");
-    const buscar = document.getElementById("repResponsable");
+    const responsable = document.getElementById("repResponsable");
+
+    /*
+     * Evita que una búsqueda pendiente vuelva a ejecutar
+     * el reporte con filtros anteriores.
+     */
+    clearTimeout(temporizadorBusquedaReportes);
 
     if (fechaDesde) fechaDesde.value = "";
     if (fechaHasta) fechaHasta.value = "";
-
-    // Reportes por defecto deben trabajar con operaciones validadas.
-    if (estado) estado.value = "VALIDADO";
-
     if (tipo) tipo.value = "";
     if (canton) canton.value = "";
     if (categoria) categoria.value = "";
-    if (buscar) buscar.value = "";
+    if (responsable) responsable.value = "";
 
-    // Recargar listas dependientes si existen estas funciones.
-    if (typeof cargarSubtiposReportes === "function") {
-        cargarSubtiposReportes();
-    }
-
-    if (typeof cargarParroquiasReportes === "function") {
-        cargarParroquiasReportes();
-    }
-
-    if (typeof cargarSubcategoriasReportes === "function") {
-        cargarSubcategoriasReportes();
-    }
+    /*
+     * Recarga los combos dependientes:
+     * - Subtipo depende de Tipo.
+     * - Parroquia depende de Cantón.
+     * - Subcategoría depende de Categoría.
+     */
+    cargarSubtiposReportes();
+    cargarParroquiasReportes();
+    cargarSubcategoriasReportes();
 
     if (subtipo) subtipo.value = "";
     if (parroquia) parroquia.value = "";
