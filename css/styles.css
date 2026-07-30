@@ -3781,3 +3781,13 @@ table {
   }
 }
 
+/* ============================= */
+/* REPORTES - CELDAS AGRUPADAS */
+/* ============================= */
+
+.report-table td.reporte-operacion-agrupada {
+  vertical-align: middle !important;
+  text-align: center !important;
+  font-weight: 600;
+  background: #FAF9FC;
+}

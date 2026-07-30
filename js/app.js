@@ -5895,36 +5895,106 @@ async function exportarReportePDF() {
     const logoGrupo = `${baseUrl}assets/logo-gcm12.png`;
     const logoEjercito = `${baseUrl}assets/logo-ejercito.png`;
 
-    const filasHtml = filas.map((fila) => `
-        <tr>
-            ${columnas.map((col) => {
-        let valor = fila[col.key] || "";
+} const conteoPorOperacionPdf = new Map();
+
+filas.forEach((fila, index) => {
+    const claveOperacion = String(
+        fila.id_operacion || `FILA-${index}`
+    );
+
+    const totalActual =
+        conteoPorOperacionPdf.get(claveOperacion) || 0;
+
+    conteoPorOperacionPdf.set(
+        claveOperacion,
+        totalActual + 1
+    );
+});
+
+const operacionesPdfYaPintadas = new Set();
+
+const filasHtml = filas.map((fila, index) => {
+    const claveOperacion = String(
+        fila.id_operacion || `FILA-${index}`
+    );
+
+    const primeraFilaOperacion =
+        !operacionesPdfYaPintadas.has(claveOperacion);
+
+    if (primeraFilaOperacion) {
+        operacionesPdfYaPintadas.add(claveOperacion);
+    }
+
+    const totalFilasOperacion =
+        conteoPorOperacionPdf.get(claveOperacion) || 1;
+
+    const celdas = columnas.map((col) => {
+        const esColumnaOperacion =
+            col.grupo === "operacion";
+
+        /*
+        * En el PDF, igual que en la tabla web,
+        * los datos generales de la operación
+        * solo se imprimen una vez.
+        */
+        if (
+            esColumnaOperacion &&
+            !primeraFilaOperacion
+        ) {
+            return "";
+        }
+
+        let valor = fila[col.key] ?? "";
 
         if (col.key === "fecha_operacion") {
             valor = formatearFecha(valor);
         }
 
-        return `<td>${escaparHtml(valor)}</td>`;
-    }).join("")}
-        </tr>
-    `).join("");
+        const valorSeguro = escaparHtml(
+            String(valor)
+        );
 
-    const encabezadoHtml = columnas.map((col) => `<th>${escaparHtml(col.titulo)}</th>`).join("");
+        if (esColumnaOperacion) {
+            return `
+                    <td
+                        rowspan="${totalFilasOperacion}"
+                        class="pdf-operacion-agrupada"
+                    >
+                        ${valorSeguro}
+                    </td>
+                `;
+        }
 
-    const ventana = window.open("", "_blank");
+        return `
+                <td class="pdf-resultado-celda">
+                    ${valorSeguro}
+                </td>
+            `;
+    }).join("");
 
-    if (!ventana) {
-        mostrarMensajeReportes("El navegador bloqueó la ventana emergente. Permita pop-ups para exportar PDF.", "error");
-        return;
-    }
+    return `
+            <tr>
+                ${celdas}
+            </tr>
+        `;
+}).join("");
 
-    const tituloReporte = reporteDetallado
-        ? "Reporte Operacional Detallado"
-        : "Reporte Operacional General";
+const encabezadoHtml = columnas.map((col) => `<th>${escaparHtml(col.titulo)}</th>`).join("");
+
+const ventana = window.open("", "_blank");
+
+if (!ventana) {
+    mostrarMensajeReportes("El navegador bloqueó la ventana emergente. Permita pop-ups para exportar PDF.", "error");
+    return;
+}
+
+const tituloReporte = reporteDetallado
+    ? "Reporte Operacional Detallado"
+    : "Reporte Operacional General";
 
 
 
-    ventana.document.write(`
+ventana.document.write(`
         <!DOCTYPE html>
         <html lang="es">
         <head>
@@ -6012,7 +6082,8 @@ async function exportarReportePDF() {
                 table {
                     width: 100%;
                     border-collapse: collapse;
-                    font-size: ${reporteDetallado ? "9px" : "10px"};
+                    table-layout: fixed;
+                    font-size: 8.5px;
                 }
 
                 th {
@@ -6028,6 +6099,29 @@ async function exportarReportePDF() {
                     border: 1px solid #d1d5db;
                     vertical-align: top;
                 }
+
+                th,
+                td {
+                    word-break: break-word;
+                    overflow-wrap: anywhere;
+                }
+                .pdf-operacion-agrupada {
+                    vertical-align: middle !important;
+                    text-align: center !important;
+                    font-weight: 700;
+                    background: #F3F0F8 !important;
+                    color: #111827;
+                }
+
+                .pdf-resultado-celda {
+                    vertical-align: top;
+                    text-align: left;
+                }
+
+                td:nth-child(11),
+                td:nth-child(12) {
+                    text-align: center;
+                }            
 
                 tr:nth-child(even) td {
                     background: #F9FAFB;
@@ -6174,15 +6268,15 @@ async function exportarReportePDF() {
         </body>
         </html>
     `);
-    registrarAuditoria(
-        "EXPORTAR_PDF",
-        "REPORTES",
-        "",
-        `Exportó reporte ${reporteDetallado ? "detallado" : "general"} en PDF`
-    );
-    ventana.document.close();
+registrarAuditoria(
+    "EXPORTAR_PDF",
+    "REPORTES",
+    "",
+    `Exportó reporte ${reporteDetallado ? "detallado" : "general"} en PDF`
+);
+ventana.document.close();
 
-    mostrarMensajeReportes("Vista PDF generada. Use Guardar como PDF en la ventana de impresión.", "success");
+mostrarMensajeReportes("Vista PDF generada. Use Guardar como PDF en la ventana de impresión.", "success");
 }
 
 
