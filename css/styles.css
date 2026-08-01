@@ -3791,3 +3791,404 @@ table {
   font-weight: 600;
   background: #FAF9FC;
 }
+
+/* ============================= */
+/* FILTRO MÚLTIPLE */
+/* ============================= */
+
+.multi-filter {
+  position: relative;
+  width: 100%;
+}
+
+.multi-filter-btn {
+  width: 100%;
+  min-height: 46px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 14px;
+
+  border-radius: 10px;
+  border: 1px solid #d7d4df;
+
+  background: #ffffff;
+  color: #1f1538;
+
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.multi-filter-btn::after {
+  content: "▾";
+  margin-left: 8px;
+  font-size: 12px;
+}
+
+.multi-filter-panel {
+  position: absolute;
+  z-index: 80;
+  left: 0;
+  top: calc(100% + 6px);
+
+  width: 100%;
+  max-height: 280px;
+  overflow-y: auto;
+
+  padding: 8px;
+
+  background: #ffffff;
+  border: 1px solid #d7d4df;
+  border-radius: 12px;
+
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.22);
+}
+
+.multi-filter-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+
+  padding: 9px 10px;
+  border-radius: 8px;
+
+  color: #1f1538;
+  font-size: 14px;
+  line-height: 1.25;
+
+  cursor: pointer;
+}
+
+.multi-filter-option:hover {
+  background: #f1edf8;
+}
+
+.multi-filter-option input {
+  margin-top: 2px;
+  accent-color: #361469;
+}
+
+.multi-filter-empty {
+  padding: 10px;
+  color: #6b6475;
+  font-size: 13px;
+}
+
+/* ============================= */
+/* CORRECCIÓN VISUAL FILTRO MÚLTIPLE DASHBOARD / REPORTES */
+/* ============================= */
+
+.multi-filter {
+  position: relative;
+  width: 100%;
+}
+
+/* Botón principal del filtro */
+.multi-filter-btn {
+  width: 100%;
+  height: 46px;
+  min-height: 46px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 14px;
+
+  border-radius: 10px;
+  border: 1px solid #d7d4df;
+
+  background: #f7f7fb;
+  color: #1f1538;
+
+  font-size: 14px;
+  font-weight: 800;
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.multi-filter-btn::after {
+  content: "▾";
+  font-size: 12px;
+  color: #1f1538;
+}
+
+/* Panel desplegable */
+.multi-filter-panel {
+  position: absolute;
+  z-index: 9999;
+
+  left: 0;
+  top: calc(100% + 8px);
+
+  width: 100%;
+  max-height: 280px;
+  overflow-y: auto;
+
+  padding: 8px;
+
+  background: #ffffff;
+  border: 1px solid #d7d4df;
+  border-radius: 12px;
+
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.28);
+}
+
+/* Cada opción */
+.multi-filter-option {
+  width: 100%;
+
+  display: grid !important;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 10px;
+
+  padding: 9px 10px;
+  margin: 0;
+
+  border-radius: 8px;
+
+  color: #1f1538 !important;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+
+  cursor: pointer;
+}
+
+/* Texto de la opción */
+.multi-filter-option span {
+  display: block;
+  color: #1f1538 !important;
+  white-space: normal;
+}
+
+/* Evita que el checkbox herede estilos grandes de los inputs generales */
+.multi-filter-option input[type="checkbox"] {
+  width: 16px !important;
+  min-width: 16px !important;
+  max-width: 16px !important;
+
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  appearance: auto !important;
+  -webkit-appearance: checkbox !important;
+
+  accent-color: #361469;
+
+  cursor: pointer;
+}
+
+/* Hover */
+.multi-filter-option:hover {
+  background: #f1edf8;
+}
+
+/* Opción seleccionada */
+.multi-filter-option:has(input[type="checkbox"]:checked) {
+  background: #e9e2f5;
+  color: #361469 !important;
+}
+
+/* Texto seleccionado */
+.multi-filter-option:has(input[type="checkbox"]:checked) span {
+  color: #361469 !important;
+  font-weight: 800;
+}
+
+/* Mensaje sin opciones */
+.multi-filter-empty {
+  padding: 10px;
+  color: #6b6475;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Scroll del panel */
+.multi-filter-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.multi-filter-panel::-webkit-scrollbar-track {
+  background: #f1edf8;
+  border-radius: 999px;
+}
+
+.multi-filter-panel::-webkit-scrollbar-thumb {
+  background: #b6acc9;
+  border-radius: 999px;
+}
+
+.multi-filter-panel::-webkit-scrollbar-thumb:hover {
+  background: #8f82a7;
+}
+
+/* ============================= */
+/* CORRECCIÓN Z-INDEX FILTRO MÚLTIPLE */
+/* ============================= */
+
+/*
+ * Permite que los desplegables de filtros
+ * puedan mostrarse por encima del dashboard.
+ */
+#dashboardPage .dashboard-panel,
+#dashboardPage .dashboard-container,
+#dashboardPage .dash-filters,
+#dashboardPage .dash-filters-panel,
+#dashboardPage .filters-card,
+#dashboardPage .filters-grid,
+#dashboardPage .form-grid {
+  overflow: visible !important;
+}
+
+/*
+ * Eleva la zona de filtros sobre las tarjetas
+ * de resumen cuando se abre un filtro múltiple.
+ */
+#dashboardPage .multi-filter {
+  position: relative;
+  z-index: 5000;
+}
+
+#dashboardPage .multi-filter-panel {
+  z-index: 99999 !important;
+}
+
+/*
+ * Baja visualmente las tarjetas del dashboard
+ * para que no tapen el desplegable.
+ */
+#dashboardPage .dash-summary-grid,
+#dashboardPage .dash-metrics-grid,
+#dashboardPage .dash-neon-panel,
+#dashboardPage .dash-table-panel,
+#dashboardPage .dash-tabs {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * Cuando el filtro tiene opciones seleccionadas,
+ * se nota como filtro activo.
+ */
+.multi-filter-btn.multi-filter-active {
+  border-color: #ffcc00 !important;
+  box-shadow:
+    0 0 0 2px rgba(255, 204, 0, 0.18),
+    0 8px 18px rgba(0, 0, 0, 0.10);
+}
+
+/*
+ * Estado breve mientras aplica.
+ */
+.multi-filter-btn.multi-filter-loading {
+  opacity: 0.88;
+  cursor: wait;
+}
+
+/* ============================= */
+/* ANCHO ESPECIAL SUBTIPOS */
+/* ============================= */
+
+#dashSubtipoMulti .multi-filter-panel,
+#repSubtipoMulti .multi-filter-panel {
+  min-width: 360px;
+}
+
+#dashSubtipoMulti .multi-filter-option,
+#repSubtipoMulti .multi-filter-option {
+  align-items: flex-start;
+}
+
+#dashSubtipoMulti .multi-filter-option span,
+#repSubtipoMulti .multi-filter-option span {
+  line-height: 1.25;
+}
+
+/* ============================= */
+/* FILTRO MÚLTIPLE SIEMPRE ENCIMA */
+/* ============================= */
+
+/* El dashboard debe permitir que el desplegable salga por encima */
+#dashboardPage .dashboard-tactical,
+#dashboardPage .dash-filter-card,
+#dashboardPage #dashFiltersBody,
+#dashboardPage .filters-grid,
+#dashboardPage .field {
+  overflow: visible !important;
+}
+
+/* La tarjeta de filtros debe estar encima de tabs, tarjetas y gráficos */
+#dashboardPage .dash-filter-card {
+  position: relative !important;
+  z-index: 50000 !important;
+}
+
+/* El cuerpo de filtros también queda elevado */
+#dashboardPage #dashFiltersBody {
+  position: relative !important;
+  z-index: 50001 !important;
+}
+
+/* El filtro de subtipo queda por encima de todo el contenido del dashboard */
+#dashboardPage #dashSubtipoMulti {
+  position: relative !important;
+  z-index: 50002 !important;
+}
+
+#dashboardPage #dashSubtipoPanel {
+  position: absolute !important;
+  z-index: 50003 !important;
+}
+
+/* Todo lo demás del dashboard queda por debajo */
+#dashboardPage .dash-tabs,
+#dashboardPage .dash-tab-content,
+#dashboardPage .dash-summary-grid,
+#dashboardPage .dash-chart-grid,
+#dashboardPage .dash-neon-panel,
+#dashboardPage .dash-card-grid,
+#dashboardPage .dash-table-panel {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* También aplica para Reportes */
+#reportesPage .panel-card,
+#reportesPage .report-filters,
+#reportesPage .filters-grid,
+#reportesPage .field {
+  overflow: visible !important;
+}
+
+#reportesPage .report-filters {
+  position: relative !important;
+  z-index: 50000 !important;
+}
+
+#reportesPage #repSubtipoMulti {
+  position: relative !important;
+  z-index: 50002 !important;
+}
+
+#reportesPage #repSubtipoPanel {
+  position: absolute !important;
+  z-index: 50003 !important;
+}
+
+#reportesPage .report-summary,
+#reportesPage .table-wrapper {
+  position: relative !important;
+  z-index: 1 !important;
+}

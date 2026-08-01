@@ -1096,11 +1096,16 @@ function configurarResponsableOperacionSegunRol(modo = "nuevo") {
     const rol = String(usuarioActual.rol || "").trim();
 
     /*
-     * El administrador registra operaciones ejecutadas
-     * por otros responsables. Por eso puede escribir
-     * manualmente el grado y el nombre.
+     * ADMIN y COMANDANTE_ECO pueden ingresar manualmente
+     * el grado y el responsable real de la operación.
+     *
+     * Esto permite usar un solo usuario COMANDANTE_ECO
+     * para varios comandantes que registren operaciones.
      */
-    if (rol === "ADMIN") {
+    if (
+        rol === "ADMIN" ||
+        rol === "COMANDANTE_ECO"
+    ) {
         responsableInput.readOnly = false;
         gradoResponsableInput.disabled = false;
 
@@ -1111,28 +1116,6 @@ function configurarResponsableOperacionSegunRol(modo = "nuevo") {
 
         responsableInput.placeholder =
             "Ingrese nombres y apellidos del responsable";
-
-        return;
-    }
-
-    /*
-     * El Comandante de ECO registra sus propias operaciones.
-     * Por eso el sistema mantiene su grado y nombre bloqueados.
-     */
-    if (rol === "COMANDANTE_ECO") {
-        if (modo === "nuevo") {
-            responsableInput.value =
-                `${usuarioActual.nombres} ${usuarioActual.apellidos}`;
-
-            gradoResponsableInput.value =
-                usuarioActual.grado;
-        }
-
-        responsableInput.readOnly = true;
-        gradoResponsableInput.disabled = true;
-
-        responsableInput.placeholder =
-            "Responsable cargado desde la sesión";
 
         return;
     }
@@ -1710,7 +1693,9 @@ async function crearNuevaOperacion() {
         responsable: normalizarTextoMayusculas(
             document.getElementById("responsable").value
         ),
-        grado_responsable: document.getElementById("gradoResponsable").value.trim(),
+        grado_responsable: normalizarTextoMayusculas(
+            document.getElementById("gradoResponsable").value
+        ),
         num_oficiales: Number(document.getElementById("numOficiales").value),
         num_vol: Number(document.getElementById("numVol").value),
         num_sldr: Number(document.getElementById("numSldr").value),
@@ -1801,7 +1786,9 @@ async function actualizarOperacionExistente() {
         responsable: normalizarTextoMayusculas(
             document.getElementById("responsable").value
         ),
-        grado_responsable: document.getElementById("gradoResponsable").value.trim(),
+        grado_responsable: normalizarTextoMayusculas(
+            document.getElementById("gradoResponsable").value
+        ),
         num_oficiales: Number(document.getElementById("numOficiales").value),
         num_vol: Number(document.getElementById("numVol").value),
         num_sldr: Number(document.getElementById("numSldr").value),
@@ -3810,7 +3797,8 @@ function obtenerFiltrosDashboardServidor() {
         fecha_desde: document.getElementById("dashFechaDesde")?.value || "",
         fecha_hasta: document.getElementById("dashFechaHasta")?.value || "",
         tipo_operacion: document.getElementById("dashTipo")?.value || "",
-        sub_tipo_operacion: document.getElementById("dashSubtipo")?.value || "",
+        sub_tipo_operacion: "",
+        sub_tipos_operacion: obtenerValoresFiltroMultiple("dashSubtipo"),
         canton: document.getElementById("dashCanton")?.value || "",
         parroquia: document.getElementById("dashParroquia")?.value || "",
         categoria: document.getElementById("dashCategoria")?.value || "",
@@ -3887,6 +3875,150 @@ function prepararScrollTablasDashboard() {
         panel.dataset.scrollPreparado = "SI";
     });
 }
+
+function obtenerValoresFiltroMultiple(hiddenId) {
+    const valor = document.getElementById(hiddenId)?.value || "";
+
+    return valor
+        .split("||")
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
+function actualizarTextoBotonFiltroMultiple(btn, valores) {
+    if (!btn) return;
+
+    if (!valores || valores.length === 0) {
+        btn.textContent = "Todos";
+        return;
+    }
+
+    if (valores.length === 1) {
+        btn.textContent = valores[0];
+        return;
+    }
+
+    btn.textContent = `${valores.length} seleccionados`;
+}
+
+function cerrarFiltrosMultiplesAbiertos(exceptoPanel = null) {
+    document.querySelectorAll(".multi-filter-panel").forEach((panel) => {
+        if (panel !== exceptoPanel) {
+            panel.classList.add("hidden");
+        }
+    });
+}
+
+function cargarFiltroMultiple({
+    hiddenId,
+    btnId,
+    panelId,
+    opciones,
+    onChange
+}) {
+    const hidden = document.getElementById(hiddenId);
+    const btn = document.getElementById(btnId);
+    const panel = document.getElementById(panelId);
+
+    if (!hidden || !btn || !panel) return;
+
+    hidden.value = "";
+    panel.innerHTML = "";
+
+    const opcionesValidas = opciones || [];
+
+    if (opcionesValidas.length === 0) {
+        panel.innerHTML = `
+            <div class="multi-filter-empty">
+                Sin opciones disponibles
+            </div>
+        `;
+
+        actualizarTextoBotonFiltroMultiple(btn, []);
+        return;
+    }
+
+    opcionesValidas.forEach((opcion) => {
+        const idCheckbox =
+            `${hiddenId}_${opcion}`
+                .replace(/\W+/g, "_");
+
+        const label = document.createElement("label");
+        label.className = "multi-filter-option";
+
+        label.innerHTML = `
+            <input
+                type="checkbox"
+                value="${escaparHtml(opcion)}"
+                id="${escaparHtml(idCheckbox)}"
+            />
+            <span>${escaparHtml(opcion)}</span>
+        `;
+
+        panel.appendChild(label);
+    });
+
+    actualizarTextoBotonFiltroMultiple(btn, []);
+
+    if (!btn.dataset.multiReady) {
+        btn.addEventListener("click", () => {
+            const estaCerrado =
+                panel.classList.contains("hidden");
+
+            cerrarFiltrosMultiplesAbiertos(panel);
+
+            panel.classList.toggle("hidden", !estaCerrado);
+        });
+
+        btn.dataset.multiReady = "SI";
+    }
+
+    panel.onchange = () => {
+        const valores = Array.from(
+            panel.querySelectorAll("input[type='checkbox']:checked")
+        ).map((checkbox) => checkbox.value);
+
+        hidden.value = valores.join("||");
+
+        actualizarTextoBotonFiltroMultiple(btn, valores);
+
+        /*
+         * Marca visualmente que el filtro está activo.
+         */
+        btn.classList.toggle(
+            "multi-filter-active",
+            valores.length > 0
+        );
+
+        /*
+         * Muestra una señal breve de que se está aplicando
+         * el filtro.
+         */
+        const textoAnterior = btn.textContent;
+
+        btn.classList.add("multi-filter-loading");
+        btn.textContent = valores.length > 0
+            ? "Aplicando filtro..."
+            : "Limpiando filtro...";
+
+        setTimeout(() => {
+            actualizarTextoBotonFiltroMultiple(btn, valores);
+            btn.classList.remove("multi-filter-loading");
+        }, 450);
+
+        hidden.dispatchEvent(new Event("change"));
+
+        if (typeof onChange === "function") {
+            onChange(valores);
+        }
+    };
+}
+
+document.addEventListener("click", (event) => {
+    if (!event.target.closest(".multi-filter")) {
+        cerrarFiltrosMultiplesAbiertos();
+    }
+});
 
 function configurarDashboard() {
     const dashboardPage = document.getElementById("dashboardPage");
@@ -4052,20 +4184,19 @@ function cargarFiltrosDashboard() {
 
 function cargarSubtiposDashboard() {
     const dashTipo = document.getElementById("dashTipo");
-    const dashSubtipo = document.getElementById("dashSubtipo");
 
-    if (!dashTipo || !dashSubtipo) return;
+    if (!dashTipo) return;
 
     const tipo = dashTipo.value;
-    const opciones = tipo ? (subtiposOperacion[tipo] || []) : [];
+    const opciones = tipo
+        ? (subtiposOperacion[tipo] || [])
+        : [];
 
-    dashSubtipo.innerHTML = `<option value="">Todos</option>`;
-
-    opciones.forEach((subtipo) => {
-        const option = document.createElement("option");
-        option.value = subtipo;
-        option.textContent = subtipo;
-        dashSubtipo.appendChild(option);
+    cargarFiltroMultiple({
+        hiddenId: "dashSubtipo",
+        btnId: "dashSubtipoBtn",
+        panelId: "dashSubtipoPanel",
+        opciones
     });
 }
 
@@ -4134,7 +4265,10 @@ function limpiarFiltrosDashboard() {
     cargarParroquiasDashboard();
     cargarSubcategoriasDashboard();
 
-    if (subtipo) subtipo.value = "";
+    if (subtipo) {
+        subtipo.value = "";
+        subtipo.dispatchEvent(new Event("change"));
+    }
     if (parroquia) parroquia.value = "";
     if (subcategoria) subcategoria.value = "";
 
@@ -4307,7 +4441,7 @@ function obtenerDatosDashboardFiltrados() {
     const fechaHasta = document.getElementById("dashFechaHasta")?.value || "";
     const estado = "VALIDADO";
     const tipo = document.getElementById("dashTipo")?.value || "";
-    const subtipo = document.getElementById("dashSubtipo")?.value || "";
+    const subtipos = obtenerValoresFiltroMultiple("dashSubtipo");
     const canton = document.getElementById("dashCanton")?.value || "";
     const parroquia = document.getElementById("dashParroquia")?.value || "";
     const categoria = document.getElementById("dashCategoria")?.value || "";
@@ -4320,7 +4454,9 @@ function obtenerDatosDashboardFiltrados() {
         const okFechaHasta = !fechaHasta || fechaOperacion <= fechaHasta;
         const okEstado = op.estado_operacion === estado;
         const okTipo = !tipo || op.tipo_operacion === tipo;
-        const okSubtipo = !subtipo || op.sub_tipo_operacion === subtipo;
+        const okSubtipo =
+            subtipos.length === 0 ||
+            subtipos.includes(op.sub_tipo_operacion);
         const okCanton = !canton || op.canton === canton;
         const okParroquia = !parroquia || op.parroquia === parroquia;
 
@@ -5218,7 +5354,8 @@ function obtenerFiltrosReportes() {
         fecha_hasta: document.getElementById("repFechaHasta")?.value || "",
 
         tipo_operacion: document.getElementById("repTipo")?.value || "",
-        sub_tipo_operacion: document.getElementById("repSubtipo")?.value || "",
+        sub_tipo_operacion: "",
+        sub_tipos_operacion: obtenerValoresFiltroMultiple("repSubtipo"),
         canton: document.getElementById("repCanton")?.value || "",
         parroquia: document.getElementById("repParroquia")?.value || "",
         categoria: document.getElementById("repCategoria")?.value || "",
@@ -5237,7 +5374,7 @@ async function cargarPaginaReportes(page = 1, opciones = {}) {
         filtros: obtenerFiltrosReportes()
     }, {
         usarLoader,
-        textoLoader: "Cargando reportes."
+        textoLoader: "Cargando reportes..."
     });
 
     filasReporteActuales = data.filas || [];
@@ -5311,7 +5448,12 @@ function configurarReportes() {
         const element = document.getElementById(id);
         if (!element) return;
 
-        const evento = element.tagName === "INPUT" ? "input" : "change";
+        const evento =
+            element.type === "hidden"
+                ? "change"
+                : element.tagName === "INPUT"
+                    ? "input"
+                    : "change";
 
         element.addEventListener(evento, () => {
             clearTimeout(temporizadorBusquedaReportes);
@@ -5401,22 +5543,22 @@ function cargarFiltrosReportes() {
     cargarSubcategoriasReportes();
 }
 
+
 function cargarSubtiposReportes() {
     const repTipo = document.getElementById("repTipo");
-    const repSubtipo = document.getElementById("repSubtipo");
 
-    if (!repTipo || !repSubtipo) return;
+    if (!repTipo) return;
 
     const tipo = repTipo.value;
-    const opciones = tipo ? (subtiposOperacion[tipo] || []) : [];
+    const opciones = tipo
+        ? (subtiposOperacion[tipo] || [])
+        : [];
 
-    repSubtipo.innerHTML = `<option value="">Todos</option>`;
-
-    opciones.forEach((subtipo) => {
-        const option = document.createElement("option");
-        option.value = subtipo;
-        option.textContent = subtipo;
-        repSubtipo.appendChild(option);
+    cargarFiltroMultiple({
+        hiddenId: "repSubtipo",
+        btnId: "repSubtipoBtn",
+        panelId: "repSubtipoPanel",
+        opciones
     });
 }
 
@@ -5491,7 +5633,10 @@ function limpiarFiltrosReportes() {
     cargarParroquiasReportes();
     cargarSubcategoriasReportes();
 
-    if (subtipo) subtipo.value = "";
+    if (subtipo) {
+        subtipo.value = "";
+        subtipo.dispatchEvent(new Event("change"));
+    }
     if (parroquia) parroquia.value = "";
     if (subcategoria) subcategoria.value = "";
 

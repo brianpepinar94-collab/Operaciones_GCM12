@@ -746,9 +746,15 @@
 
                                 <div class="field">
                                     <label>Subtipo de operación</label>
-                                    <select id="dashSubtipo">
-                                        <option value="">Todos</option>
-                                    </select>
+                                    <input type="hidden" id="dashSubtipo" value="" />
+
+                                    <div class="multi-filter" id="dashSubtipoMulti">
+                                        <button type="button" class="multi-filter-btn" id="dashSubtipoBtn">
+                                            Todos
+                                        </button>
+
+                                        <div class="multi-filter-panel hidden" id="dashSubtipoPanel"></div>
+                                    </div>
                                 </div>
 
                                 <div class="field">
@@ -1403,9 +1409,15 @@
 
                         <div class="field">
                             <label>Subtipo de operación</label>
-                            <select id="repSubtipo">
-                                <option value="">Todos</option>
-                            </select>
+                            <input type="hidden" id="repSubtipo" value="" />
+
+                            <div class="multi-filter" id="repSubtipoMulti">
+                                <button type="button" class="multi-filter-btn" id="repSubtipoBtn">
+                                    Todos
+                                </button>
+
+                                <div class="multi-filter-panel hidden" id="repSubtipoPanel"></div>
+                            </div>
                         </div>
 
                         <div class="field">
